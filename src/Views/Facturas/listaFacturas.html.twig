@@ -1,0 +1,232 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+
+{{ parent() }}
+<style>
+    * {
+        font-size:13px;
+    }
+
+    .listado::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .listado::-webkit-scrollbar-thumb {
+        background-color: #dee2e6;
+        border-radius: 20px;
+    }
+
+    body {
+        overflow-x: hidden;
+    }
+
+    .text {
+        font-size:13px;
+    }
+
+    .filter-option-inner {
+        font-size:13px;
+    }
+
+    .logo {
+        animation: animarLogo 2s linear infinite;
+    }
+    
+    .loader {
+        top: 2px;
+        left: 10px;
+        width: 40px;
+        height: 40px;
+        display: block;
+        position:absolute;
+        border-radius: 50%;
+        border: 6px solid #f3f3f3;
+        border-top: 6px solid #007BFF;
+        animation: spin 2s linear infinite, cambiarColorLogo 20s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {transform: rotate(0deg)}
+        100% {transform: rotate(360deg)}
+    }
+
+    @keyframes animarLogo {
+        0% {transform:scale(0.2)}
+        50% {transform:scale(0.3)}
+        100% {transform:scale(0.2)}
+    }
+
+    @keyframes cambiarColorLogo {
+        0% {border-top: 6px solid #007BFF}
+        50% {border-top: 6px solid #28A745}
+        75% {border-top: 6px solid #DC3545}
+        100% {border-top: 6px solid #007BFF}
+    }
+
+    .btn dropdown-toggle.bs-placeholder.btn-light {
+        border: 1px solid #d0d4da;
+    }
+
+    .btn.dropdown-toggle.btn-light {
+        border: 1px solid #d0d4da;
+    }
+</style>
+<div class="container-fluid" data-turbo="true" 
+    {{ stimulus_controller('facturas--facturas', 
+        {
+            'urlGuardarFactura' : path('facturas_guardar_factura'),
+            'urlEliminarFactura' : path('facturas_eliminar_factura'),
+            'urlFrameNuevoFactura' : path('facturas_frame_nuevo_factura'),
+            'urlActualizarListaFactura' : path('facturas_frame_lista_factura')
+        }
+    )}}
+>
+    <div class="col-12 animate__animated animate__fadeIn" style="display:flex; align-items:center; justify-content:center">
+        <div class="card shadow-lg mb-5 bg-white rounded" style="width:85%">
+            <div class="card-body">
+                <div class="list-group-item active font-weight-bold" style="font-size:13px">Listado de {{ 'Facturas'|lower() }}<span class="animate__animated animate__flipInX" style="float:right; display:none; font-size:13px" id="totalRegistros">Total registros: 0</span></div>
+                <div class="list-group-item">
+                    {{ form_start(formFiltros, {'attr' : {'class' : 'mb-0', 'data-facturas--facturas-target' : 'formFiltros'}}) }}
+                        <div class="row ">
+                            <div class="col-4 pr-0">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        {{ form_label(formFiltros.fecha,formFiltros.fecha, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:83px'}}) }}
+                                    </div>
+                                    {{ form_widget(formFiltros.fecha, {'attr' : {'class' : 'form-control', 'data-action' : 'blur->facturas--facturas#actualizarListaFactura'}})}}
+                                    
+                                </div>
+                            </div>
+                            <div class="col-4 pr-0">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        {{ form_label(formFiltros.numero,formFiltros.numero, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:76px'}}) }}
+                                    </div>
+                                    {{ form_widget(formFiltros.numero, {'attr' : {'class' : 'form-control', 'data-action' : 'blur->facturas--facturas#actualizarListaFactura'}})}}
+                                    
+                                </div>
+                            </div>
+                            <div class="col-4 ">
+                                <div class="input-group">
+                                    {{ form_label(formFiltros.permiteActivar,formFiltros.permiteActivar, {'label_attr' : {'class' : 'form-control input-group-text font-weight-bold' }} ) }}
+                                    <div class="input-group-text d-flex justify-content-center" style="background: white; width:auto">
+                                        <div class="custom-control custom-switch">
+                                            {{ form_widget(formFiltros.permiteActivar, {'attr' : {'class' : 'custom-control-input', 'data-action' : 'facturas--facturas#actualizarListaFactura'}}) }}
+                                            <label class="custom-control-label" for="filtros_busqueda_permiteActivar"></label>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-4 pr-0">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        {{ form_label(formFiltros.producto,formFiltros.producto, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:83px'}}) }}
+                                    </div>
+                                    {{ form_widget(formFiltros.producto, {'attr' : 
+                                        {
+                                            'data-size':'10',
+                                            'data-width':'50%',
+                                            'data-action' : 'facturas--facturas#actualizarListaFactura',
+                                            'class' : 'form-control selectpicker'
+                                        }
+                                    })}}
+                                    
+                                </div>
+                            </div>
+                            <div class="col-8 ">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        {{ form_label(formFiltros.usuario,formFiltros.usuario, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:76px'}}) }}
+                                    </div>
+                                    {{ form_widget(formFiltros.usuario, {'attr' : 
+                                        {
+                                            'data-size':'10',
+                                            'data-width':'50%',
+                                            'data-action' : 'facturas--facturas#actualizarListaFactura',
+                                            'class' : 'form-control selectpicker'
+                                        }
+                                    })}}
+                                    <button class="btn btn-primary" type="button" style="margin-left:10px" data-id="0" data-action="facturas--facturas#showModalNuevoFactura" id="btnNuevoFactura"><i class="fas fa-external-link-alt"></i> Nuevo</button>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    {{ form_end(formFiltros) }}
+                </div>
+                <div class="list-group-item" style="overflow:hidden">
+                    <div style="display:none" data-facturas--facturas-target="cargandoFiltros" id="cargandoFiltros">
+                        <div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; margin-left:-18px; margin-top:-10px; opacity:0.6"></div>
+                        <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; margin-left:-18px; margin-top:-10px; display:flex; align-items:center; justify-content:center">
+                            <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+                                <div style="position:relative;">
+                                    <div class="loader"></div>
+                                    <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                                </div>
+                                <b style="font-size:13px">Cargando información...</b>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="list-group-item p-0" style="border:none" data-facturas--facturas-target="frameListaFactura">
+                        <div class="animate__animated animate__flipInX" style="display:flex; align-items:center; justify-content:center; height:60px">
+                            <div style="position:relative;">
+                                <div class="loader"></div>
+                                <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="list-group-item">
+                    <a href="#" target="_top" class="btn btn-danger" id="btnRegresar"><i class="fas fa-caret-left"></i> Regresar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Modal para crear nuevos registros #}
+    {# --------------------------------- #}
+
+    <div id="modalNuevoFactura" class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header btn-primary font-weight-bold" style="display:flex; align-items:center">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <i id="iconoModalNuevo" class="fas" style="font-size:12px; margin-top:1px"></i>
+                        <span id="tituloModalNuevo"></span>
+                    </div>
+                    <button type="button" class="close" onclick="$('#modalNuevoFactura').modal('hide')" style="display:flex; align-items:center"><i class="fas fa-times" style="color:white; font-size:12px"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="list-group-item pr-0 pl-0" style="border:none">
+                        <turbo-frame id="frameNuevoFactura" src="{{ path('facturas_frame_nuevo_factura') }}" data-facturas--facturas-target="frameNuevoFactura">
+                            <div style="height:40px">
+                                <div data-facturas--facturas-target="cargandoFrameNuevoFactura">
+                                    <div style="position:absolute; width:100%; height:100%; background:white; z-index:2; opacity:0.6"></div>
+                                    <div class="animate__animated animate__fadeIn" style="position:absolute; z-index:3; width:100%; height:100%; display:flex; align-items:center; justify-content:center">
+                                        <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+                                            <div style="position:relative;">
+                                                <div class="loader"></div>
+                                                <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                                            </div>
+                                            <b style="font-size:13px">Cargando información...</b>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="container-fluid" style="margin-top:20px;">
+                                <hr>
+                                <button type="button" class="btn btn-success" disabled><i class="fas fa-save"></i> Guardar</button>
+                                <button type="button" class="btn btn-danger" disabled><i class="fas fa-ban"></i> Cancelar</button>
+                            </div>
+                        </turbo-frame>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

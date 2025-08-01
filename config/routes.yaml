@@ -1,3 +1,30 @@
-#index:
-#    path: /
-#    controller: App\Controller\DefaultController::index
+api_perfil:
+  path: /api/perfil
+  controller: App\Controller\PerfilController::index
+  methods: 'POST'
+
+api_login_check:
+  path: /api/login_check
+
+login:
+  path: /
+  controller: App\Controller\LoginController::login
+
+reclamos:
+  path: /reclamos
+  controller: App\Controller\ReclamosController::reclamos
+
+shopify:
+  path: /shopify
+  controller: App\Controller\ShopifyController::index
+
+cargar_factura:
+  path: /cargarFactura
+  controller: App\Controller\LoginController::cargarFactura
+
+frame_factura:
+  path: /frameFactura
+  controller: App\Controller\LoginController::frameFactura
+
+facturas:
+  resource: "../src/Routing/Facturas.yaml"

@@ -1,0 +1,84 @@
+<turbo-frame id="frameNuevoPedido" class="animate__animated animate__fadeIn">
+    <div style="display:none" data-facturas--pedidos-target="cargandoFrameNuevoPedido">
+        <div style="position:absolute; width:100%; height:100%; background:white; z-index:2; opacity:0.6"></div>
+        <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; display:flex; align-items:center; justify-content:center">
+            <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+                <div style="position:relative;">
+                    <div class="loader"></div>
+                    <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                </div>
+                <b style="font-size:13px">Cargando información...</b>
+            </div>
+        </div>
+    </div>
+    {{ form_start(formularioPrincipal, {'attr' : {'class' : 'mb-0', 'data-facturas--pedidos-target' : 'formularioPrincipal', 'data-action' : 'facturas--pedidos#guardarPedido'}}) }}
+        <div class="container-fluid">
+                <div class="row ">
+            <div class="col-4 pr-0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formularioPrincipal.cantidadProductos,formularioPrincipal.cantidadProductos, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:146px'}}) }}
+                    </div>
+                    {{ form_widget(formularioPrincipal.cantidadProductos, {'attr' : {'class' : 'form-control camposNumericos', 'data-action' : 'facturas--pedidos#formatearCampo' }})}}
+                </div>
+            </div>
+            <div class="col-4 pr-0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formularioPrincipal.cotizacion,formularioPrincipal.cotizacion, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:97px'}}) }}
+                    </div>
+                    {{ form_widget(formularioPrincipal.cotizacion, {'attr' : 
+                        {
+                            'data-size':'10',
+                            'data-width':'50%',
+                            'data-action' : 'facturas--pedidos#formatearCampo',
+                            'class' : 'form-control selectpicker'
+                        }
+                    })}}
+                </div>
+            </div>
+            <div class="col-4 ">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formularioPrincipal.fecha,formularioPrincipal.fecha, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:62px'}}) }}
+                    </div>
+                    {{ form_widget(formularioPrincipal.fecha, {'attr' : {'class' : 'form-control ', 'data-action' : '' }})}}
+                </div>
+            </div>
+
+        </div>
+        <div class="row mt-2">
+            <div class="col-4 pr-0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formularioPrincipal.usuario,formularioPrincipal.usuario, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:146px'}}) }}
+                    </div>
+                    {{ form_widget(formularioPrincipal.usuario, {'attr' : 
+                        {
+                            'data-size':'10',
+                            'data-width':'50%',
+                            'data-action' : '',
+                            'class' : 'form-control selectpicker'
+                        }
+                    })}}
+                </div>
+            </div>
+            <div class="col-8 ">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formularioPrincipal.valor,formularioPrincipal.valor, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:97px'}}) }}
+                    </div>
+                    {{ form_widget(formularioPrincipal.valor, {'attr' : {'class' : 'form-control camposNumericos', 'data-action' : 'facturas--pedidos#formatearCampo' }})}}
+                </div>
+            </div>
+
+        </div>
+
+        </div>
+        <div class="container-fluid" style="margin-top:20px;">
+            <hr>
+            <button type="submit" class="btn btn-success" id="btnGuardarPedido"><i class="fas fa-save"></i> Guardar</button>
+            <button type="button" class="btn btn-danger" onclick="$('#modalNuevoPedido').modal('hide')"><i class="fas fa-ban"></i> Cancelar</button>
+        </div>
+    {{ form_end(formularioPrincipal) }}
+</turbo-frame>

@@ -1,0 +1,171 @@
+<div class="row animate__animated animate__fadeIn" style=
+"
+    width:620px; 
+    overflow:hidden; 
+    background:white; 
+    position:relative; 
+    border-radius:15px; 
+    border:1px solid #80808085; 
+    padding:30px 15px 20px 15px; 
+    filter:drop-shadow(2px 4px 6px gray);
+">
+    <div class="col-12">
+        <div style=
+        "
+            top: -15px;
+            z-index: -1;
+            left: -33px;
+            height: 85px;
+            width: 523px;
+            position:absolute;     
+            background: #80808026;
+            transform: skewX(38deg);
+            border-radius: 0px 31px 0px 11px;
+        "></div>
+        <div style=
+        "
+            top:3px;
+            height: 50px;
+            width: 210px;
+            right: -44px;
+            position:absolute;     
+            background: #17A3B8;
+            border-radius: 0px 0px 0px 28px;
+            transform: skewX(38deg) rotateX(334deg);
+        ">
+        </div>
+        <span class="montserrat" style="position:absolute; color:white; font-size:13px; right:31px; top:17px">Factura N° 1</span>
+        <div style="display:flex; align-items:center; gap:10px">
+            <img src="{{ asset('Imgs/logo.png') }}" style="transform:scale(0.7)">
+            <div style="display:flex; justify-content:center; flex-direction:column; gap:3px">
+                <span class="montserrat">COMPUCONTA S.A.S</span>
+                <div style="display:flex; align-items:center; gap:5px">
+                    <i class="fas fa-map-marker-alt" style="font-size:11px"></i>
+                    <span class="montserrat-text" style="font-size:10px">Calle 20 No. 28-61 Edificio El Doral Oficina 201.</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:5px">
+                    <i class="fas fa-phone" style="font-size:11px"></i>
+                    <span class="montserrat-text" style="font-size:10px">601 915 8777</span>
+                </div>
+            </div>
+        </div>
+        <div class="animate__animated animate__flipInX" style="position:relative; margin-top:35px; margin-left:20px; width:fit-content; display:flex; align-items:center; justify-content:center; gap:5px">
+            <i class="fas fa-info-circle" style="font-size:13px"></i>
+            <span class="montserrat" style="font-size:12px;">Información de la factura</span>
+        </div>
+        <hr style="margin-left:15px; margin-right:15px">
+        <div class="listado animate__animated animate__fadeIn animate__delay-1s" style="margin-top:25px; padding:3px; overflow-y:auto; overflow-x:hidden; transition:all 0.5s ease">
+            <div style="display:flex; align-items:center; justify-content:center;">
+                <table border="0" cellspacing="0" cellpadding="0">
+                    <tr class="montserrat">
+                        <td>
+                            <div style=
+                            "
+                                color:white; 
+                                width:50px; 
+                                font-size:10px;
+                                font-weight:bold; 
+                                position:relative;
+                                text-align:center;
+                                background:#0a5561;
+                                padding:6px 10px 6px 12px; 
+                                border-radius:15px 5px 5px 15px;
+                            ">
+                                Item
+                                <div style="position:absolute;height: 100%;width: 100%;background: #17A3B8;top: 0;left: 0;border-radius: 16px 0px 0px 16px;z-index: -1;"></div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style=
+                            "
+                                color:white; 
+                                width:200px; 
+                                font-size:10px;
+                                font-weight:bold; 
+                                text-align:center;
+                                background:#17A3B8;
+                                padding:6px 10px 6px 12px;
+                            ">
+                                Producto
+                            </div>
+                        </td>
+                        <td style="background:#17A3B8">
+                            <div style=
+                            "
+                                color:white; 
+                                width:100px; 
+                                font-size:10px;
+                                font-weight:bold; 
+                                text-align:center;
+                                background:#0a5561;
+                                padding:6px 10px 6px 12px;
+                                border-radius:5px;
+                            ">
+                                Cantidad
+                            </div>
+                        </td>
+                        <td>
+                            <div style=
+                            "
+                                color:white; 
+                                width:100px; 
+                                font-size:10px;
+                                font-weight:bold; 
+                                text-align:center;
+                                background:#17A3B8;
+                                padding:6px 10px 6px 12px;
+                            ">
+                                Valor
+                            </div>
+                        </td>
+                        <td>
+                            <div style=
+                            "
+                                color:white; 
+                                width:100px; 
+                                font-size:10px;
+                                font-weight:bold; 
+                                text-align:center;
+                                position:relative;
+                                background:#0a5561;
+                                padding:6px 10px 6px 12px;
+                                border-radius:5px 16px 16px 5px;
+                            ">
+                                Total
+                                <div style="position:absolute;height: 100%;width: 100%;background: #17A3B8;top: 0;left: 0;border-radius: 0px 16px 16px 0px;z-index: -1;"></div>
+                            </div>
+                        </td>
+                    </tr> 
+                    {% set index = 1 %}
+                    {% set total = 0 %}
+                    {% for producto in factura %}
+                        <tr  style="{{ (index % 2 == 0) ? 'background:#17A2B814' : '' }}">
+                            <td style="text-align:center; font-size:11px; padding-top:7px; padding-bottom:7px; border-bottom:1px solid #E2E2E2">
+                                <div style="display:flex; align-content:center; justify-content:center">
+                                    <div class="montserrat" style="font-size:9px; color:white; display:flex; align-items:center; justify-content:center; width:0px; height:0px; background:{{ (index % 2 == 0) ? '#0a5561' : '#17A2B8' }}; border-radius:50%; left:-15px; border:2px solid white; padding:10px">
+                                        {{ index }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="padding-left:7px; font-size:11px; padding-top:7px; padding-bottom:7px; border-bottom:1px solid #E2E2E2">{{ producto.producto|slice(0,28) }}</td>
+                            <td style="text-align:right; padding-right:7px; font-size:11px; padding-top:7px; padding-bottom:7px; border-bottom:1px solid #E2E2E2">{{ producto.cantidad|number_format(2, ',', '.') }}</td>
+                            <td style="text-align:right; padding-right:7px; font-size:11px; padding-top:7px; padding-bottom:7px; border-bottom:1px solid #E2E2E2">{{ producto.valor|number_format(2, ',', '.') }}</td>
+                            <td style="text-align:right; padding-right:10px; font-size:11px; padding-top:7px; padding-bottom:7px; border-bottom:1px solid #E2E2E2">{{ producto.total|number_format(2, ',', '.') }}</td>
+                        </tr>
+                        {% set index = index + 1 %}
+                        {% set total = total + producto.total %}
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        <div style="position:relative;display:flex; justify-content:end; margin-top:20px;">
+            <div class="animate__animated animate__fadeInRight" style="position:relative;height: 30px;width: 192px;overflow: hidden;background: white;border-radius: 16px;display: flex;align-items: center;padding: 0px 15px 0px 28px;border: 1px solid #8080806e;justify-content: space-between;">
+                <span class="montserrat" style="color:white;font-size: 10px;position: relative;z-index: 1;">Total</span>
+                <span class="montserrat" style="font-size: 10px;position: relative;z-index: 1;">{{ total|number_format(2, ',', '.') }}</span>
+                <div style="position:absolute;background: white;height: 30px;width: 99px;background: #0a5561;transform: skewX(30deg);left: -14px;border-radius: 0px 15px 0px 0px;top: 0px;"></div>
+            </div>
+        </div>
+        <hr style="margin:20px 0px">
+        <button class="btn btn-danger animate__animated animate__fadeInLeft" style="width:100px;border-radius:16px;margin-bottom: 0px;" onclick="cerraModalFactura()"><i class="fas fa-times-circle"></i> Cerrar</button>
+    </div>
+</div>

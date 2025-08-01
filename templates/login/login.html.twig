@@ -1,0 +1,555 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    {{ parent() }}
+    <style>
+        .campos::placeholder {
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .camposRegistro::placeholder {
+            font-size: 12px;
+        }
+
+        @keyframes wipe-in-left {
+            from {
+                clip-path: inset(0 0 0 100%);
+            }
+            to {
+                clip-path: inset(0 0 0 0);
+            }
+        }
+
+        [transition-style="in:wipe:left"] {
+            animation: 1s cubic-bezier(.25, 1, .30, 1) wipe-in-left both;
+        }
+
+        @keyframes wipe-out-right {
+            from {
+                clip-path: inset(0 0 0 0);
+            }
+            to {
+                clip-path: inset(0 0 0 100%);
+            }
+        }
+
+        [transition-style="out:wipe:right"] {
+            animation: 1s cubic-bezier(.25, 1, .30, 1) wipe-out-right both;
+        }
+
+        @keyframes circle-in-center {
+            from {
+                clip-path: circle(0%);
+            }
+            to {
+                clip-path: circle(125%);
+            }
+        }
+
+        [transition-style="in:circle:center"] {
+            animation: 2.5s cubic-bezier(.25, 1, .30, 1) circle-in-center both;
+        }
+
+        @keyframes wipe-in-down {
+            from {
+                clip-path: inset(0 0 100% 0);
+            }
+            to {
+                clip-path: inset(0 0 0 0);
+            }
+        }
+
+        [transition-style="in:wipe:down"] {
+        animation: 2.5s cubic-bezier(.25, 1, .30, 1) wipe-in-down both;
+        }
+
+        #btnCerrarSeccion:hover i {
+            scale: 1.2;
+        }
+
+        * {
+            font-size: 13px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .area {
+            width: 97%;
+            height: 100%;
+        }
+
+        .circles {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: absolute;
+        }
+
+        .circles li {
+            position: absolute;
+            display: block;
+            list-style: none;
+            width: 40px;
+            height: 40px;
+            background: #00000017;
+            animation: animate 25s linear infinite;
+            bottom: -150px;
+            
+        }
+
+        .circles li:nth-child(1) {
+            left: 25%;
+            width: 65px;
+            height: 65px;
+            animation-delay: 0s;
+        }
+
+
+        .circles li:nth-child(2) {
+            left: 10%;
+            width: 40px;
+            height: 40px;
+            animation-delay: 2s;
+            animation-duration: 12s;
+        }
+
+        .circles li:nth-child(3) {
+            left: 70%;
+            width: 40px;
+            height: 40px;
+            animation-delay: 4s;
+        }
+
+        .circles li:nth-child(4) {
+            left: 40%;
+            width: 50px;
+            height: 50px;
+            animation-delay: 0s;
+            animation-duration: 18s;
+        }
+
+        .circles li:nth-child(5) {
+            left: 65%;
+            width: 40px;
+            height: 40px;
+            animation-delay: 0s;
+        }
+
+        .circles li:nth-child(6) {
+            left: 56%;
+            width: 75px;
+            height: 75px;
+            animation-delay: 3s;
+        }
+
+        .circles li:nth-child(7) {
+            left: 13%;
+            width: 60px;
+            height: 60px;
+            animation-delay: 7s;
+        }
+
+        .circles li:nth-child(8) {
+            left: 50%;
+            width: 85px;
+            height: 85px;
+            animation-delay: 15s;
+            animation-duration: 45s;
+        }
+
+        .circles li:nth-child(9) {
+            left: 20%;
+            width: 35px;
+            height: 35px;
+            animation-delay: 2s;
+            animation-duration: 35s;
+        }
+
+        .circles li:nth-child(10) {
+            left: 77%;
+            width: 70px;
+            height: 70px;
+            animation-delay: 0s;
+            animation-duration: 11s;
+        }
+
+        @keyframes animate {
+            0%{
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+                border-radius: 0;
+            }
+            100%{
+                transform: translateY(-1000px) rotate(720deg);
+                opacity: 0;
+                border-radius: 50%;
+            }
+        }
+
+        .montserrat {
+            font-family: "Montserrat", serif;
+            font-optical-sizing: auto;
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        .montserrat-text {
+            font-family: "Montserrat", serif;
+            font-optical-sizing: auto;
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        .file:hover {
+            background:#ffc107;
+        }
+
+        .icono {
+            transform: scale(1);
+            transition: all 0.5s ease;
+        }
+        
+        .factura:hover .icono {
+            transform: scale(1.1);
+            background:#28A745 !important;
+        }
+
+        .loader {
+            top: -10px;
+            left: -10px;
+            display: none;
+            position: absolute;
+            border-radius: 50%;
+            width: 80px !important;
+            height: 80px !important;
+            border: 8px solid #80808021;
+            border-top: 7px solid #007BFF;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .listado {
+            max-height:423px;
+        }
+
+        .listado::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .listado::-webkit-scrollbar-thumb {
+            background-color: #dee2e6;
+            border-radius: 20px;
+        }
+
+        .animate__delay-1s {
+            animation-delay: 0.3s !important;
+        }
+
+        @media (max-width:1366px)
+        {
+            .listado {
+                max-height:225px;
+            }
+        }
+    </style>
+    <div style="transition:all 0.5s ease; opacity:1; width:100%; height:100%; position:absolute; background:#0000005c; z-index:4; display:none; align-items:center; justify-content:center" id="modalFactura">
+        <div class="list-group-item p-0" style="border:none; background:transparent" id="frameFactura"></div>   
+    </div>
+    <div style="width:100%; height:100%; position:absolute;">
+        <div class="area">
+            <ul class="circles">
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+            </ul>
+        </div>
+    </div>
+    <div class="container-fluid" style="display: flex; flex-direction:column; align-items: center; justify-content: center; height: 100%; width: 100%;">
+        <label for="factura" class="bg-light factura animate__animated animate__fadeIn" style="cursor:pointer; position:relative; margin-bottom:30px; border:1px dashed gray; border-radius:15px; display:flex; align-items:center; justify-content:center; width:300px; height:310px; flex-direction: column;">
+            <div style="position:relative; display:flex">
+                <div class="loader animate__animated animate__fadeIn"></div>
+                <div class="icono" style="background:#17a2b8; transition:all 0.5s ease; filter: drop-shadow(2px 4px 6px gray); padding:20px; display:flex; align-items:center; justify-content:center; border-radius:50%">
+                    <i class="fas fa-upload" style="font-size:20px"></i>
+                </div>
+            </div>
+            <b class="montserrat animate__animated animate__fadeInUp" style="margin-top:35px; font-size:14px">Seleccione una factura</b>
+            <div class="animate__animated animate__fadeInUp" style="display:flex; align-items:center; justify-content:center">
+                <b style="margin-top:5px; font-size:11px">Formatos soportados</b>
+                <i class="fas fa-angle-double-right text-primary" style="font-size:9px; margin-top:5px; margin-left:5px; margin-right:5px"></i>
+                <span style="font-size:10px">pdf, png, jpg, jpge<span>
+            </div>
+            <div id="divFactura" style="transition:all 0.5s ease; height:0px; width:300px; display:flex; align-items:center; justify-content:center">
+                <div class="animate__animated animate__fadeIn" id="facturaCargada" style="transition:all 0.5s ease; display:none; align-items:center; justify-content:space-between; background:#E5E5E5; margin-top:30px; padding:7px 15px; width:260px; border-radius:5px">
+                    <div style="display:flex; align-items:center; justify-content:center; gap:7px">
+                        <div id="divIconoFactura" style="display:flex; align-items:center; justify-content:center; border-radius:5px; background:#007BFF26; padding:7px">
+                            <i class="far fa-file-pdf" style="color:#007BFF; font-size:13px" id="iconoFactura"></i>    
+                        </div>
+                        <div style="display:flex; justify-content:center; flex-direction:column">
+                            <b style="font-size:12px" id="nombreFactura">factura.pdf</b>
+                            <span style="font-size:10px" id="pesoFactura">0MB - PDF</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:5px">
+                        <i class="fas fa-check-circle text-success" style="font-size:12px"></i>
+                        <span class="text-success" style="font-weight:bold; font-size:11px">Complete</span>
+                    </div>
+                </div>
+            </div>
+        </label>
+        <button id="btnCargarFactura" class="btn btn-success" onclick="cargarFactura(event)" style="border-radius:15px; width:300px; position:relative; z-index:2" disabled><i class="fas fa-upload"></i> Cargar factura</button>
+        <input type="file" id="factura" onchange="validarFactura(event)" style="display:none" accept=".png,.jpg,.jpge,.pdf">
+        <div hidden style="display:flex; align-items:center; justify-content:center; gap:15px">
+            <div class="file" style="transition:0.5s; position:relative; z-index:5; cursor:pointer; width:100px; height:120px; gap:10px; border:1px solid #80808080; display:flex; align-items:center; justify-content:center; border-radius:15px; flex-direction:column">
+                <i class="fas fa-file" style="font-size:30px; #242e51"></i>
+                <span style="font-size:13px; color:#242e51">file</span>
+            </div>
+            <div class="file" style="transition:0.5s; position:relative; z-index:5; cursor:pointer; width:100px; height:120px; gap:10px; border:1px solid #80808080; display:flex; align-items:center; justify-content:center; border-radius:15px; flex-direction:column">
+                <i class="fas fa-donate" style="font-size:30px; #242e51"></i>
+                <span style="font-size:13px; color:#242e51">donate</span>
+            </div>
+        </div>
+        <div hidden id="divFormulario" class="list-group-item animate__animated animate__fadeIn" style="width: 920px; height: 440px; border-radius: 15px; filter: drop-shadow(0px 2px 5px #E5E5E5); background: linear-gradient(45deg, #171f38, #007BFF);">
+            <div style="width:100%; height:95%; position:absolute;">
+                <div class="area">
+                    <ul class="circles">
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                        <li></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6" style="display: flex; align-items: center; padding-left: 65px;">
+                    <div class="list-group-item" style=" padding: 60px 40px; border-radius: 20px; filter: drop-shadow(0px 0px 4px gray); border: transparent; width: 260px;">
+                        <div style="position: absolute; left: 0; width: 100%; display: flex; align-items: center; justify-content: center; top: -30px;">
+                            <div style="background: white; width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; filter: drop-shadow(2px 4px 6px gray);">
+                                <img src="{{ asset('Imgs/logo.png') }}" style="width: 50px;" class="animate__animated animate__flipInX">
+                            </div>
+                        </div>
+                        <div style="position: absolute; bottom: 10px; right: 10px; width: 30px; height: 30px;">
+                            <div style="position: relative;">
+                                <div class="bg-warning" onmouseover="showSolicitarAsistencia(event, 1)" onmouseout="showSolicitarAsistencia(event, 2)" style="transition: all 0.5s ease; cursor: pointer; position: absolute; border-radius: 50%; width: 0px; height: 0px; padding: 15px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa-solid fa-headset"></i>
+                                </div>
+                                <div id="msgSolicitarAsistencia" class="montserrat-text" style="display: none; align-items: center; justify-content: center; gap: 3px; font-size: 10px; position: absolute; background: #ffc107ab; width: fit-content; left: -132px; padding: 3px 15px; top: 4px; border-radius: 7px 0px 0px 7px;">
+                                    <i class="fa-solid fa-phone fa-shake" style="--fa-animation-duration:3s; font-size:10px; margin-top: -1px;"></i> Solicitar asistencia
+                                </div>
+                            </div>
+                        </div>
+                        <div class="montserrat" style="font-weight: bold; text-align: center; font-size: 15px; margin-bottom: 20px;">Iniciar sesión</div>
+                        <form class="mb-0">
+                            <div class="row">
+                                <div class="input-group" style="position: relative;">
+                                    <div style="position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #e9ecef; z-index: 5; padding: 9px;">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <input id="username" type="text" class="form-control" style="border-radius: 15px; padding-left: 35px;" required>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="input-group">
+                                    <div class="input-group" style="position: relative;">
+                                        <div style="position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #e9ecef; z-index: 5; padding: 9px;">
+                                            <i class="fas fa-key"></i>
+                                        </div>
+                                        <input id="password" type="password" class="form-control" style="transition: all 0.5s ease; border-radius: 15px; padding-left: 35px; padding-right: 15px;" required>
+                                        <div style="position: absolute; display: flex; align-items: center; justify-content: center; height:100%; right: 12px; z-index: 5; cursor:pointer" onclick="showPassword()">
+                                            <i class="fas fa-eye text-secondary" id="iconoPassword" style="transition: all 0.5s ease;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 20px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                                <button type="submit" class="btn btn-success" style="width: 100%; border-radius: 15px;">Ingresar</button>
+                                <div style="margin-top: 20px;">
+                                    <a href="#" style="font-size: 12px;">Recuperar contraseña</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-6" style="height: 440px; position: relative;">
+                    <video id="video" autoplay loop muted style="position: absolute; width: 117%; height: 100%; border-radius: 333px 19px 19px 19px; object-fit: cover; transition: all 3s ease; top: -11px; left: -74px; margin: 0px; filter: drop-shadow(2px 4px 6px gray);">
+                        <source src="{{ asset('Imgs/fondoEmpresa.mp4') }}" type="video/mp4">
+                    </video>
+                </div>
+            </div>
+        </div>
+        <div hidden class="montserrat-text animate__animated animate__fadeInUp" style="margin-top: 30px; width: 635px; text-align: center; position: relative;">
+            <p style="margin-bottom: 5px;">Compuconta Software está protegido por las leyes Colombianas de derechos de autor mediante registro número 13-20-151. La utilización parcial o total no autorizada de este producto se encuentra penalizada por las leyes nacionales. Compuconta® es una marca registrada.</p>
+            <a href="#">Encuentra aquí las condiciones de uso</a>
+        </div>
+    </div>
+{% endblock %}
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        $(document).ready(function()
+        {
+            /** Configuración de los mensajes toastr */
+            /** ------------------------------------ */
+            
+            toastr.options = 
+            {
+                "debug": false,
+                "onclick": null,
+                "timeOut": "5000",
+                "closeButton": true,
+                "progressBar": false,
+                "newestOnTop": false,
+                "showDuration": "300",
+                "showEasing": "swing",
+                "hideDuration": "1000",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut",
+                "extendedTimeOut": "1000",
+                "preventDuplicates": true,
+                "positionClass": "toast-top-right"
+            }
+        });
+
+        let estadoPassword = 1;
+        function showPassword()
+        {
+            /** En esta función se visualiza/oculta el password ingresado por el usuario */
+            /** ------------------------------------------------------------------------ */
+
+            $('#password').css('color', 'white');
+            if(estadoPassword == 1)
+            {
+                estadoPassword = 2;
+                $('#iconoPassword').removeClass('text-secondary').addClass('text-primary');
+                setTimeout(() =>{$('#password').css('color', ''); $('#password').attr('type', 'text');}, 500);
+            }
+            else
+            {
+                estadoPassword = 1;
+                $('#iconoPassword').removeClass('text-primary').addClass('text-secondary');
+                setTimeout(() =>{$('#password').css('color', ''); $('#password').attr('type', 'password');}, 500);
+            }
+        }
+
+        function showSolicitarAsistencia(event, opc)
+        {
+            /** En esta función se hace visible/oculta el mensaje de solicitud de asistencia */
+            /** ---------------------------------------------------------------------------- */
+
+            event.currentTarget.style.transform = (opc == 1)?'scale(1.1)':'scale(1)';
+            $('#msgSolicitarAsistencia').css('display', 'flex').attr('transition-style', (opc == 1)?'in:wipe:left':'out:wipe:right');
+        }
+
+        let estadoCarga = 0;
+        function validarFactura(event)
+        {
+            /** En esta función se valida si la factura seleccionada tiene un formato correcto */
+            /** ------------------------------------------------------------------------------ */
+
+            let factura = event.currentTarget.files[0];
+            if(factura != undefined)
+            {   
+                $('#btnCargarFactura').prop('disabled', false);
+                let tipo = factura.name.split('.')[factura.name.split('.').length - 1];
+                if(estadoCarga == 0)
+                {
+                    estadoCarga = 1;
+                    $('#divFactura').css('height', '70px');
+                    $('#nombreFactura').text('factura.' + tipo);
+                    setTimeout(() => {$('#facturaCargada').css('display', 'flex')}, 500);
+                    $('#pesoFactura').text(`${(factura.size/(1024)).toFixed(0)}KB - ${tipo.toUpperCase()}`);
+                    $('#divIconoFactura').css('background', (tipo.toUpperCase() == 'PDF')?'#DC354526':'#007BFF26');
+                    $('#iconoFactura').prop('class', (tipo.toUpperCase() == 'PDF')?'far fa-file-pdf':'far fa-image').css('color', (tipo.toUpperCase() == 'PDF')?'#DC3545':'#007BFF');
+                }
+                else
+                {
+                    $('#facturaCargada').removeClass('animate__fadeIn').addClass('animate__fadeOut');
+                    setTimeout(() => 
+                    {
+                        $('#nombreFactura').text('factura.' + tipo);
+                        $('#facturaCargada').removeClass('animate__fadeOut').addClass('animate__fadeIn');
+                        $('#pesoFactura').text(`${(factura.size/(1024)).toFixed(0)}KB - ${tipo.toUpperCase()}`);
+                        $('#divIconoFactura').css('background', (tipo.toUpperCase() == 'PDF')?'#DC354526':'#007BFF26');
+                        $('#iconoFactura').attr('class', (tipo.toUpperCase() == 'PDF')?'far fa-file-pdf':'far fa-image').css('color', (tipo.toUpperCase() == 'PDF')?'#DC3545':'#007BFF');
+                    }, 800);
+                }
+            }
+            else
+            {
+                estadoCarga = 0;
+                $('.loader').css('display', 'none');
+                $('#btnCargarFactura').prop('disabled', true);
+                $('#facturaCargada').removeClass('animate__fadeIn').addClass('animate__fadeOut');
+                setTimeout(() => {$('#facturaCargada').hide().removeClass('animate__fadeOut').addClass('animate__fadeIn'); $('#divFactura').css('height', '0px')}, 1000);
+            }
+        }
+
+        async function cargarFactura(event)
+        {
+            let form = new FormData();
+            $('.loader').css('display', 'block');
+            let url = "{{ path('cargar_factura') }}";
+            form.append('factura', $('#factura')[0].files[0]);
+            $('#btnCargarFactura').html('<i class="fas fa-spinner fa-spin"></i> Cargando factura').prop('disabled', true);
+            let consulta = await fetch(url, {'method' : 'POST', 'body' : form});
+            let result = await consulta.json();
+            $('#btnCargarFactura').html('<i class="fas fa-upload"></i> Cargar factura').prop('disabled', false);
+            $('.loader').css('display', 'none');
+
+            /** Se actualiza la información de la factura */
+            /** ----------------------------------------- */
+
+            if(result.status == 'success')
+            {
+                await actualizarFactura(JSON.stringify(result.data.data));
+            }
+            else
+            {
+                toastr.error(result.message);
+                $('.icono').css({'background' : '#DC3545', 'color' : 'white'});
+                setTimeout(() => {$('.icono').css({'background' : '#17A3B8', 'color' : ''})}, 4000);
+            }
+        }
+        
+        async function actualizarFactura(data)
+        {
+            let url = "{{ path('frame_factura') }}"
+            let consulta = await fetch(url, {'method' : 'POST', 'body' : data});
+            $('#frameFactura').html(await consulta.text());
+            $('#modalFactura').css('display', 'flex');
+        }
+
+        function cerraModalFactura()
+        {
+            $('#modalFactura').css('opacity', '0');
+            setTimeout(() => {$('#modalFactura').css('opacity', '1')}, 700);
+            setTimeout(() => {$('#modalFactura').css('display', 'none')}, 500);
+        }
+    </script>
+{% endblock %}

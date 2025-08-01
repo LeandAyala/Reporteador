@@ -1,0 +1,30 @@
+# Rutas del CRUD básico 
+# =====================
+
+facturas_listado_factura:
+    path:      /Facturas/ListadoFactura
+    defaults:   {_controller: App\Controller\Facturas\FacturaController::listarFactura}
+
+facturas_frame_lista_factura:
+    path:      /Facturas/frameListaFactura
+    defaults:   {_controller: App\Controller\Facturas\FacturaController::frameListaFactura}
+
+facturas_frame_nuevo_factura:
+    path:      /Facturas/frameNuevoFactura
+    defaults:   {_controller: App\Controller\Facturas\FacturaController::frameNuevoFactura}
+
+facturas_guardar_factura:
+    path:      /Facturas/guardarFactura
+    defaults:   {_controller: App\Controller\Facturas\FacturaController::guardarFactura}
+
+facturas_eliminar_factura:
+    path:      /Facturas/eliminarFactura
+    defaults:   {_controller: App\Controller\Facturas\FacturaController::eliminarFactura}
+
+facturas_informes:
+    path:      /Facturas/informes
+    defaults:   {_controller: App\Controller\Facturas\InformesController::informes}
+
+facturas_generar_informe:
+    path:      /Facturas/generarInforme
+    defaults:   {_controller: App\Controller\Facturas\InformesController::generarInforme}

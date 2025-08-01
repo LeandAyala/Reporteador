@@ -1,0 +1,87 @@
+<turbo-frame id="frameNuevoFactura" class="animate__animated animate__fadeIn">
+    <div style="display:none" data-facturas--facturas-target="cargandoFrameNuevoFactura">
+        <div style="position:absolute; width:100%; height:100%; background:white; z-index:2; opacity:0.6"></div>
+        <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; display:flex; align-items:center; justify-content:center">
+            <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+                <div style="position:relative;">
+                    <div class="loader"></div>
+                    <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                </div>
+                <b style="font-size:13px">Cargando información...</b>
+            </div>
+        </div>
+    </div>
+    {{ form_start(formularioPrincipal, {'attr' : {'class' : 'mb-0', 'data-facturas--facturas-target' : 'formularioPrincipal', 'data-action' : 'facturas--facturas#guardarFactura'}}) }}
+        <div class="container-fluid">
+                <div class="row ">
+            <div class="col-4 pr-0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formularioPrincipal.fecha,formularioPrincipal.fecha, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:83px'}}) }}
+                    </div>
+                    {{ form_widget(formularioPrincipal.fecha, {'attr' : {'class' : 'form-control', 'data-action' : '' }})}}
+                </div>
+            </div>
+            <div class="col-4 pr-0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formularioPrincipal.numero,formularioPrincipal.numero, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:76px'}}) }}
+                    </div>
+                    {{ form_widget(formularioPrincipal.numero, {'attr' : {'class' : 'form-control', 'data-action' : '' ,'onkeypress' : 'return event.charCode >= 48 && event.charCode <= 57'}})}}
+                </div>
+            </div>
+            <div class="col-4 ">
+                <div class="input-group">
+                    {{ form_label(formularioPrincipal.permiteActivar,formularioPrincipal.permiteActivar, {'label_attr' : {'class' : 'form-control input-group-text font-weight-bold' }} ) }}
+                    <div class="input-group-text d-flex justify-content-center" style="background: white; width:auto">
+                        <div class="custom-control custom-switch">
+                            {{ form_widget(formularioPrincipal.permiteActivar, {'attr' : {'class' : 'custom-control-input', 'data-action' : ''}}) }}
+                            <label class="custom-control-label" for="filtros_busqueda_permiteActivar"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="row mt-2">
+            <div class="col-4 pr-0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formularioPrincipal.producto,formularioPrincipal.producto, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:83px'}}) }}
+                    </div>
+                    {{ form_widget(formularioPrincipal.producto, {'attr' : 
+                        {
+                            'data-size':'10',
+                            'data-width':'50%',
+                            'data-action' : '',
+                            'class' : 'form-control selectpicker'
+                        }
+                    })}}
+                </div>
+            </div>
+            <div class="col-8 ">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formularioPrincipal.usuario,formularioPrincipal.usuario, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:76px'}}) }}
+                    </div>
+                    {{ form_widget(formularioPrincipal.usuario, {'attr' : 
+                        {
+                            'data-size':'10',
+                            'data-width':'50%',
+                            'data-action' : '',
+                            'class' : 'form-control selectpicker'
+                        }
+                    })}}
+                </div>
+            </div>
+
+        </div>
+
+        </div>
+        <div class="container-fluid" style="margin-top:20px;">
+            <hr>
+            <button type="submit" class="btn btn-success" id="btnGuardarFactura"><i class="fas fa-save"></i> Guardar</button>
+            <button type="button" class="btn btn-danger" onclick="$('#modalNuevoFactura').modal('hide')"><i class="fas fa-ban"></i> Cancelar</button>
+        </div>
+    {{ form_end(formularioPrincipal) }}
+</turbo-frame>

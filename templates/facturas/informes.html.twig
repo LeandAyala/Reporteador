@@ -1,0 +1,171 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    {{ parent() }}
+    <style>
+        * {
+            font-size: 13px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            position: relative;
+        }
+
+        .montserrat {
+            font-family: "Montserrat", serif;
+            font-optical-sizing: auto;
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        .montserrat-text {
+            font-family: "Montserrat", serif;
+            font-optical-sizing: auto;
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        .btn.dropdown-toggle.bs-placeholder.btn-light, .btn.dropdown-toggle.btn-light {
+            border: 1px solid #d0d4da;
+        }
+
+        .seccionInforme:hover {
+            color:#007BFF;
+        }
+
+        .seccionInforme:hover svg {
+            color:#007BFF;
+        }
+
+        .listado {
+            max-height:423px;
+        }
+
+        .listado::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        .listado::-webkit-scrollbar-thumb {
+            background-color: #dee2e6;
+            border-radius: 20px;
+        }
+
+        body::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background-color: #dee2e6;
+            border-radius: 20px;
+        }
+        
+        .paginas {
+            transition: all 0.5s ease;
+        }
+
+        .paginas:hover {
+            color: white;
+            background: #17A3B8 !important;
+        }
+    </style>
+    <div class="container-fluid mt-4" data-turbo="true" {{ stimulus_controller('facturas--informes', 
+        {
+            'urlGenerarInforme' : path('facturas_generar_informe')
+        }
+    )}}>
+        <div class="col-12 animate__animated animate__fadeIn" style="display:flex; align-items:center; justify-content:center">
+            <div class="card shadow-lg p-0 mb-5 bg-white rounded" style="width:100%">
+                <div class="card-body">
+                    <div class="list-group-item active font-weight-bold" style="border-radius:5px 5px 0px 0px">Informes</div>
+                    {{ form_start(formFiltros, {'attr' : {'class' : 'mb-0', 'id' : 'filtrosInforme', 'data-action' : 'facturas--informes#generarInforme'}}) }}
+                        <div class="list-group-item animate__animated animate__fadeIn animate__animated animate__fadeIn seccionFiltros"> 
+                            <div class="row">
+                                <div class="col">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            {{ form_label(formFiltros.informe, formFiltros.informe, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:77px'}}) }}
+                                        </div>
+                                        {{ form_widget(formFiltros.informe, {'attr' : 
+                                            { 
+                                                'data-size' : '10',
+                                                'data-width':'50%',
+                                                'data-container' : 'body',
+                                                'class' : 'form-control selectpicker'
+                                            }
+                                        })}}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-6 pr-0">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            {{ form_label(formFiltros.desde, formFiltros.desde, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:77px'}}) }}
+                                        </div>
+                                        {{ form_widget(formFiltros.desde, {'attr' : { 'class' : 'form-control', 'data-action' : 'puntoVenta--informes#seleccionarFecha'}}) }}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            {{ form_label(formFiltros.hasta, formFiltros.hasta, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:69px'}}) }}
+                                        </div>
+                                        {{ form_widget(formFiltros.hasta, {'attr' : { 'class' : 'form-control', 'data-action' : 'puntoVenta--informes#seleccionarFecha'}}) }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-6 pr-0">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            {{ form_label(formFiltros.producto, formFiltros.producto, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:77px'}}) }}
+                                        </div>
+                                        {{ form_widget(formFiltros.producto, {'attr' : 
+                                            { 
+                                                'data-size' : '10',
+                                                'data-width':'50%',
+                                                'data-container' : 'body',
+                                                'class' : 'form-control selectpicker'
+                                            }
+                                        })}}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            {{ form_label(formFiltros.usuario, formFiltros.usuario, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:69px'}}) }}
+                                        </div>
+                                        {{ form_widget(formFiltros.usuario, {'attr' : 
+                                            { 
+                                                'data-size' : '10',
+                                                'data-width':'50%',
+                                                'data-container' : 'body',
+                                                'class' : 'form-control selectpicker'
+                                            }
+                                        })}}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group-item seccionFiltros">
+                            <button type="submit" class="btn btn-success" id="btnGenerarInforme"><i class="fas fa-search"></i> Generar informe</button>
+                            <button type="button" class="btn btn-info"><i class="fas fa-broom"></i> Limpiar</button>
+                            <a class="btn btn-danger" href="#" target="_top" id="btnRegresar"><i class="fas fa-caret-left"></i> Regresar</a>
+                        </div>
+                    {{ form_end(formFiltros) }}
+                    <div class="list-group-item seccionInforme" style="border-top:none; display:flex; align-items:center; gap:5px; cursor:pointer" onclick="$('.seccionFiltros').toggle('400')">
+                        <span class="montserrat" style="font-size:12px">Generación de informes</span>
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="list-group-item p-0" style="border:none" id="frameInforme"></div>
+                    </div>
+                </div>
+            </div>      
+        </div>
+    </div>
+{% endblock %}

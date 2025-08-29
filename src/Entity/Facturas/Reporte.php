@@ -28,6 +28,11 @@ class Reporte
      */
     private $sql;
 
+    /**
+     * @ORM\Column(type="json", nullable=true)
+     */
+    private $json = [];
+
     public function getId(): ?int
     {
         return $this->id;
@@ -53,6 +58,18 @@ class Reporte
     public function setSql(?string $sql): self
     {
         $this->sql = $sql;
+
+        return $this;
+    }
+
+    public function getJson(): ?array
+    {
+        return $this->json;
+    }
+
+    public function setJson(?array $json): self
+    {
+        $this->json = $json;
 
         return $this;
     }

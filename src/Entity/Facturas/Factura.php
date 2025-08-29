@@ -2,6 +2,7 @@
 
 namespace App\Entity\Facturas;
 
+use App\Entity\Bodega\Bodega;
 use App\Entity\Productos\Producto;
 use App\Entity\Usuarios\Usuario;
 use Doctrine\ORM\Mapping as ORM;
@@ -59,6 +60,11 @@ class Factura
      * @ORM\Column(type="boolean", nullable=true)
      */
     private $permiteActivar;
+
+    /**
+     * @ORM\ManyToOne(targetEntity=Bodega::class, inversedBy="facturas")
+     */
+    private $bodega;
 
     public function getId(): ?int
     {
@@ -157,6 +163,18 @@ class Factura
     public function setPermiteActivar(?bool $permiteActivar): self
     {
         $this->permiteActivar = $permiteActivar;
+
+        return $this;
+    }
+
+    public function getBodega(): ?Bodega
+    {
+        return $this->bodega;
+    }
+
+    public function setBodega(?Bodega $bodega): self
+    {
+        $this->bodega = $bodega;
 
         return $this;
     }

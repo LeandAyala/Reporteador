@@ -11,16 +11,7 @@ class ShopifyController extends AbstractController
 {
     public function index()
     {
-        /*$configuraciones = 
-        [
-            'ShopUrl' => 'bd7h4h-7f.myshopify.com',
-        ];*/
 
-        $configuraciones = 
-        [
-            'ApiVersion' => '2025-01',
-            'ShopUrl' => 'dermaypiel.myshopify.com',
-        ];
         $shopify = new ShopifySDK($configuraciones);
 
         try 

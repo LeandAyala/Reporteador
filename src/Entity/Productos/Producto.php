@@ -2,7 +2,9 @@
 
 namespace App\Entity\Productos;
 
+use App\Entity\Almacen\Almacen;
 use App\Entity\Facturas\Factura;
+use App\Entity\GrupoContable\GrupoContable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -44,17 +46,17 @@ class Producto
     /**
      * @ORM\Column(type="text", nullable=true)
      */
+    private $codigo;
+
+    /**
+     * @ORM\ManyToOne(targetEntity=Almacen::class, inversedBy="productos")
+     */
     private $almacen;
 
     /**
-     * @ORM\Column(type="text", nullable=true)
+     * @ORM\ManyToOne(targetEntity=GrupoContable::class, inversedBy="productos")
      */
     private $grupoContable;
-
-    /**
-     * @ORM\Column(type="text", nullable=true)
-     */
-    private $codigo;
 
     public function __construct()
     {
@@ -132,30 +134,6 @@ class Producto
         return $this;
     }
 
-    public function getAlmacen(): ?string
-    {
-        return $this->almacen;
-    }
-
-    public function setAlmacen(?string $almacen): self
-    {
-        $this->almacen = $almacen;
-
-        return $this;
-    }
-
-    public function getGrupoContable(): ?string
-    {
-        return $this->grupoContable;
-    }
-
-    public function setGrupoContable(?string $grupoContable): self
-    {
-        $this->grupoContable = $grupoContable;
-
-        return $this;
-    }
-
     public function getCodigo(): ?string
     {
         return $this->codigo;
@@ -164,6 +142,30 @@ class Producto
     public function setCodigo(?string $codigo): self
     {
         $this->codigo = $codigo;
+
+        return $this;
+    }
+
+    public function getAlmacen(): ?Almacen
+    {
+        return $this->almacen;
+    }
+
+    public function setAlmacen(?Almacen $almacen): self
+    {
+        $this->almacen = $almacen;
+
+        return $this;
+    }
+
+    public function getGrupoContable(): ?GrupoContable
+    {
+        return $this->grupoContable;
+    }
+
+    public function setGrupoContable(?GrupoContable $grupoContable): self
+    {
+        $this->grupoContable = $grupoContable;
 
         return $this;
     }

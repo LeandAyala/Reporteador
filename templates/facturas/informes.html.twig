@@ -40,7 +40,7 @@
         }
 
         .listado {
-            max-height:423px;
+            max-height:509px;
         }
 
         .listado::-webkit-scrollbar {
@@ -71,6 +71,79 @@
             color: white;
             background: #17A3B8 !important;
         }
+
+        .logo {
+            animation: animarLogo 2s linear infinite;
+        }
+        
+        .loader {
+            top: 2px;
+            left: 10px;
+            width: 40px;
+            height: 40px;
+            display: block;
+            position:absolute;
+            border-radius: 50%;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #007BFF;
+            animation: spin 2s linear infinite, cambiarColorLogo 20s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {transform: rotate(0deg)}
+            100% {transform: rotate(360deg)}
+        }
+
+        @keyframes animarLogo {
+            0% {transform:scale(0.2)}
+            50% {transform:scale(0.3)}
+            100% {transform:scale(0.2)}
+        }
+
+        @keyframes cambiarColorLogo {
+            0% {border-top: 6px solid #007BFF}
+            50% {border-top: 6px solid #28A745}
+            75% {border-top: 6px solid #DC3545}
+            100% {border-top: 6px solid #007BFF}
+        }
+
+        @media (max-height : 641px) {
+            .listado {
+                max-height:330px;
+            }
+        }
+
+        .ripple {
+            width: 1rem;
+        }
+        
+        .ripple::before {
+            content: "";
+            display: grid;
+            grid-area: 1/1;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 #17a2b85e;
+            animation: rp 3s linear infinite;
+        }
+
+        .ripple::before {--s: 3s}
+
+        @keyframes rp {
+            to {box-shadow: 0 0 0 1rem #0000}
+        }
+
+        .titulo:hover {
+            color:#007BFF;
+        }
+
+        .titulo:hover i {
+            color:#007BFF !important;
+        }
+
+        .titulo:hover svg {
+            color:#007BFF !important;
+        }
     </style>
     <div class="container-fluid mt-4" data-turbo="true" {{ stimulus_controller('facturas--informes', 
         {
@@ -79,7 +152,7 @@
     )}}>
         <div class="col-12 animate__animated animate__fadeIn" style="display:flex; align-items:center; justify-content:center">
             <div class="card shadow-lg p-0 mb-5 bg-white rounded" style="width:100%">
-                <div class="card-body">
+                <div class="card-body" style="overflow:hidden">
                     <div class="list-group-item active font-weight-bold" style="border-radius:5px 5px 0px 0px">Informes</div>
                     {{ form_start(formFiltros, {'attr' : {'class' : 'mb-0', 'id' : 'filtrosInforme', 'data-action' : 'facturas--informes#generarInforme'}}) }}
                         <div class="list-group-item animate__animated animate__fadeIn animate__animated animate__fadeIn seccionFiltros"> 
@@ -157,12 +230,28 @@
                             <a class="btn btn-danger" href="#" target="_top" id="btnRegresar"><i class="fas fa-caret-left"></i> Regresar</a>
                         </div>
                     {{ form_end(formFiltros) }}
-                    <div class="list-group-item seccionInforme" style="border-top:none; display:flex; align-items:center; gap:5px; cursor:pointer" onclick="$('.seccionFiltros').toggle('400')">
+                    <div class="list-group-item seccionInforme" style="border-top:none; display:flex; align-items:center; gap:5px; cursor:pointer" data-action="click->facturas--informes#showSeccionFiltros">
                         <span class="montserrat" style="font-size:12px">Generación de informes</span>
                         <i class="fas fa-search"></i>
                     </div>
                     <div class="list-group-item">
-                        <div class="list-group-item p-0" style="border:none" id="frameInforme"></div>
+                        <div class="list-group-item p-0" style="border:none">
+                            <div style="display:none" data-facturas--informes-target="cargandoFiltros" id="cargandoFiltros">
+                                <div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; left:0; top:0; opacity:0.6"></div>
+                                <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; left:0; top:0; display:flex; align-items:center; justify-content:center">
+                                    <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+                                        <div style="position:relative;">
+                                            <div class="loader"></div>
+                                            <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                                        </div>
+                                        <b style="font-size:13px">Cargando información...</b>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="list-group-item p-0" style="border:none" id="frameInforme">
+                                <div class="text-danger" style="display:flex; align-items:center; justify-content:center; font-weight:bold; height:50px">¡No se encontraron registros para listar!</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>      

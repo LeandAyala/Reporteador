@@ -4,6 +4,8 @@ import { Controller } from "@hotwired/stimulus";
 export default class extends Controller 
 {
     mensaje = new mensajes();
+    estadoSeccionFiltros = 1;
+    estadoPaginaSeleccionada = 0;
 
     static values = 
     {
@@ -31,11 +33,33 @@ export default class extends Controller
 
         event.preventDefault();
         let form = new FormData(event.currentTarget);
+        this.cargandoFiltrosTarget.style.display = '';
+        if(this.estadoSeccionFiltros == 1){this.showSeccionFiltros()}
         let paginaActual = (this.targets.find('paginaHidden') != undefined)?this.paginaHiddenTarget.value:1;
+        paginaActual = (this.estadoPaginaSeleccionada == 1)?paginaActual:1;
         form.append('pagina', paginaActual);
+        this.estadoPaginaSeleccionada = 0;
+
+        /** Se genera el informe a partir de los filtros de búsqueda */
+        /** -------------------------------------------------------- */
+        
         let consulta = await fetch(this.urlGenerarInformeValue, {'method' : 'POST', 'body' : form});
         let result = await consulta.json();
         $('#frameInforme').html(result.plantilla);
+        this.cargandoFiltrosTarget.style.display = 'none';
+        $('.listado').on('scroll', function()
+        {
+            if(this.scrollTop == 0)
+            {
+                $('.tituloFinal').css('border-radius', '0px 10px 3px 0px');
+                $('.tituloInicial').css('border-radius', '10px 0px 0px 3px');
+            }
+            else
+            {
+                $('.tituloFinal').css('border-radius', '0px');
+                $('.tituloInicial').css('border-radius', '0px');
+            }
+        });
     }
 
     async seleccionarPagina(event)
@@ -44,6 +68,7 @@ export default class extends Controller
         /** --------------------------------------------------------------------------------------- */
 
         let pagina = 1;
+        this.estadoPaginaSeleccionada = 1;
         let opc = event.currentTarget.dataset.opc
         let paginaActual = Number($('#paginaHidden').val());
         let paginaSeleccionada = event.currentTarget.dataset.pagina;
@@ -59,5 +84,14 @@ export default class extends Controller
             $('#paginaHidden').val(pagina);
             $('#btnGenerarInforme').click();
         }
+    }
+
+    showSeccionFiltros()
+    {
+        /** En esta función se hace visible/oculta la sección que contiene los filtros de búsqueda */
+        /** -------------------------------------------------------------------------------------- */
+
+        $('.seccionFiltros').toggle('400');
+        this.estadoSeccionFiltros = (this.estadoSeccionFiltros == 1)?0:1;
     }
 }

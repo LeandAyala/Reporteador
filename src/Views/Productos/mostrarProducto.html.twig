@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    {{ parent() }}
+    <style>
+        * {
+            font-size: 13px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            position: relative;
+        }
+
+        .montserrat {
+            font-family: "Montserrat", serif;
+            font-optical-sizing: auto;
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        .montserrat-text {
+            font-family: "Montserrat", serif;
+            font-optical-sizing: auto;
+            font-weight: 500;
+            font-style: normal;
+        }
+    </style>
+    <div class="container-fluid pt-4" data-turbo="true" {{ stimulus_controller('facturas--informes', 
+        {
+        
+        }
+    )}}>
+        <div class="col-12 animate__animated animate__fadeIn" style="display:flex; align-items:center; justify-content:center">
+            <div class="card shadow-lg p-0 mb-5 bg-white rounded" style="width:100%">
+                <div class="card-body" style="overflow:hidden">
+                    <div class="list-group-item active font-weight-bold" style="border-radius:5px 5px 0px 0px">Producto {{ producto.codigo }} - {{ producto.nombre }}</div>
+                    <div class="list-group-item">
+                        <div style="display:flex; align-items:center; gap:10px; padding:15px">
+                            <div class="bg-info" style="display:flex; align-items:center; justify-content:center; width:0px; height:0px; padding:13px; border-radius:50%">
+                                <i class="fas fa-flask" style="color:white; font-size:12px"></i>
+                            </div>
+                            <span class="montserrat">Producto</span>
+                            <i class="fas fa-angle-double-right text-info" style="font-size:11px; margin-top:1px"></i>
+                            <span class="montserrat-text">{{ producto.codigo }} - {{ producto.nombre }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>      
+        </div>
+    </div>
+{% endblock %}

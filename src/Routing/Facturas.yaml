@@ -28,3 +28,19 @@ facturas_informes:
 facturas_generar_informe:
     path:      /Facturas/generarInforme
     defaults:   {_controller: App\Controller\Facturas\InformesController::generarInforme}
+
+facturas_mostrar_producto:
+    path:      /Facturas/mostrarProducto,{producto}
+    defaults:   {_controller: App\Controller\Facturas\InformesController::mostrarProducto,producto: 0}
+
+facturas_descargar_informe_pdf:
+    path:      /Facturas/DescargarInformePDF
+    defaults:   {_controller: App\Controller\Facturas\InformesController::descargarInformePDF}
+
+facturas_descargar_informe_excel:
+    path:      /Facturas/DescargarInformeExcel
+    defaults:   {_controller: App\Controller\Facturas\InformesController::descargarInformeExcel}
+
+facturas_guardar_filtros_sesion:
+    path:      /Facturas/guardarFiltrosSesion
+    defaults:   {_controller: App\Controller\Facturas\InformesController::guardarFiltrosSesion}

@@ -11,7 +11,7 @@ class ShopifyController extends AbstractController
 {
     public function index()
     {
-
+        
         $shopify = new ShopifySDK($configuraciones);
 
         try 

@@ -6,6 +6,7 @@ use App\Entity\Usuarios\Usuario;
 use App\Entity\Facturas\Reporte;
 use App\Entity\Productos\Producto;
 use Symfony\Component\Form\AbstractType;
+use App\Repository\Productos\ProductoRepository;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Validator\Constraints\Choice;
@@ -45,6 +46,10 @@ class FiltrosInformesType extends AbstractType
                     'choice_label' => function($item)
                     {
                         return $item->getCodigo().' - '.$item->getNombre();
+                    },
+                    'query_builder' => function(ProductoRepository $repository)
+                    {
+                        return $repository->createQueryBuilder('p')->where('p.id <= 100');
                     }
                 ]
             )

@@ -31,7 +31,7 @@ facturas_generar_informe:
 
 facturas_mostrar_producto:
     path:      /Facturas/mostrarProducto,{producto}
-    defaults:   {_controller: App\Controller\Facturas\InformesController::mostrarProducto,producto: 0}
+    defaults:   {_controller: App\Controller\Facturas\FacturasController::mostrarProducto,producto: 0}
 
 facturas_descargar_informe_pdf:
     path:      /Facturas/DescargarInformePDF

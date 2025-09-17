@@ -155,4 +155,17 @@ class FacturasController extends AbstractController
             'message' => $message
         ]));
     }
+
+    public function mostrarProducto($producto)
+    {
+        /** 
+         * En esta función se genera la vista para observar los detalles de un producto
+         * ----------------------------------------------------------------------------
+         * @access public
+        */
+
+        $bd = $this->em;
+        $producto = $bd->getRepository(Producto::class)->find($producto);
+        return $this->render('Productos\mostrarProducto.html.twig', ['producto' => $producto]);
+    }
 }

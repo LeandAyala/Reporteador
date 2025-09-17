@@ -198,8 +198,19 @@ export default class extends Controller
         btnMenuReporteador.removeClass('menuReporteadorError');
         form.append('busquedaRapida', $('#busquedaRapidaHidden').val().trim());
         $('#menuReporteador').attr('transition-style', 'out:custom:circle-swoop');
+        let rutaExcel = $('#filtros_informes_informe option:selected').data('rutaexcel');
+        form.append('ruta', $('#filtros_informes_informe option:selected').data('rutaexcel'));
         setTimeout(() => {$('#menuReporteador').hide(); btnMenuReporteador.css('pointer-events', '');}, 1100);
         btnMenuReporteador[0].dataset.opc = 0;
+
+        /** Se valida si existe una ruta configurada para la descarga del excel */
+        /** ------------------------------------------------------------------- */
+
+        if(rutaExcel == 'error')
+        {
+            this.mensaje.mostrarMensaje('¡La ruta configurada para la descarga del excel no es válida!');
+            return;
+        }
 
         /** Se guardan los filtros de búsqueda en variables de sesión */
         /** --------------------------------------------------------- */

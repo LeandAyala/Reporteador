@@ -6,6 +6,7 @@ use App\Entity\Usuarios\Usuario;
 use App\Entity\Facturas\Reporte;
 use App\Entity\Productos\Producto;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Routing\RouterInterface;
 use App\Repository\Productos\ProductoRepository;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -16,9 +17,16 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 class FiltrosInformesType extends AbstractType
 {
+    private $router;
+    public function __construct(RouterInterface $router)
+    {
+        $this->router = $router;
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder
@@ -32,8 +40,92 @@ class FiltrosInformesType extends AbstractType
                     'choice_label' => 'nombre',
                     'placeholder' => 'Seleccione',
                     'choice_attr' => function($item)
-                    {
-                        return ['data-icon' => 'fas fa-link text-info'];
+                    {   
+                        $rutaPDF = '';
+                        $rutaFrame = '';
+                        $rutaExcel = '';
+                        $parametros = [];
+                        $rutaControl = '';
+
+                        if(!empty($item->getJson()) && is_array($item->getJson()))
+                        {
+                            $configuraciones = $item->getJson();
+
+                            /** Se valida si el registro tiene una ruta ruta configurada para generar el informe */
+                            /** -------------------------------------------------------------------------------- */
+
+                            if(array_key_exists('rutaFrame', $configuraciones) && is_array($configuraciones['rutaFrame']) && !empty($configuraciones['rutaFrame']))
+                            {
+                                if((array_key_exists('nombre', $configuraciones['rutaFrame']) && !empty($configuraciones['rutaFrame']['nombre'])))
+                                {
+                                    $rutaControl = $configuraciones['rutaFrame']['nombre'];
+                                }
+                                if((array_key_exists('parametros', $configuraciones['rutaFrame']) && is_array($configuraciones['rutaFrame']['parametros']) && !empty($configuraciones['rutaFrame']['parametros'])))
+                                {
+                                    $parametros = $configuraciones['rutaFrame']['parametros'];
+                                }
+                                if(!empty($rutaControl))
+                                {
+                                    $rutaFrame = $this->validarRuta($rutaControl, $parametros);
+                                }
+                            }
+
+                            /** Se valida si el registro tiene una ruta ruta configurada para descargar el informe en formato PDF */
+                            /** ------------------------------------------------------------------------------------------------- */
+
+                            $parametros = [];
+                            $rutaControl = '';
+                            if(array_key_exists('pdf', $configuraciones) && is_array($configuraciones['pdf']) && !empty($configuraciones['pdf']))
+                            {
+                                if(array_key_exists('ruta', $configuraciones['pdf']) && is_array($configuraciones['pdf']['ruta']) && !empty($configuraciones['pdf']['ruta']))
+                                {
+                                    if((array_key_exists('nombre', $configuraciones['pdf']['ruta']) && !empty($configuraciones['pdf']['ruta']['nombre'])))
+                                    {
+                                        $rutaControl = $configuraciones['pdf']['ruta']['nombre'];
+                                    }
+                                    if((array_key_exists('parametros', $configuraciones['pdf']['ruta']) && is_array($configuraciones['pdf']['ruta']['parametros']) && !empty($configuraciones['pdf']['ruta']['parametros'])))
+                                    {
+                                        $parametros = $configuraciones['pdf']['ruta']['parametros'];
+                                    }
+                                    if(!empty($rutaControl))
+                                    {
+                                        $rutaPDF = $this->validarRuta($rutaControl, $parametros);
+                                    }
+                                }
+                            }
+
+                            /** Se valida si el registro tiene una ruta ruta configurada para descargar el informe en formato excel */
+                            /** --------------------------------------------------------------------------------------------------- */
+
+                            $parametros = [];
+                            $rutaControl = '';
+                            if(array_key_exists('excel', $configuraciones) && is_array($configuraciones['excel']) && !empty($configuraciones['excel']))
+                            {
+                                if(array_key_exists('ruta', $configuraciones['excel']) && is_array($configuraciones['excel']['ruta']) && !empty($configuraciones['excel']['ruta']))
+                                {
+                                    if((array_key_exists('nombre', $configuraciones['excel']['ruta']) && !empty($configuraciones['excel']['ruta']['nombre'])))
+                                    {
+                                        $rutaControl = $configuraciones['excel']['ruta']['nombre'];
+                                    }
+                                    if((array_key_exists('parametros', $configuraciones['excel']['ruta']) && is_array($configuraciones['excel']['ruta']['parametros']) && !empty($configuraciones['excel']['ruta']['parametros'])))
+                                    {
+                                        $parametros = $configuraciones['excel']['ruta']['parametros'];
+                                    }
+                                    if(!empty($rutaControl))
+                                    {
+                                        $rutaExcel = $this->validarRuta($rutaControl, $parametros);
+                                    }
+                                }
+                            }
+
+                        }
+                        return 
+                        [
+                            'data-rutapdf' => $rutaPDF,
+                            'data-rutaframe' => $rutaFrame, 
+                            'data-rutaexcel' => $rutaExcel, 
+                            'data-icon' => 'fas fa-link text-info'
+                        ];
                     }
                 ]
             )
@@ -68,5 +160,24 @@ class FiltrosInformesType extends AbstractType
     public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults([]);
+    }
+
+    public function validarRuta($ruta, $parametros)
+    {
+        /** 
+         * En esta función se valida si una ruta es correcta
+         * -------------------------------------------------
+         * @access public
+        */
+
+        try 
+        {
+            $ruta = $this->router->generate($ruta, $parametros);
+        } 
+        catch(RouteNotFoundException $e) 
+        {
+            $ruta = 'error';
+        }
+        return $ruta;
     }
 }

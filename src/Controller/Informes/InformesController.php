@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\Facturas;
+namespace App\Controller\Informes;
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -49,7 +49,7 @@ class InformesController extends AbstractController
         */
 
         $formFiltros = $this->createForm(FiltrosInformesType::class, null);
-        return $this->render('facturas\informes.html.twig', ['formFiltros' => $formFiltros->createView()]);
+        return $this->render('Informes\informes.html.twig', ['formFiltros' => $formFiltros->createView()]);
     }
 
     public function generarInforme(Request $request)
@@ -95,6 +95,7 @@ class InformesController extends AbstractController
         $accionBloqueo = 'pointer-events:none;';
         $form = $request->request->get('filtros_informes');
         $busquedaRapida = $request->request->get('busquedaRapida');
+        $bloqueoMenu = 'pointer-events:none; opacity:0.6 !important;';
         $compania = $bd->getRepository(compania::class)->findOneBy([]);
         $alineaciones = ['centro' => 'center', 'derecha' => 'right', 'izquierda' => 'left'];
         $informe = $bd->getRepository(Reporte::class)->findOneBy(['id' => $form['informe']]);
@@ -179,11 +180,12 @@ class InformesController extends AbstractController
                 }
                 $listRegistros = $listRegistrosBusquedaRapida;
             }
-
+            
             /** Se genera la paginación de los registros */
             /** ---------------------------------------- */
 
             $totalRegistros = count($listRegistros);
+            if($totalRegistros > 0){$bloqueoMenu = '';}
             foreach($listRegistros as $indexRegistro => $registro)
             {
                 $dataRegistro[] = $registro;
@@ -648,63 +650,12 @@ class InformesController extends AbstractController
         catch(\Exception $e) 
         {
             $status = 'error';
-            $file = $e->getFile();
-            $line = $e->getLine();
-            $message = $e->getMessage(); 
-            $contenidoInforme =
-            <<<TWIG
-                <div style="display:flex; padding: 40px 0px">
-                    <div style="display:flex; align-items:center; padding: 35px; border-radius:25px; gap: 15px; box-shadow: 9px 1px 17px 0px #E2E2E2; position:relative; overflow:hidden;">
-                        <img src="data:image;base64,$fondo" style=
-                        "
-                            left: 0px;
-                            z-index:-1;
-                            width: 100%;
-                            opacity: 0.1;
-                            height: 400px;
-                            position: absolute;
-                        ">
-                        <i class="fas fa-cog fa-spin" style=
-                        "
-                            z-index: 1;
-                            top: -28px;
-                            left: -98px;
-                            opacity: 0.6;
-                            color: #e5e5e5;
-                            font-size: 151px;
-                            position: absolute;
-                            --fa-animation-delay: 2s;
-                            --fa-animation-duration: 15s;
-                        "></i>
-                        <div style="display:flex; align-items:center; justify-content:center; width:90px; height:90px; border-radius:50%; padding:9px;">
-                            <img style="width:100%; height:100%; object-fit:contain;" src="data:image;base64,$logoError">
-                        </div>
-                        <div style="border-left: 1px solid #e5e5e5; padding-left: 20px;">
-                            <div class="montserrat" style="background: #DC3545; width: fit-content; gap:5px; display: flex; align-items: center; justify-content: center; padding: 4px 18px; color: white; border-radius: 16px; font-size: 13px; margin-bottom: 7px;">
-                                <i class="fas fa-circle-exclamation" style="color:white; font-size:15px"></i>
-                                <span style="font-size:11px">Oops! Algo salió mal</span>
-                            </div>
-                            <div class="montserrat-text" style="font-size:11px; color:#313131;">Se presentó el siguiente error al generar el informe</div>
-                            <hr style="border-style:dashed">
-                            <div style="display:flex; align-items:center; gap:5px">
-                                <i class="fas fa-angle-double-right" style="font-size:8px"></i>
-                                <span class="montserrat" style="font-size:11px">Línea: </span>
-                                <span class="montserrat-text" style="font-size:11px; margin-right:2px">$line</span>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:5px; margin-top:2px">
-                                <i class="fas fa-angle-double-right" style="font-size:8px"></i>
-                                <span class="montserrat" style="font-size:11px">Archivo: </span>
-                                <span class="montserrat-text" style="font-size:11px; margin-right:2px">$file</span>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:5px; margin-top:2px">
-                                <i class="fas fa-angle-double-right" style="font-size:8px"></i>
-                                <span class="montserrat" style="font-size:11px">Detalle: </span>
-                                <span class="montserrat-text" style="font-size:11px; margin-right:2px">$message</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            TWIG;   
+            $contenidoInforme = $this->renderView('Informes/frameErrorInforme.html.twig', 
+            [
+                'line' => $e->getLine(), 
+                'file' => $e->getFile(), 
+                'message' => $e->getMessage()
+            ]);
         }
 
         /** Se genera la plantilla del informe */
@@ -812,6 +763,7 @@ class InformesController extends AbstractController
                                 "
                                     width:0px; 
                                     height:0px; 
+                                    $bloqueoMenu
                                     display:flex; 
                                     padding:15px;
                                     cursor:pointer; 
@@ -852,9 +804,37 @@ class InformesController extends AbstractController
                                     <span class="montserrat-text" style="font-size:12px; margin-left:-19px; transition:all 0.5s ease">Descargar EXCEL</span>
                                 </div>
                             </div>
+                            <div id="loaderDescargaInforme" style=
+                            "
+                                gap:7px; 
+                                opacity:0;
+                                width:230px; 
+                                right:-260px;
+                                display:flex; 
+                                background:white; 
+                                border-radius:6px;
+                                position:absolute; 
+                                padding:12px 15px; 
+                                align-items:center; 
+                                transition:all 1s ease;
+                                border:1px solid #dfdfdf; 
+                            ">
+                                <div style="display:flex; align-items:center; justify-content:center; border-radius:5px; background:#DC354526; padding:7px" id="divIconoDescarga">
+                                    <i class="far fa-file-pdf text-danger" style="font-size:15px"></i>
+                                </div>
+                                <div style="width:100%; display:flex; justify-content:center; gap:1px; flex-direction:column">
+                                    <div style="display:flex; align-items:center; justify-content:center; gap:5px">
+                                        <div class="progress" style="height:8px; width:100%">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 0%" id="barraProgresoDescarga"></div>
+                                        </div>
+                                        <div class="montserrat" style="font-size:9px; width:30px; text-align:end" id="porcentajeDescarga">0%</div>
+                                    </div>
+                                    <span class="montserrat" style="font-size:10px;">Descargando informe</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="animate__animated animate__fadeInLeft" style="position:relative; margin-top:50px; margin-left:15px; width:fit-content; display:flex; align-items:center;">
+                    <div class="animate__animated animate__fadeInLeft" style="position:relative; margin-top:50px; margin-left:15px; width:fit-content; display:flex; align-items:center; $bloqueoMenu">
                         <button id="btnBusquedaRapida" style="transition:all 0.5s ease; position:absolute; border-radius:50%; right:6px; background:#17A; color:white" class="btn btn-sm" data-action="facturas--informes#busquedaRapida" data-opc="1"><i class="fas fa-search" style="font-size:12px"></i></button>
                         <input id="busquedaRapida" class="form-control buscar montserrat-text" type="text" placeholder="Búsqueda rápida" data-facturas--informes-target="busquedaRapida" style=
                         "
@@ -1270,22 +1250,6 @@ class InformesController extends AbstractController
         return $contenidoInforme;
     }
 
-    public function guardarFiltrosSesion(Request $request)
-    {
-        /** 
-         * En esta función se guardan los filtros de búsqueda seleccionados como variables de sesión; 
-         * de manera que, estos se puedan utilizar en distintas operaciones.
-         * ------------------------------------------------------------------------------------------
-         * @access public
-        */
-
-        $session = $request->getSession();
-        $form = $request->request->get('filtros_informes');
-        $form['busquedaRapida'] = $request->request->get('busquedaRapida');
-        $session->set('filtrosInformes', $form);
-        return new Response(json_encode(['status' => 'success']));
-    }
-
     public function descargarInformePDF(Request $request)
     {
         /** 
@@ -1316,74 +1280,71 @@ class InformesController extends AbstractController
         $configuracionesPDF = [];
         $camposTotalizacion = [];
         $camposPeriodoValido = [];
-        $contenidoPaginacion = '';
         $configuracionCampos = [];
         $pdfOptions = new Options();
         $conexion = $bd->getConnection();
-        $listRegistrosBusquedaRapida = [];
         $session = $request->getSession();
-        $form = $session->get('filtrosInformes');
-        $busquedaRapida = $form['busquedaRapida'];
+        $listRegistrosBusquedaRapida = [];
+        $form = $request->request->get('filtros_informes');
+        $busquedaRapida = $request->request->get('busquedaRapida');
         $compania = $bd->getRepository(compania::class)->findOneBy([]);
         $alineaciones = ['centro' => 'center', 'derecha' => 'right', 'izquierda' => 'left'];
         $informe = $bd->getRepository(Reporte::class)->findOneBy(['id' => $form['informe']]);
         $pdfOptions->set('defaultFont', 'Helvetica')->set('sizeFont', '9')->setIsRemoteEnabled(true);
         $fechaActual = (new \DateTime('now', new \DateTimeZone('America/Bogota')))->format('Y-m-d H:i:s');
 
-        /** Se obtienen los filtros de búsqueda seleccionados */
-        /** ------------------------------------------------- */
+        try 
+        {            
+            /** Se obtienen los filtros de búsqueda seleccionados */
+            /** ------------------------------------------------- */
 
-        $sqlInforme = $informe->getSql();
-        $nitCompania = $compania->getNit();
-        $logo = $compania->getLogocompania();
-        $nombreInforme = $informe->getNombre();
-        $pagina = $request->request->get('pagina');
-        $telefonoCompania = $compania->getTelefonos();
-        $direccionCompania = $compania->getDireccion();
-        $nombreCompania = strtoupper($compania->getNombre());
-        foreach($form as $key => $campo){$filtros['['.$key.']'] = !empty($campo)?$campo:-1;}
-        $sqlInforme = strtr($sqlInforme, $filtros);
+            $sqlInforme = $informe->getSql();
+            $nitCompania = $compania->getNit();
+            $logo = $compania->getLogocompania();
+            $nombreInforme = $informe->getNombre();
+            $telefonoCompania = $compania->getTelefonos();
+            $direccionCompania = $compania->getDireccion();
+            $nombreCompania = strtoupper($compania->getNombre());
+            foreach($form as $key => $campo){$filtros['['.$key.']'] = !empty($campo)?$campo:-1;}
+            $sqlInforme = strtr($sqlInforme, $filtros);
 
-        /** Se obtiene el json que contiene las configuraciones del informe */
-        /** --------------------------------------------------------------- */
+            /** Se obtiene el json que contiene las configuraciones del informe */
+            /** --------------------------------------------------------------- */
 
-        $tablaTotales['colspan'] = 0;
-        $configuraciones = $informe->getJson();
-        if(!empty($configuraciones))
-        {
-            if(array_key_exists('campos', $configuraciones)){$configuracionCampos = $configuraciones['campos'];}
-            if(array_key_exists('pdf', $configuraciones) && !empty($configuraciones['pdf']) && is_array($configuraciones['pdf'])){$configuracionesPDF = $configuraciones['pdf'];}
-            if(array_key_exists('paginacion', $configuraciones) && $configuraciones['paginacion'] && $configuraciones['paginacion'] >= 10){$paginacion = $configuraciones['paginacion'];}
-            if(array_key_exists('cabecera', $configuraciones) && is_array($configuraciones['cabecera']) && !empty($configuraciones['cabecera'])){$cabecera = $configuraciones['cabecera'];}
-            if(array_key_exists('agrupamiento', $configuraciones) && is_array($configuraciones['agrupamiento']) && !empty($configuraciones['agrupamiento'])){$agrupamiento = $configuraciones['agrupamiento'];}
-            if(array_key_exists('totalizacion', $configuraciones) && !empty($configuraciones['totalizacion']) && is_array($configuraciones['totalizacion'])){$camposTotalizacion = $configuraciones['totalizacion'];}
-            if(array_key_exists('periodo', $configuraciones) && !empty($configuraciones['periodo']))
+            $tablaTotales['colspan'] = 0;
+            $configuraciones = $informe->getJson();
+            if(!empty($configuraciones))
             {
-                preg_match_all('/\[(.*?)\]/', $configuraciones['periodo'], $campos);
-                if(!empty($campos))
+                if(array_key_exists('campos', $configuraciones)){$configuracionCampos = $configuraciones['campos'];}
+                if(array_key_exists('pdf', $configuraciones) && !empty($configuraciones['pdf']) && is_array($configuraciones['pdf'])){$configuracionesPDF = $configuraciones['pdf'];}
+                if(array_key_exists('cabecera', $configuraciones) && is_array($configuraciones['cabecera']) && !empty($configuraciones['cabecera'])){$cabecera = $configuraciones['cabecera'];}
+                if(array_key_exists('agrupamiento', $configuraciones) && is_array($configuraciones['agrupamiento']) && !empty($configuraciones['agrupamiento'])){$agrupamiento = $configuraciones['agrupamiento'];}
+                if(array_key_exists('totalizacion', $configuraciones) && !empty($configuraciones['totalizacion']) && is_array($configuraciones['totalizacion'])){$camposTotalizacion = $configuraciones['totalizacion'];}
+                if(array_key_exists('periodo', $configuraciones) && !empty($configuraciones['periodo']))
                 {
-                    foreach($campos[0] as $campo)
+                    preg_match_all('/\[(.*?)\]/', $configuraciones['periodo'], $campos);
+                    if(!empty($campos))
                     {
-                        if(array_key_exists($campo, $filtros) && date('Y-m-d', strtotime($filtros[$campo])) == $filtros[$campo])
+                        foreach($campos[0] as $campo)
                         {
-                            $fecha = explode('-', $filtros[$campo]);
-                            $mes = $bd->getRepository(meses::class)->findOneBy(['numero' => $fecha[1]]);
-                            $camposPeriodoValido[$campo] = $fecha[2].' de '.$mes->getNombre().' de '.$fecha[0];
+                            if(array_key_exists($campo, $filtros) && date('Y-m-d', strtotime($filtros[$campo])) == $filtros[$campo])
+                            {
+                                $fecha = explode('-', $filtros[$campo]);
+                                $mes = $bd->getRepository(meses::class)->findOneBy(['numero' => $fecha[1]]);
+                                $camposPeriodoValido[$campo] = $fecha[2].' de '.$mes->getNombre().' de '.$fecha[0];
+                            }
                         }
-                    }
-                    if(count($camposPeriodoValido) == count($campos[0]))
-                    {
-                        $periodo = strtr($configuraciones['periodo'], $camposPeriodoValido);
+                        if(count($camposPeriodoValido) == count($campos[0]))
+                        {
+                            $periodo = strtr($configuraciones['periodo'], $camposPeriodoValido);
+                        }
                     }
                 }
             }
-        }
 
-        /** Se realiza la consulta de los registros */
-        /** --------------------------------------- */
+            /** Se realiza la consulta de los registros */
+            /** --------------------------------------- */
 
-        try 
-        {
             $listRegistros = $conexion->prepare($sqlInforme)->executeQuery()->fetchAll();
 
             /** Se filtran los registros de acuerdo a la búsqueda rápida */
@@ -1458,212 +1419,66 @@ class InformesController extends AbstractController
                 
                 /** Se ordena la información de acuerdo a los campos de agrupación configurados en el informe */
                 /** ----------------------------------------------------------------------------------------- */
-        
-                foreach($camposAgrupacion as $index => $campo)
+
+                $keyAgrupacion = [];
+                foreach($listRegistros as $registro)
                 {
-                    if(empty($campoControl))
+                    foreach($camposAgrupacion as $campo)
                     {
-                        foreach($listRegistros as $registro)
-                        {
-                            $listAgrupada[$campo][$registro[$campo]] = $registro[$campo];
-                        }
+                        $keyAgrupacion[] = $registro[$campo];
+                        unset($registro[$campo]);
                     }
-                    else
-                    {
-                        if($index == 1)
-                        {
-                            foreach($listAgrupada[$campoControl] as $c)
-                            {
-                                $camposReferencia[] = $c;
-                                foreach($listRegistros as $registro)
-                                {
-                                    if($registro[$campoControl] == $c)
-                                    {
-                                        $listAgrupada[$campo][$c][$registro[$campo]] = $registro[$campo];
-                                    }
-                                }
-                            }
-                            unset($camposReferencia[array_key_last($camposReferencia)]);
-                        }
-                        else
-                        {
-                            foreach($camposReferencia as $cr)
-                            {
-                                foreach($listAgrupada[$campoControl][$cr] as $c)
-                                {
-                                    $camposReferenciaControl[] = $c;
-                                    foreach($listRegistros as $registro)
-                                    {
-                                        if($registro[$campoControl] == $c)
-                                        {
-                                            $listAgrupada[$campo][$c][$registro[$campo]] = $registro[$campo];
-                                        }
-                                    }
-                                }
-                            }
-                            $camposReferencia = $camposReferenciaControl;
-                        }
-                    }
-                    $campoControl = $campo;
-                    $listAgrupada[$campo]['referencia'] = array_key_exists($index + 1, $camposAgrupacion)?$camposAgrupacion[$index + 1]:'registros';
-        
-                    /** Se guardan los registros de tal manera que se asocien al último nivel de agrupación */
-                    /** ----------------------------------------------------------------------------------- */
-        
-                    if($listAgrupada[$campo]['referencia'] == 'registros')
-                    {
-                        if(empty($camposReferencia))
-                        {
-                            $campoAnterior = $camposAgrupacion[0];
-                            foreach($listAgrupada[$campoAnterior] as $c)
-                            {
-                                foreach($listRegistros as $registro)
-                                {
-                                    if($registro[$campoAnterior] == $c)
-                                    {
-                                        foreach($camposAgrupacion as $campo){unset($registro[$campo]);}
-                                        $listAgrupada['registros'][$c][] = $registro;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            foreach($camposReferencia as $cr)
-                            {
-                                foreach($listAgrupada[$campoControl][$cr] as $c)
-                                {
-                                    foreach($listRegistros as $registro)
-                                    {
-                                        $campoAnterior = $registro[$camposAgrupacion[count($camposAgrupacion) - 2]];
-                                        if($campoAnterior == $cr && $registro[$campoControl] == $c)
-                                        {
-                                            foreach($camposAgrupacion as $campo){unset($registro[$campo]);}
-                                            $listAgrupada['registros'][$campoAnterior.$c][] = $registro;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    $keyAgrupacion = implode('_', $keyAgrupacion);
+                    $listAgrupada[$keyAgrupacion][] = $registro;
+                    $keyAgrupacion = [];
                 }
 
                 /** Se crea la sección de agrupamiento con todos los campos seleccionados */
                 /** --------------------------------------------------------------------- */
 
-                $index = 0;
-                $indexFila = 0;
-                $divAgrupacion = '';
-                $registrosAgrupados = [];
+                $tituloAgrupado = [];
                 $divAgrupacionGeneral = '';
-                $divRegistrosAgrupacion = '';
-                foreach($listAgrupada as $key => $lista)
+                $camposAgrupadosCabecera = [];
+                foreach($listAgrupada as $key => $registros)
                 {
-                    if($key == 'registros'){break;}
-                    $campo = array_filter($agrupamiento[0]['campos'], fn($item) => $item['nombre'] == $key);
-                    sort($campo);
-                    $titulo = $campo[0]['titulo'];
-                    foreach($lista as $keyFila => $items)
+                    $camposAgrupadosCabecera = explode('_', $key);
+                    foreach($camposAgrupadosCabecera as $keyCampoAgrupado => $campoAgrupado)
                     {
-                        if($keyFila == 'referencia'){continue;}
-                        $keyFila = str_replace(' ', '_', $keyFila);
-                        $marginTopFila = ($indexFila == 0)?'':'margin-top:3px;';
-                        if($index == 0)
-                        {
-                            $registrosAgrupados[] = $keyFila; 
-                            $nombreAgrupacion = explode('-', $items);
-                            if(count($nombreAgrupacion) > 1)
-                            {
-                                unset($nombreAgrupacion[0]);
-                                $nombreAgrupacion = implode('-', $nombreAgrupacion);
-                            }
-                            $divAgrupacionGeneral .=
-                            <<<TWIG
-                            <div style=
-                            "
-                                $marginTopFila
-                                padding:12px 17px; 
-                                background:#f2f2f2;
-                                border:1px solid gray; 
-                                border-radius:5px 5px 0px 0px; 
-                            ">
-                                <table border="0" cellpadding="0" cellspacing="0">
-                                    <tr>
-                                        <th>$titulo</th>
-                                        <th style="padding-left:5px; padding-right:5px">»</th>
-                                        <td>$nombreAgrupacion</td>
-                                    </tr>
-                                </table>
-                            </div>
-                            <div style="border: 1px solid gray; padding:10px; border-radius: 0px 0px 5px 5px; margin-top:-1px;">
-                                replace_$keyFila
-                            </div>
-                            TWIG;
-                        }
-                        else
-                        {
-                            foreach($items as $keyItem => $item)
-                            {
-                                $keyItem = str_replace(' ', '_', $keyItem);
-                                if($index == (count($listAgrupada) - 2))
-                                {
-                                    $keyItem = $keyFila.str_replace(' ', '_', $keyItem);
-                                    $registrosAgrupados[] = $keyItem; 
-                                }
-                                $nombreAgrupacion = explode('-', $item);
-                                if(count($nombreAgrupacion) > 1)
-                                {
-                                    unset($nombreAgrupacion[0]);
-                                    $nombreAgrupacion = implode('-', $nombreAgrupacion);
-                                }
-                                $divAgrupacion .=
-                                <<<TWIG
-                                <div style=
-                                "
-                                    margin-top:3px;
-                                    padding:12px 17px;
-                                    background:#f2f2f2;
-                                    border:1px solid gray; 
-                                    border-radius:5px 5px 0px 0px; 
-                                ">
-                                    <table border="0" cellpadding="0" cellspacing="0">
-                                        <tr>
-                                            <th>$titulo</th>
-                                            <th style="padding-left:5px; padding-right:5px">»</th>
-                                            <td>$nombreAgrupacion</td>
-                                        </tr>
-                                    </table>
-                                </div>
-                                <div style="border: 1px solid gray; padding:10px; border-radius: 0px 0px 5px 5px; margin-top:-1px;">
-                                    <div>
-                                        replace_$keyItem
-                                    </div>
-                                </div>
-                                TWIG;
-                            }
-                            $divAgrupacionGeneral = str_replace('replace_'.$keyFila, $divAgrupacion, $divAgrupacionGeneral);
-                            $divAgrupacion = '';
-
-                        }
-                        
-                        /** Se agrega a los items del último campo de agrupación los registros correspondientes */
-                        /** ----------------------------------------------------------------------------------- */
-
-                        if($index == (count($listAgrupada) - 2))
-                        {
-                            foreach($registrosAgrupados as $indexAgrupacion => $registros)
-                            {
-                                if(array_key_exists(str_replace('_', ' ', $registros), $listAgrupada['registros']))
-                                {
-                                    $divAgrupacion = $this->crearTablaRegistrosPDF($request, $configuraciones, $listAgrupada['registros'][str_replace('_', ' ', $registros)], true);
-                                    $divAgrupacionGeneral = str_replace('replace_'.$registros, $divAgrupacion, $divAgrupacionGeneral);
-                                }
-                            }
-                        }
-                        $indexFila ++;
-                        $divAgrupacion = '';
+                        $key = $camposAgrupacion[$keyCampoAgrupado];
+                        $campo = array_filter($agrupamiento[0]['campos'], fn($item) => $item['nombre'] == $key);
+                        sort($campo);
+                        $titulo = strip_tags($campo[0]['titulo']);
+                        $campoAgrupado = explode('-', $campoAgrupado);
+                        $campoAgrupado = (count($campoAgrupado) > 1)?$campoAgrupado[1]:$campoAgrupado[0];
+                        $tituloAgrupado[] = $titulo.' » '.$campoAgrupado;
                     }
-                    $index ++;
+                    $tituloAgrupado = implode('  |  ', $tituloAgrupado);
+
+                    /** Se crea la tabla de cada agrupación con sus respectivos registros */
+                    /** ----------------------------------------------------------------- */
+
+                    $tablaRegistros = $this->crearTablaRegistrosPDF($request, $configuraciones, $registros, true);                    
+                    $divAgrupacionGeneral .=
+                    <<<TWIG
+                    <div style=
+                    "
+                        margin-top:5px;
+                        padding:12px 17px;
+                        background:#f2f2f2;
+                        border:1px solid gray; 
+                        border-radius:5px 5px 0px 0px; 
+                    ">
+                        <table border="0" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <th>$tituloAgrupado</th>
+                            </tr>
+                        </table>
+                    </div>
+                    <div style="border: 1px solid gray; padding:10px; border-radius: 0px 0px 5px 5px; margin-top:-1px;">
+                        $tablaRegistros
+                    </div>
+                    TWIG;
+                    $tituloAgrupado = [];
                 }
 
                 /** Se genera la sección de totales obtenidos a partir de los campos de agrupación */
@@ -1719,7 +1534,12 @@ class InformesController extends AbstractController
         catch(\Exception $e) 
         {
             $status = 'error';
-            $message = $e->getMessage().' - '.$e->getFile().' - '.$e->getLine();    
+            $session->set('errorDescargaInforme', 
+            [
+                'line' => $e->getLine(), 
+                'file' => $e->getFile(), 
+                'message' => $e->getMessage()
+            ]);    
         }
 
         /** Se asignan las configuraciones del PDF */
@@ -1816,8 +1636,15 @@ class InformesController extends AbstractController
         $dompdf->render();
         $nombreInforme = strtolower(str_replace(' ', '_', $nombreInforme));
         $dompdf->get_canvas()->page_text(282, 766, "Pagina: {PAGE_NUM} de {PAGE_COUNT}", 'Helvetica', 6, array(0, 0, 0));
-        $pdf = base64_encode($dompdf->output());
-        $dompdf->stream($nombreInforme.'.pdf', ['Attachment' => true]);
+        $pdf = $dompdf->output();
+        return new Response(
+            $pdf,
+            200,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => ResponseHeaderBag::DISPOSITION_ATTACHMENT
+            ]
+        );
     }
 
     public function crearTablaRegistrosPDF(Request $request, $configuraciones, $listRegistros, $agrupacion = false)
@@ -2194,71 +2021,70 @@ class InformesController extends AbstractController
         $listRegistrosBusquedaRapida = [];
         $session = $request->getSession();
         $sheet = $spreadsheet->getActiveSheet();
-        $form = $session->get('filtrosInformes');
-        $busquedaRapida = $form['busquedaRapida'];
         $logoTmp = tempnam(sys_get_temp_dir(), 'logoTmp');
         $rutaLogo = $this->getParameter('imgs_directory');
+        $form = $request->request->get('filtros_informes');
+        $busquedaRapida = $request->request->get('busquedaRapida');
         $compania = $bd->getRepository(compania::class)->findOneBy([]);
         $alineaciones = ['centro' => 'center', 'derecha' => 'right', 'izquierda' => 'left'];
         $informe = $bd->getRepository(Reporte::class)->findOneBy(['id' => $form['informe']]);
         $fechaActual = (new \DateTime('now', new \DateTimeZone('America/Bogota')))->format('Y-m-d H:i:s');
 
-        /** Se obtienen los filtros de búsqueda seleccionados */
-        /** ------------------------------------------------- */
-        
-        $sqlInforme = $informe->getSql();
-        $nitCompania = $compania->getNit();
-        $logo = $compania->getLogocompania();
-        $nombreInforme = $informe->getNombre();
-        $pagina = $request->request->get('pagina');
-        $telefonoCompania = $compania->getTelefonos();
-        $direccionCompania = $compania->getDireccion();
-        $nombreCompania = strtoupper($compania->getNombre());
-        $logoCompania = base64_decode($compania->getLogocompania());
-        foreach($form as $key => $campo){$filtros['['.$key.']'] = !empty($campo)?$campo:-1;}
-        file_put_contents($logoTmp, $logoCompania);
-        $sqlInforme = strtr($sqlInforme, $filtros);
-
-        /** Se obtiene el json que contiene las configuraciones del informe */
-        /** --------------------------------------------------------------- */
-
-        $tablaTotales['colspan'] = 0;
-        $configuraciones = $informe->getJson();
-        if(!empty($configuraciones))
+        try 
         {
-            if(array_key_exists('campos', $configuraciones)){$configuracionCampos = $configuraciones['campos'];}
-            if(array_key_exists('pdf', $configuraciones) && !empty($configuraciones['pdf']) && is_array($configuraciones['pdf'])){$configuracionesPDF = $configuraciones['pdf'];}
-            if(array_key_exists('paginacion', $configuraciones) && $configuraciones['paginacion'] && $configuraciones['paginacion'] >= 10){$paginacion = $configuraciones['paginacion'];}
-            if(array_key_exists('cabecera', $configuraciones) && is_array($configuraciones['cabecera']) && !empty($configuraciones['cabecera'])){$cabecera = $configuraciones['cabecera'];}
-            if(array_key_exists('agrupamiento', $configuraciones) && is_array($configuraciones['agrupamiento']) && !empty($configuraciones['agrupamiento'])){$agrupamiento = $configuraciones['agrupamiento'];}
-            if(array_key_exists('totalizacion', $configuraciones) && !empty($configuraciones['totalizacion']) && is_array($configuraciones['totalizacion'])){$camposTotalizacion = $configuraciones['totalizacion'];}
-            if(array_key_exists('periodo', $configuraciones) && !empty($configuraciones['periodo']))
+            /** Se obtienen los filtros de búsqueda seleccionados */
+            /** ------------------------------------------------- */
+            
+            $sqlInforme = $informe->getSql();
+            $nitCompania = $compania->getNit();
+            $logo = $compania->getLogocompania();
+            $nombreInforme = $informe->getNombre();
+            $telefonoCompania = $compania->getTelefonos();
+            $direccionCompania = $compania->getDireccion();
+            $nombreCompania = strtoupper($compania->getNombre());
+            $logoCompania = base64_decode($compania->getLogocompania());
+            foreach($form as $key => $campo){$filtros['['.$key.']'] = !empty($campo)?$campo:-1;}
+            file_put_contents($logoTmp, $logoCompania);
+            $sqlInforme = strtr($sqlInforme, $filtros);
+
+            /** Se obtiene el json que contiene las configuraciones del informe */
+            /** --------------------------------------------------------------- */
+
+            $tablaTotales['colspan'] = 0;
+            $configuraciones = $informe->getJson();
+            if(!empty($configuraciones))
             {
-                preg_match_all('/\[(.*?)\]/', $configuraciones['periodo'], $campos);
-                if(!empty($campos))
+                if(array_key_exists('campos', $configuraciones)){$configuracionCampos = $configuraciones['campos'];}
+                if(array_key_exists('pdf', $configuraciones) && !empty($configuraciones['pdf']) && is_array($configuraciones['pdf'])){$configuracionesPDF = $configuraciones['pdf'];}
+                if(array_key_exists('paginacion', $configuraciones) && $configuraciones['paginacion'] && $configuraciones['paginacion'] >= 10){$paginacion = $configuraciones['paginacion'];}
+                if(array_key_exists('cabecera', $configuraciones) && is_array($configuraciones['cabecera']) && !empty($configuraciones['cabecera'])){$cabecera = $configuraciones['cabecera'];}
+                if(array_key_exists('agrupamiento', $configuraciones) && is_array($configuraciones['agrupamiento']) && !empty($configuraciones['agrupamiento'])){$agrupamiento = $configuraciones['agrupamiento'];}
+                if(array_key_exists('totalizacion', $configuraciones) && !empty($configuraciones['totalizacion']) && is_array($configuraciones['totalizacion'])){$camposTotalizacion = $configuraciones['totalizacion'];}
+                if(array_key_exists('periodo', $configuraciones) && !empty($configuraciones['periodo']))
                 {
-                    foreach($campos[0] as $campo)
+                    preg_match_all('/\[(.*?)\]/', $configuraciones['periodo'], $campos);
+                    if(!empty($campos))
                     {
-                        if(array_key_exists($campo, $filtros) && date('Y-m-d', strtotime($filtros[$campo])) == $filtros[$campo])
+                        foreach($campos[0] as $campo)
                         {
-                            $fecha = explode('-', $filtros[$campo]);
-                            $mes = $bd->getRepository(meses::class)->findOneBy(['numero' => $fecha[1]]);
-                            $camposPeriodoValido[$campo] = $fecha[2].' de '.$mes->getNombre().' de '.$fecha[0];
+                            if(array_key_exists($campo, $filtros) && date('Y-m-d', strtotime($filtros[$campo])) == $filtros[$campo])
+                            {
+                                $fecha = explode('-', $filtros[$campo]);
+                                $mes = $bd->getRepository(meses::class)->findOneBy(['numero' => $fecha[1]]);
+                                $camposPeriodoValido[$campo] = $fecha[2].' de '.$mes->getNombre().' de '.$fecha[0];
+                            }
                         }
-                    }
-                    if(count($camposPeriodoValido) == count($campos[0]))
-                    {
-                        $periodo = strtr($configuraciones['periodo'], $camposPeriodoValido);
+                        if(count($camposPeriodoValido) == count($campos[0]))
+                        {
+                            $periodo = strtr($configuraciones['periodo'], $camposPeriodoValido);
+                        }
                     }
                 }
             }
-        }
 
-        /** Se realiza la consulta de los registros */
-        /** --------------------------------------- */
+            /** Se realiza la consulta de los registros */
+            /** --------------------------------------- */
 
-        try 
-        {
             $listRegistros = $conexion->prepare($sqlInforme)->executeQuery()->fetchAll();
 
             /** Se filtran los registros de acuerdo a la búsqueda rápida */
@@ -2541,7 +2367,12 @@ class InformesController extends AbstractController
         catch(\Exception $e) 
         {
             $status = 'error';
-            $message = $e->getMessage().' - '.$e->getFile().' - '.$e->getLine();
+            $session->set('errorDescargaInforme', 
+            [
+                'line' => $e->getLine(), 
+                'file' => $e->getFile(), 
+                'message' => $e->getMessage()
+            ]);
         }
 
         $ultimaColumna = $this->ultimaColumna; 
@@ -2642,7 +2473,7 @@ class InformesController extends AbstractController
         $temp_file = tempnam(sys_get_temp_dir(), 'informe.xls');
         $writer->save($temp_file);
         $nombreInforme = strtolower(str_replace(' ', '_', $nombreInforme));
-        return $this->file($temp_file, $nombreInforme.'.xls', ResponseHeaderBag::DISPOSITION_INLINE);
+        return $this->file($temp_file, $nombreInforme.'.xls', ResponseHeaderBag::DISPOSITION_ATTACHMENT);
     }
 
     public function crearTablaRegistrosExcel(Request $request, $configuraciones, $listRegistros, $agrupacion = false, $sheet)
@@ -3239,5 +3070,34 @@ class InformesController extends AbstractController
                 }
             }
         }
+    }
+
+    public function frameErrorInforme(Request $request)
+    {
+        /** 
+         * En esta función se genera la vista para visualizar los detalles de cualquier error ocurrido 
+         * en la descarga de un informe (excel, pdf).
+         * -------------------------------------------------------------------------------------------
+         * @access public
+        */
+
+        $line = '';
+        $file = '';
+        $message = '';
+        $session = $request->getSession();
+        if($session->has('errorDescargaInforme'))
+        {
+            $errorDescargaInforme = $session->get('errorDescargaInforme');
+            $message = $errorDescargaInforme['message'];
+            $line = $errorDescargaInforme['line'];
+            $file = $errorDescargaInforme['file'];
+            $session->remove('errorDescargaInforme');
+        }
+        return $this->render('Informes/frameErrorInforme.html.twig',
+        [
+            'file' => $file,
+            'line' => $line,
+            'message' => $message
+        ]);
     }
 }

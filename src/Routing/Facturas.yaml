@@ -21,26 +21,38 @@ facturas_eliminar_factura:
     path:      /Facturas/eliminarFactura
     defaults:   {_controller: App\Controller\Facturas\FacturaController::eliminarFactura}
 
-facturas_informes:
-    path:      /Facturas/informes
-    defaults:   {_controller: App\Controller\Facturas\InformesController::informes}
+informes:
+    path:      /Informes/informes
+    defaults:   {_controller: App\Controller\Informes\InformesController::informes}
 
-facturas_generar_informe:
-    path:      /Facturas/generarInforme
-    defaults:   {_controller: App\Controller\Facturas\InformesController::generarInforme}
+informes_generar_informe:
+    path:      /Informes/generarInforme
+    defaults:   {_controller: App\Controller\Informes\InformesController::generarInforme}
+
+informes_descargar_informe_pdf:
+    path:      /Informes/descargarInformePDF
+    defaults:   {_controller: App\Controller\Informes\InformesController::descargarInformePDF}
+
+informes_descargar_informe_excel:
+    path:      /Informes/descargarInformeExcel
+    defaults:   {_controller: App\Controller\Informes\InformesController::descargarInformeExcel}
+
+informes_frame_error_informe:
+    path:      /Informes/frameErrorInforme
+    defaults:   {_controller: App\Controller\Informes\InformesController::frameErrorInforme}
 
 facturas_mostrar_producto:
     path:      /Facturas/mostrarProducto,{producto}
     defaults:   {_controller: App\Controller\Facturas\FacturasController::mostrarProducto,producto: 0}
 
-facturas_descargar_informe_pdf:
-    path:      /Facturas/DescargarInformePDF
-    defaults:   {_controller: App\Controller\Facturas\InformesController::descargarInformePDF}
+descargar_excel_informe_conciliacion:
+    path:      /Facturas/descargarExcelInformeConciliacion,{opc}
+    defaults:   {_controller: App\Controller\Facturas\FacturasController::descargarExcelInformeConciliacion,opc: 0}
 
-facturas_descargar_informe_excel:
-    path:      /Facturas/DescargarInformeExcel
-    defaults:   {_controller: App\Controller\Facturas\InformesController::descargarInformeExcel}
+descargar_pdf_informe_conciliacion:
+    path:      /Facturas/descargarPdfInformeConciliacion,{opc}
+    defaults:   {_controller: App\Controller\Facturas\FacturasController::descargarPdfInformeConciliacion,opc: 0}
 
-facturas_guardar_filtros_sesion:
-    path:      /Facturas/guardarFiltrosSesion
-    defaults:   {_controller: App\Controller\Facturas\InformesController::guardarFiltrosSesion}
+generar_informe_conciliacion:
+    path:      /Facturas/generarInformeConciliacion,{opc}
+    defaults:   {_controller: App\Controller\Facturas\FacturasController::generarInformeConciliacion,opc: 0}

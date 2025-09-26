@@ -3,6 +3,7 @@ import { Controller } from "@hotwired/stimulus";
 
 export default class extends Controller 
 {
+    form = new FormData();
     mensaje = new mensajes();
     estadoSeccionFiltros = 1;
     estadoBusquedaRapida = 0;
@@ -11,8 +12,8 @@ export default class extends Controller
     static values = 
     {
         'urlGenerarInforme' : String,
+        'urlFrameErrorInforme' : String,
         'urlDescargarInformePdf' : String,
-        'urlGuardarFiltrosSesion' : String,
         'urlDescargarInformeExcel' : String,
     };
 
@@ -36,9 +37,10 @@ export default class extends Controller
         /** -------------------------------------------------------------------------------------------------- */
 
         event.preventDefault();
-        let form = new FormData(event.currentTarget);
-        this.cargandoFiltrosTarget.style.display = '';
-        if(this.estadoSeccionFiltros == 1){this.showSeccionFiltros()}
+        let form = new FormData();
+        let formulario = Object.fromEntries(new FormData(event.currentTarget));
+        Object.keys(formulario).forEach((item) => {form.append(item, formulario[item])});
+        let rutaInforme = $('#filtros_informes_informe option:selected').data('rutaframe');
         let paginaActual = (this.targets.find('paginaHidden') != undefined)?this.paginaHiddenTarget.value:1;
         let busquedaRapida = (this.targets.find('busquedaRapida') != undefined)?this.busquedaRapidaTarget.value.trim():'';
         let busquedaRapidaActual = (this.targets.find('busquedaRapidaHidden') != undefined)?this.busquedaRapidaHiddenTarget.value.trim():'';
@@ -49,10 +51,23 @@ export default class extends Controller
         this.estadoPaginaSeleccionada = 0;
         this.estadoBusquedaRapida = 0;
 
+        /** Se valida si existe una ruta configurada para la descarga del excel */
+        /** ------------------------------------------------------------------- */
+
+        if(rutaInforme == 'error')
+        {
+            this.mensaje.mostrarMensaje('¡La ruta configurada para generar el informe no es válida!');
+            return;
+        }
+
         /** Se genera el informe a partir de los filtros de búsqueda */
         /** -------------------------------------------------------- */
         
-        let consulta = await fetch(this.urlGenerarInformeValue, {'method' : 'POST', 'body' : form});
+        this.form = form;
+        let ruta = (rutaInforme !== '')?rutaInforme:this.urlGenerarInformeValue;
+        this.cargandoFiltrosTarget.style.display = '';
+        if(this.estadoSeccionFiltros == 1){this.showSeccionFiltros()}
+        let consulta = await fetch(ruta, {'method' : 'POST', 'body' : form});
         let result = await consulta.json();
         $('#frameInforme').html(result.plantilla);
         this.cargandoFiltrosTarget.style.display = 'none';
@@ -171,18 +186,90 @@ export default class extends Controller
         btnMenuReporteador.removeClass('menuReporteadorError');
         form.append('busquedaRapida', $('#busquedaRapidaHidden').val().trim());
         $('#menuReporteador').attr('transition-style', 'out:custom:circle-swoop');
+        let rutaPDF = $('#filtros_informes_informe option:selected').data('rutapdf');
         setTimeout(() => {$('#menuReporteador').hide(); btnMenuReporteador.css('pointer-events', '');}, 1100);
+        let nombreInforme = $('#filtros_informes_informe option:selected').text().toLowerCase().replaceAll(' ', '_');
         btnMenuReporteador[0].dataset.opc = 0;
 
-        /** Se guardan los filtros de búsqueda en variables de sesión */
-        /** --------------------------------------------------------- */
+        /** Se valida si existe una ruta configurada para la descarga del PDF */
+        /** ----------------------------------------------------------------- */
 
-        await fetch(this.urlGuardarFiltrosSesionValue, {'method' : 'POST', 'body' : form});
+        if(rutaPDF == 'error')
+        {
+            this.mensaje.mostrarMensaje('¡La ruta configurada para la descarga del PDF no es válida!');
+            return;
+        }
 
-        /** Se genera y descarga el informe en formato PDF */
-        /** ---------------------------------------------- */
+        /** Se hace visible el loader de descarga */
+        /** ------------------------------------- */
 
-        window.location.href = this.urlDescargarInformePdfValue;
+        let porcentajeDescarga = 0;
+        let iconoDescarga = $('#divIconoDescarga').find('i');
+        $('#divIconoDescarga').css('background', '#DC354526');
+        $('#loaderDescargaInforme').css({'opacity' : '1', 'right' : '0px'});
+        iconoDescarga.removeClass('fa-file-excel text-success').addClass('fa-file-pdf text-danger');
+        let intervaloLoaderDescarga = setInterval(() =>
+        {
+            $('#porcentajeDescarga').html(`${porcentajeDescarga}%`);
+            $('#barraProgresoDescarga').css('width', `${porcentajeDescarga}%`);
+            if(porcentajeDescarga == 99){clearInterval(intervaloLoaderDescarga)}
+            porcentajeDescarga ++;
+        }, 500);
+
+        /** Se genera el informe en formato PDF */
+        /** ----------------------------------- */
+
+        let ruta = (rutaPDF != '')?rutaPDF:this.urlDescargarInformePdfValue;
+        let consulta = await fetch(ruta, {'method' : 'POST', 'body' : this.form});
+        clearInterval(intervaloLoaderDescarga);
+
+        /** Se valida si el archivo PDF se generó con éxito */
+        /** ----------------------------------------------- */
+
+        if(!consulta.ok) 
+        {
+            $('#barraProgresoDescarga').addClass('bg-danger');
+            $('#porcentajeDescarga').html('<i class="fas fa-ban text-danger animate__animated animate__fadeIn"></i>');
+            consulta = await fetch(this.urlFrameErrorInformeValue);
+            $('#frameErrorInforme').html(await consulta.text()).css('display', '');
+            setTimeout(() =>{$('#loaderDescargaInforme').css({'opacity' : '0', 'right' : '-260px'})}, 3000);
+            setTimeout(() =>{$('#barraProgresoDescarga').removeClass('bg-danger').css('width', '0%');}, 4000);
+            return;
+        }
+
+        /** Se finaliza el porcentaje de descarga */
+        /** ------------------------------------- */
+
+        intervaloLoaderDescarga = setInterval(() =>
+        {
+            $('#porcentajeDescarga').html(`${porcentajeDescarga}%`);
+            $('#barraProgresoDescarga').css('width', `${porcentajeDescarga}%`);
+            if(porcentajeDescarga == 100)
+            {
+                clearInterval(intervaloLoaderDescarga);
+                $('#barraProgresoDescarga').addClass('bg-success');
+                $('#porcentajeDescarga').html('<i class="fas fa-check-circle text-success animate__animated animate__fadeIn"></i>');        
+            }
+            porcentajeDescarga ++;
+        }, 1);
+
+        /** Se realiza la descarga del archivo PDF */
+        /** -------------------------------------- */
+
+        let blob = await consulta.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.download = `${nombreInforme}.pdf`;
+        a.href = url;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        /** Se oculta el loader de descarga */
+        /** ------------------------------- */
+
+        setTimeout(() =>{$('#loaderDescargaInforme').css({'opacity' : '0', 'right' : '-260px'})}, 3000);
+        setTimeout(() =>{$('#barraProgresoDescarga').removeClass('bg-success').css('width', '0%');}, 4000);
     }
 
     async descargarExcel()
@@ -199,8 +286,8 @@ export default class extends Controller
         form.append('busquedaRapida', $('#busquedaRapidaHidden').val().trim());
         $('#menuReporteador').attr('transition-style', 'out:custom:circle-swoop');
         let rutaExcel = $('#filtros_informes_informe option:selected').data('rutaexcel');
-        form.append('ruta', $('#filtros_informes_informe option:selected').data('rutaexcel'));
         setTimeout(() => {$('#menuReporteador').hide(); btnMenuReporteador.css('pointer-events', '');}, 1100);
+        let nombreInforme = $('#filtros_informes_informe option:selected').text().toLowerCase().replaceAll(' ', '_');
         btnMenuReporteador[0].dataset.opc = 0;
 
         /** Se valida si existe una ruta configurada para la descarga del excel */
@@ -212,14 +299,84 @@ export default class extends Controller
             return;
         }
 
-        /** Se guardan los filtros de búsqueda en variables de sesión */
-        /** --------------------------------------------------------- */
+        /** Se hace visible el loader de descarga */
+        /** ------------------------------------- */
 
-        await fetch(this.urlGuardarFiltrosSesionValue, {'method' : 'POST', 'body' : form});
+        let porcentajeDescarga = 0;
+        let iconoDescarga = $('#divIconoDescarga').find('i');
+        $('#divIconoDescarga').css('background', '#28A74526');
+        $('#loaderDescargaInforme').css({'opacity' : '1', 'right' : '0px'});
+        iconoDescarga.removeClass('fa-file-pdf text-danger').addClass('fa-file-excel text-success');
+        let intervaloLoaderDescarga = setInterval(() =>
+        {
+            $('#porcentajeDescarga').html(`${porcentajeDescarga}%`);
+            $('#barraProgresoDescarga').css('width', `${porcentajeDescarga}%`);
+            if(porcentajeDescarga == 99){clearInterval(intervaloLoaderDescarga)}
+            porcentajeDescarga ++;
+        }, 500);
 
-        /** Se genera y descarga el informe en formato excel */
-        /** ------------------------------------------------ */
+        /** Se genera el informe en formato excel */
+        /** ------------------------------------- */
 
-        window.location.href = this.urlDescargarInformeExcelValue;
+        let ruta = (rutaExcel != '')?rutaExcel:this.urlDescargarInformeExcelValue;
+        let consulta = await fetch(ruta, {'method' : 'POST', 'body' : this.form});
+        clearInterval(intervaloLoaderDescarga);
+
+        /** Se valida si el archivo excel se generó con éxito */
+        /** ------------------------------------------------- */
+
+        if(!consulta.ok) 
+        {
+            $('#barraProgresoDescarga').addClass('bg-danger');
+            $('#porcentajeDescarga').html('<i class="fas fa-ban text-danger animate__animated animate__fadeIn"></i>');
+            consulta = await fetch(this.urlFrameErrorInformeValue);
+            $('#frameErrorInforme').html(await consulta.text()).css('display', '');
+            setTimeout(() =>{$('#loaderDescargaInforme').css({'opacity' : '0', 'right' : '-260px'})}, 3000);
+            setTimeout(() =>{$('#barraProgresoDescarga').removeClass('bg-danger').css('width', '0%');}, 4000);
+            return;
+        }
+
+        /** Se finaliza el porcentaje de descarga */
+        /** ------------------------------------- */
+
+        intervaloLoaderDescarga = setInterval(() =>
+        {
+            $('#porcentajeDescarga').html(`${porcentajeDescarga}%`);
+            $('#barraProgresoDescarga').css('width', `${porcentajeDescarga}%`);
+            if(porcentajeDescarga == 100)
+            {
+                clearInterval(intervaloLoaderDescarga);
+                $('#barraProgresoDescarga').addClass('bg-success');
+                $('#porcentajeDescarga').html('<i class="fas fa-check-circle text-success animate__animated animate__fadeIn"></i>');
+            }
+            porcentajeDescarga ++;
+        }, 1);
+
+        /** Se realiza la descarga del archivo excel */
+        /** ---------------------------------------- */
+
+        let blob = await consulta.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.download = `${nombreInforme}.xls`;
+        a.href = url;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        /** Se oculta el loader de descarga */
+        /** ------------------------------- */
+
+        setTimeout(() =>{$('#loaderDescargaInforme').css({'opacity' : '0', 'right' : '-260px'})}, 3000);
+        setTimeout(() =>{$('#barraProgresoDescarga').removeClass('bg-success').css('width', '0%');}, 4000);
+    }
+
+    cerrarErrorInforme()
+    {
+        /** En esta función se cierra el mensaje de error generado al descargar el informe */
+        /** ------------------------------------------------------------------------------ */
+
+        $('#frameErrorInforme').addClass('animate__animated animate__fadeOut');
+        setTimeout(() => {$('#frameErrorInforme').html('').hide().removeClass('animate__animated animate__fadeOut')}, 800);
     }
 }

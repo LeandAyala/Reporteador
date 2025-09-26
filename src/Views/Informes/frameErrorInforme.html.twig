@@ -1,0 +1,67 @@
+<div class="animate__animated animate__fadeIn" style="display:flex; padding: 40px 0px; align-items:center; justify-content:center; height:100%">
+    <div style="display:flex; align-items:center; padding: 35px; border-radius:25px; gap: 15px; box-shadow: 9px 1px 17px 0px #E2E2E2; position:relative; overflow:hidden; background:white">
+        <i 
+            data-action="click->facturas--informes#cerrarErrorInforme"
+            class="fas fa-times-circle cerrarError text-danger animate__animated animate__fadeInRight animate__delay-1s" 
+            style="position:absolute; right:18px; top:15px; font-size:15px; cursor:pointer; z-index:2; transition:all 0.5s ease; border-radius:50%"
+        ></i>
+        <img src="{{ asset('Imgs/fondo.jpg') }}" style=
+        "
+            left: 0px;
+            width: 100%;
+            opacity: 0.1;
+            height: 400px;
+            position: absolute;
+        ">
+        <i class="fas fa-cog fa-spin" style=
+        "
+            z-index: 1;
+            top: -28px;
+            left: -98px;
+            opacity: 0.6;
+            color: #e5e5e5;
+            font-size: 151px;
+            position: absolute;
+            --fa-animation-delay: 1s;
+            --fa-animation-duration: 15s;
+        "></i>
+        <div style="display:flex; align-items:center; justify-content:center; width:90px; height:90px; border-radius:50%; padding:9px; position:relative">
+            <img style="width:100%; height:100%; object-fit:contain;" src="{{ asset('Imgs/logoActualizado.png') }}">
+        </div>
+        <div style="border-left: 1px solid #e5e5e5; padding-left: 20px; position:relative">
+            <div class="montserrat" style="background: #DC3545; width: fit-content; gap:5px; display: flex; align-items: center; justify-content: center; padding: 4px 18px; color: white; border-radius: 16px; font-size: 13px; margin-bottom: 7px;">
+                <i class="fas fa-circle-exclamation" style="color:white; font-size:15px"></i>
+                <span style="font-size:11px">Oops! Algo salió mal</span>
+            </div>
+            <div class="montserrat-text" style="font-size:11px; color:#313131;">Se presentó el siguiente error al generar el informe</div>
+            <hr style="border-style:dashed">
+            {% if line != '' %}
+                <div style="display:flex; align-items:center; gap:5px">
+                    <i class="fas fa-angle-double-right" style="font-size:8px"></i>
+                    <span class="montserrat" style="font-size:11px">Línea: </span>
+                    <span class="montserrat-text" style="font-size:11px; margin-right:2px">{{ line }}</span>
+                </div>
+            {% endif %}
+            {% if file != '' %}
+                <div style="display:flex; align-items:center; gap:5px; margin-top:2px">
+                    <i class="fas fa-angle-double-right" style="font-size:8px"></i>
+                    <span class="montserrat" style="font-size:11px">Archivo: </span>
+                    <span class="montserrat-text" style="font-size:11px; margin-right:2px">{{ file }}</span>
+                </div>
+            {% endif %}
+            {% if message != '' %}
+                <div style="display:flex; align-items:center; gap:5px; margin-top:2px">
+                    <i class="fas fa-angle-double-right" style="font-size:8px"></i>
+                    <span class="montserrat" style="font-size:11px">Detalle: </span>
+                    <span class="montserrat-text" style="font-size:11px; margin-right:2px">{{ message }}</span>
+                </div>
+            {% else %}
+                <div style="display:flex; align-items:center; gap:5px; margin-top:2px">
+                    <i class="fas fa-angle-double-right" style="font-size:8px"></i>
+                    <span class="montserrat" style="font-size:11px">Detalle: </span>
+                    <span class="montserrat-text" style="font-size:11px; margin-right:2px">Por favor revise la funcionalidad implementada para la descarga del informe</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

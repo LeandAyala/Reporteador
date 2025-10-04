@@ -33,6 +33,16 @@ class Reporte
      */
     private $json = [];
 
+    /**
+     * @ORM\Column(type="integer", nullable=true)
+     */
+    private $tipo;
+
+    /**
+     * @ORM\Column(type="text", nullable=true)
+     */
+    private $modulo;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -70,6 +80,30 @@ class Reporte
     public function setJson(?array $json): self
     {
         $this->json = $json;
+
+        return $this;
+    }
+
+    public function getTipo(): ?int
+    {
+        return $this->tipo;
+    }
+
+    public function setTipo(?int $tipo): self
+    {
+        $this->tipo = $tipo;
+
+        return $this;
+    }
+
+    public function getModulo(): ?string
+    {
+        return $this->modulo;
+    }
+
+    public function setModulo(?string $modulo): self
+    {
+        $this->modulo = $modulo;
 
         return $this;
     }

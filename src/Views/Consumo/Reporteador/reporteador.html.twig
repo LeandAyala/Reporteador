@@ -1,0 +1,359 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    {{ parent() }}
+    <style>
+        * {
+            font-size: 13px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            position: relative;
+        }
+
+        .montserrat {
+            font-family: "Montserrat", serif;
+            font-optical-sizing: auto;
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        .montserrat-text {
+            font-family: "Montserrat", serif;
+            font-optical-sizing: auto;
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        .btn.dropdown-toggle.bs-placeholder.btn-light, .btn.dropdown-toggle.btn-light {
+            border: 1px solid #d0d4da;
+        }
+
+        .seccionInforme:hover {
+            color:#007BFF;
+        }
+
+        .seccionInforme:hover svg {
+            color:#007BFF;
+        }
+
+        .listado {
+            max-height:780px;
+        }
+
+        .listado::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        .listado::-webkit-scrollbar-thumb {
+            background-color: #dee2e6;
+            border-radius: 20px;
+        }
+
+        body::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background-color: #dee2e6;
+            border-radius: 20px;
+        }
+
+        .listadoTabla::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        .listadoTabla::-webkit-scrollbar-thumb {
+            background-color: #dee2e6;
+            border-radius: 20px;
+        }
+        
+        .paginas {
+            transition: all 0.5s ease;
+        }
+
+        .paginas:hover {
+            color: white;
+            background: #17A3B8 !important;
+        }
+
+        .logo {
+            animation: animarLogo 2s linear infinite;
+        }
+        
+        .loader {
+            top: 2px;
+            left: 10px;
+            width: 40px;
+            height: 40px;
+            display: block;
+            position:absolute;
+            border-radius: 50%;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #007BFF;
+            animation: spin 2s linear infinite, cambiarColorLogo 20s linear infinite;
+        }
+
+        @keyframes in-circle-swoop {
+            from {
+                clip-path: var(--circle-top-right-out);
+            }
+            to {
+                clip-path: var(--circle-bottom-right-in);
+            }
+        }
+
+        [transition-style="in:custom:circle-swoop"] {
+            --transition__duration: 1s;
+            animation-name: in-circle-swoop;
+        }
+
+        @keyframes out-circle-swoop {
+            from {
+                clip-path: var(--circle-bottom-right-in);
+            }
+            to {
+                clip-path: var(--circle-top-right-out);
+            }
+        }
+
+        [transition-style="out:custom:circle-swoop"] {
+            --transition__duration: 1s;
+            --transition__easing: cubic-bezier(.30, 1, .25, 1);
+            animation-name: out-circle-swoop;
+        }
+
+        @keyframes spin {
+            0% {transform: rotate(0deg)}
+            100% {transform: rotate(360deg)}
+        }
+
+        @keyframes animarLogo {
+            0% {transform:scale(0.2)}
+            50% {transform:scale(0.3)}
+            100% {transform:scale(0.2)}
+        }
+
+        @keyframes cambiarColorLogo {
+            0% {border-top: 6px solid #007BFF}
+            50% {border-top: 6px solid #28A745}
+            75% {border-top: 6px solid #DC3545}
+            100% {border-top: 6px solid #007BFF}
+        }
+
+        @media (max-height : 641px) {
+            .listado {
+                max-height:480px;
+            }
+        }
+
+        .ripple {
+            width: 1rem;
+        }
+        
+        .ripple::before {
+            content: "";
+            display: grid;
+            grid-area: 1/1;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 #17a2b85e;
+            animation: rp 3s linear infinite;
+        }
+
+        .ripple::before {--s: 3s}
+
+        @keyframes rp {
+            to {box-shadow: 0 0 0 1rem #0000}
+        }
+
+        .titulo:hover {
+            color:#007BFF;
+        }
+
+        .titulo:hover i {
+            color:#007BFF !important;
+        }
+
+        .titulo:hover svg {
+            color:#007BFF !important;
+        }
+
+        .buscar:focus {
+            border-color:#d0d4da;
+            box-shadow:none;
+        }
+
+        #btnBusquedaRapida:hover {
+            box-shadow:0px 0px 5px 1px #17A;
+        }
+        
+        .menuReporteador:hover {
+            background:#17A !important;
+        }
+
+        .menuReporteador:hover * {
+            color:white;
+        }
+
+        .itemMenu:hover {
+            background: #d2d4da85;
+        }
+
+        .itemMenu:hover .flecha {
+            opacity:1 !important;
+        }
+
+        .itemMenu:hover span {
+            margin-left:0px !important;
+        }
+
+        .menuReporteadorError:hover {
+            background:#DC3545 !important;
+        }
+        
+        .registroInfome:hover {
+            background:#dfe2e66e !important;
+        }
+
+        .cerrarError:hover {
+            box-shadow: 0px 0px 9px 0px;
+        }
+    </style>
+    <div class="container-fluid pt-4" data-turbo="true" 
+        {{ stimulus_controller(
+            {
+                'central--reporteador' :
+                {
+                    'urlGenerarInforme' : path('central_reporteador_generar_informe'),
+                    'urlFrameErrorInforme' : path('central_reporteador_frame_error_informe'),
+                    'urlDescargarInformePdf' : path('central_reporteador_descargar_informe_pdf'),
+                    'urlDescargarInformeExcel' : path('central_reporteador_descargar_informe_excel')
+                },
+                'consumo--reporteador' : {}
+            }
+        )}}
+    >
+        <div class="col-12 animate__animated animate__fadeIn" style="display:flex; align-items:center; justify-content:center">
+            <div class="card shadow-lg p-0 mb-5 bg-white rounded" style="width:100%">
+                <div class="card-body" style="overflow:hidden">
+                    <div class="list-group-item active font-weight-bold" style="border-radius:5px 5px 0px 0px">Informes</div>
+                    {{ form_start(formFiltros, {'attr' : {'class' : 'mb-0', 'id' : 'filtrosInforme', 'data-action' : 'central--reporteador#generarInforme'}}) }}
+                        <div class="list-group-item animate__animated animate__fadeIn animate__animated animate__fadeIn seccionFiltros"> 
+                            <div class="row ">
+                            <div class="col-4 pr-0">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        {{ form_label(formFiltros.informe,formFiltros.informe, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:83px'}}) }}
+                                    </div>
+                                    {{ form_widget(formFiltros.informe, {'attr' : 
+                                        {
+                                            'data-size' : '10',
+                                            'data-width' : '50%',
+                                            'data-container' : 'body',
+                                            'class' : 'form-control selectpicker',
+                                            'data-action' : 'central--reporteador#seleccionarInforme'
+                                        }
+                                    })}}
+                                </div>
+                            </div>
+                            <div class="col-4 pr-0">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        {{ form_label(formFiltros.desde,formFiltros.desde, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:111px'}}) }}
+                                    </div>
+                                    {{ form_widget(formFiltros.desde, {'attr' : {'class' : 'form-control'}})}}
+                                </div>
+                            </div>
+                            <div class="col-4 ">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        {{ form_label(formFiltros.hasta,formFiltros.hasta, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:62px'}}) }}
+                                    </div>
+                                    {{ form_widget(formFiltros.hasta, {'attr' : {'class' : 'form-control'}})}}
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-4 pr-0">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        {{ form_label(formFiltros.producto,formFiltros.producto, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:83px'}}) }}
+                                    </div>
+                                    {{ form_widget(formFiltros.producto, {'attr' : 
+                                        {
+                                            'data-size' : '10',
+                                            'data-width' : '50%',
+                                            'data-container' : 'body',
+                                            'class' : 'form-control selectpicker',
+                                            'data-action' : 'central--reporteador#seleccionarInforme'
+                                        }
+                                    })}}
+                                </div>
+                            </div>
+                            <div class="col-8 ">
+                                <div class="input-group">
+                                    {{ form_label(formFiltros.controlLotes,formFiltros.controlLotes, {'label_attr' : {'class' : 'form-control input-group-text font-weight-bold' }} ) }}
+                                    <div class="input-group-text d-flex justify-content-center" style="background: white; width:auto">
+                                        <div class="custom-control custom-switch">
+                                            {{ form_widget(formFiltros.controlLotes, {'attr' : {'class' : 'custom-control-input'}}) }}
+                                            <label class="custom-control-label" for="filtros_busqueda_controlLotes"></label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        </div>
+                        <div class="list-group-item seccionFiltros">
+                            <button type="submit" class="btn btn-success" id="btnGenerarInforme"><i class="fas fa-search"></i> Generar informe</button>
+                            <button type="button" class="btn btn-info" data-action="central--reporteador#limpiarCampos"><i class="fas fa-broom"></i> Limpiar</button>
+                            <a class="btn btn-danger" href="#" target="_top" id="btnRegresar"><i class="fas fa-caret-left"></i> Regresar</a>
+                        </div>
+                    {{ form_end(formFiltros) }}
+                    <div class="list-group-item seccionInforme" style="border-top:none; display:flex; align-items:center; gap:5px; cursor:pointer" data-action="click->central--reporteador#showSeccionFiltros">
+                        <span class="montserrat" style="font-size:12px">Generación de informes</span>
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="list-group-item">
+                        <div id="frameErrorInforme" style=
+                        "
+                            top:0; 
+                            left:0; 
+                            z-index:1; 
+                            width:100%; 
+                            height:100%; 
+                            display:none; 
+                            position:absolute;
+                            background:#FFFFFF99;
+                        "></div>
+                        <div class="list-group-item p-0" style="border:none">
+                            <div style="display:none" data-central--reporteador-target="cargandoFiltros" id="cargandoFiltros">
+                                <div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; left:0; top:0; opacity:0.6"></div>
+                                <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; left:0; top:0; display:flex; align-items:center; justify-content:center">
+                                    <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+                                        <div style="position:relative;">
+                                            <div class="loader"></div>
+                                            <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                                        </div>
+                                        <b style="font-size:13px">Cargando información...</b>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="list-group-item listado" id="frameInforme" style="border:none; padding:0px; padding-right:2px; overflow-y:auto">
+                                <div class="text-danger" style="display:flex; align-items:center; justify-content:center; font-weight:bold; height:50px">¡No se encontraron registros para listar!</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>      
+        </div>
+    </div>
+{% endblock %}

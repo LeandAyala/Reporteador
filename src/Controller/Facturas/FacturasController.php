@@ -201,7 +201,7 @@ class FacturasController extends AbstractController
         $session = $request->getSession();
         $sheet = $spreadsheet->getActiveSheet();
         $logoTmp = tempnam(sys_get_temp_dir(), 'logoTmp');
-        $form = $request->request->get('filtros_informes');
+        $form = $request->request->get('filtros_reporteador');
         $compania = $bd->getRepository(compania::class)->findOneBy([]);
         $informe = $bd->getRepository(Reporte::class)->findOneBy(['id' => $form['informe']]);
         $fechaActual = (new \DateTime('now', new \DateTimeZone('America/Bogota')))->format('Y-m-d H:i:s');
@@ -353,7 +353,7 @@ class FacturasController extends AbstractController
         $configuracionCampos = [];
         $pdfOptions = new Options();
         $conexion = $bd->getConnection();
-        $form = $request->request->get('filtros_informes');
+        $form = $request->request->get('filtros_reporteador');
         $compania = $bd->getRepository(compania::class)->findOneBy([]);
         $informe = $bd->getRepository(Reporte::class)->findOneBy(['id' => $form['informe']]);
         $pdfOptions->set('defaultFont', 'Helvetica')->set('sizeFont', '9')->setIsRemoteEnabled(true);

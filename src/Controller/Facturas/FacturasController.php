@@ -7,6 +7,7 @@ use Dompdf\Options;
 use App\Entity\Central\meses;
 use App\Entity\Usuarios\Usuario;
 use App\Entity\Facturas\Factura;
+use App\Entity\Central\reportes;
 use App\Entity\Central\compania;
 use App\Entity\Facturas\Reporte;
 use App\Entity\Productos\Producto;
@@ -488,5 +489,63 @@ class FacturasController extends AbstractController
                 'Content-Disposition' => ResponseHeaderBag::DISPOSITION_ATTACHMENT
             ]
         );
+    }
+
+    public function frameResumen(Request $request, $opc)
+    {
+        /** 
+         * En esta función se genera la vista para cargar el resumen de facturas
+         * ---------------------------------------------------------------------
+         * @access public
+        */
+
+        /** Definición de variables */
+        /** ----------------------- */
+
+        $bd = $this->em;
+        $listResumenGruposContables = [];
+        $conexion = $bd->getConnection();
+        $form = $request->request->get('filtros_reporteador');
+        $informe = $bd->getRepository(reportes::class)->findOneBy(['id' => $form['informe']]);
+        foreach($form as $key => $campo){$filtros['['.$key.']'] = !empty($campo)?$campo:-1;}
+
+        /** Se valida si las variables definidas en el sql se encuentran en los filtros de búsqueda */
+        /** --------------------------------------------------------------------------------------- */
+
+        $sqlInforme = $informe->getSql();
+        preg_match_all('/\[(.*?)\]/', $sqlInforme, $camposSQL);
+        foreach($camposSQL[0] as $campoSQL)
+        {
+            if(!array_key_exists($campoSQL, $filtros))
+            {
+                $filtros[$campoSQL] = '-1';
+            }
+        }
+        $sqlInforme = strtr($sqlInforme, $filtros);
+        $listRegistros = $conexion->prepare($sqlInforme)->executeQuery()->fetchAll();
+        foreach($listRegistros as $registro)
+        {
+            if(array_key_exists($registro['grupo_contable'], $listResumenGruposContables))
+            {
+                $listResumenGruposContables[$registro['grupo_contable']] = $registro['existencias'] + $listResumenGruposContables[$registro['grupo_contable']];
+            }
+            else
+            {
+                $listResumenGruposContables[$registro['grupo_contable']] = $registro['existencias'];
+            }
+        }
+        $plantilla = $this->renderView('Facturas/frameResumen.html.twig', ['listResumenGruposContables' => $listResumenGruposContables]);
+        return new Response(json_encode(['plantilla' => $plantilla]));
+    }
+
+    public function configurarInformes()
+    {
+        /** 
+         * En esta función se genera la vista para la configuración de informes
+         * --------------------------------------------------------------------
+         * @access public
+        */
+
+        return $this->render('Facturas/Reporteador/configuracionInformes.html.twig');
     }
 }

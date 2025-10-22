@@ -1,10 +1,13 @@
 <div class="animate__animated animate__fadeIn" style="display:flex; padding: 40px 0px; align-items:center; justify-content:center; height:100%">
     <div style="display:flex; align-items:center; padding: 35px; border-radius:25px; gap: 15px; box-shadow: 9px 1px 17px 0px #E2E2E2; position:relative; overflow:hidden; background:white">
-        <i 
-            data-action="click->central--reporteador#cerrarErrorInforme"
-            class="fas fa-times-circle cerrarError text-danger animate__animated animate__fadeInRight animate__delay-1s" 
-            style="position:absolute; right:18px; top:15px; font-size:15px; cursor:pointer; z-index:2; transition:all 0.5s ease; border-radius:50%"
-        ></i>
+        {% if noCerrar is not defined %}
+            <i 
+                data-opc="1"
+                data-action="click->central--reporteador#cerrarErrorInforme"
+                class="fas fa-times-circle cerrarError text-danger animate__animated animate__fadeInRight animate__delay-1s" 
+                style="position:absolute; right:18px; top:15px; font-size:15px; cursor:pointer; z-index:2; transition:all 0.5s ease; border-radius:50%"
+            ></i>
+        {% endif %}
         <img src="{{ asset('Imgs/fondo.jpg') }}" style=
         "
             left: 0px;

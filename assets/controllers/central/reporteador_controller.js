@@ -3,12 +3,16 @@ import { Controller } from "@hotwired/stimulus";
 
 export default class extends Controller 
 {
+    indexCabecera = -1;
     estadoDescarga = 0;
+    configuraciones = '';
     form = new FormData();
     mensaje = new mensajes();
     estadoSeccionFiltros = 1;
     estadoBusquedaRapida = 0;
     estadoPaginaSeleccionada = 0;
+    configuracionesGuardadas = {};
+    aplicarConfiguraciones = false;
 
     static values = 
     {
@@ -20,7 +24,7 @@ export default class extends Controller
 
     static targets = 
     [
-        'cargandoFiltros', 'paginaHidden', 'busquedaRapida', 'busquedaRapidaHidden'
+        'cargandoFiltros', 'paginaHidden', 'busquedaRapida', 'busquedaRapidaHidden', 'totalRegistrosHidden', 'statusHidden'
     ];
 
     connect()
@@ -39,8 +43,10 @@ export default class extends Controller
         event.preventDefault();
         let form = new FormData();
         let formulario = Object.fromEntries(new FormData(event.currentTarget));
+        let existenConfiguracionesGuardadas = (this.configuraciones != '')?true:false;
         Object.keys(formulario).forEach((item) => {form.append(item, formulario[item])});
-        let rutaInforme = $('#filtros_reporteador_informe option:selected').data('rutaframe');
+        let rutaInforme = $('#filtros_reporteador_informe option:selected').data('rutaframeinforme');
+        let rutaResumen = $('#filtros_reporteador_informe option:selected').data('rutaframeresumen');
         let paginaActual = (this.targets.find('paginaHidden') != undefined)?this.paginaHiddenTarget.value:1;
         let busquedaRapida = (this.targets.find('busquedaRapida') != undefined)?this.busquedaRapidaTarget.value.trim():'';
         let busquedaRapidaActual = (this.targets.find('busquedaRapidaHidden') != undefined)?this.busquedaRapidaHiddenTarget.value.trim():'';
@@ -69,17 +75,67 @@ export default class extends Controller
             return;
         }
 
+        /** Se valida si existen configuraciones guardadas */
+        /** ---------------------------------------------- */
+
+        if(existenConfiguracionesGuardadas)
+        {
+            form.append('configuracionesGuardadas', JSON.stringify(this.configuracionesGuardadas));
+        }
+
         /** Se genera el informe a partir de los filtros de búsqueda */
         /** -------------------------------------------------------- */
         
         this.form = form;
-        let ruta = (rutaInforme !== '')?rutaInforme:this.urlGenerarInformeValue;
         this.cargandoFiltrosTarget.style.display = '';
         if(this.estadoSeccionFiltros == 1){this.showSeccionFiltros()}
+        let ruta = (rutaInforme !== '')?rutaInforme:this.urlGenerarInformeValue;
         let consulta = await fetch(ruta, {'method' : 'POST', 'body' : form});
         let result = await consulta.json();
+        $('#divResumen').css('display', 'none');
         $('#frameInforme').html(result.plantilla);
+        $('#separadorResumen').css('display', 'none');
         this.cargandoFiltrosTarget.style.display = 'none';
+        if(this.configuraciones == '')
+        {
+            $('#frameConfiguraciones').html(result.seccionConfiguraciones);
+            let intervaloTotalRegistros = setInterval(() =>
+            {
+                if(this.targets.find('totalRegistrosHidden') != undefined)
+                {
+                    clearInterval(intervaloTotalRegistros);
+                    if(parseFloat($('#totalRegistrosHidden').val()) == 0)
+                    {
+                        $('#opcionConfiguraciones').css({'pointer-events' : 'none', 'opacity' : '0.6'});
+                    }
+                }
+            }, 100);
+        }
+
+        /** Se obtiene la sección de resumen */
+        /** -------------------------------- */
+        
+        let intervaloStatus = setInterval(async () =>
+        {
+            if(this.targets.find('statusHidden') != undefined)
+            {
+                clearInterval(intervaloStatus);
+                if($('#statusHidden').val() == 'success')
+                {
+                    if(rutaResumen != '' && rutaResumen != 'error')
+                    {
+                        $('#divResumen').css('display', '');
+                        $('#cargandoResumen').css('display', '');
+                        $('#separadorResumen').css('display', '');
+                        consulta = await fetch(rutaResumen, {'method' : 'POST', 'body' : form});
+                        result = await consulta.json();
+                        $('#frameResumen').html(result.plantilla);
+                        $('#cargandoResumen').css('display', 'none');
+                    }
+                }
+            }
+        }, 100);
+
         $('.listado').on('scroll', function()
         {
             if(this.scrollTop == 0)
@@ -188,6 +244,7 @@ export default class extends Controller
         /** ----------------------------------------------------------------- */
 
         let icono = $('.menuReporteador').find('i');
+        this.form.delete('configuracionesGuardadas');
         let btnMenuReporteador = $('.menuReporteador');
         btnMenuReporteador.css('pointer-events', 'none');
         let form = new FormData($('#filtrosInforme')[0]);
@@ -207,6 +264,14 @@ export default class extends Controller
         {
             this.mensaje.mostrarMensaje('¡La ruta configurada para la descarga del PDF no es válida!');
             return;
+        }
+
+        /** Se valida si existen configuraciones guardadas */
+        /** ---------------------------------------------- */
+
+        if(this.aplicarConfiguraciones)
+        {
+            this.form.append('configuracionesGuardadas', JSON.stringify(this.configuracionesGuardadas));
         }
 
         /** Se hace visible el loader de descarga */
@@ -242,7 +307,7 @@ export default class extends Controller
             $('#barraProgresoDescarga').addClass('bg-danger');
             $('#porcentajeDescarga').html('<i class="fas fa-ban text-danger animate__animated animate__fadeIn"></i>');
             consulta = await fetch(this.urlFrameErrorInformeValue);
-            $('#frameErrorInforme').html(await consulta.text()).css('display', '');
+            $('#frameInformacion').html(await consulta.text()).css('display', '');
             setTimeout(() =>{$('#loaderDescargaInforme').css({'opacity' : '0', 'right' : '-260px'})}, 3000);
             setTimeout(() =>{$('#barraProgresoDescarga').removeClass('bg-danger').css('width', '0%');}, 4000);
             return;
@@ -290,6 +355,7 @@ export default class extends Controller
         /** ------------------------------------------------------------------- */
 
         let icono = $('.menuReporteador').find('i');
+        this.form.delete('configuracionesGuardadas');
         let btnMenuReporteador = $('.menuReporteador');
         btnMenuReporteador.css('pointer-events', 'none');
         let form = new FormData($('#filtrosInforme')[0]);
@@ -309,6 +375,14 @@ export default class extends Controller
         {
             this.mensaje.mostrarMensaje('¡La ruta configurada para la descarga del excel no es válida!');
             return;
+        }
+
+        /** Se valida si existen configuraciones guardadas */
+        /** ---------------------------------------------- */
+
+        if(this.aplicarConfiguraciones)
+        {
+            this.form.append('configuracionesGuardadas', JSON.stringify(this.configuracionesGuardadas));
         }
 
         /** Se hace visible el loader de descarga */
@@ -344,7 +418,7 @@ export default class extends Controller
             $('#barraProgresoDescarga').addClass('bg-danger');
             $('#porcentajeDescarga').html('<i class="fas fa-ban text-danger animate__animated animate__fadeIn"></i>');
             consulta = await fetch(this.urlFrameErrorInformeValue);
-            $('#frameErrorInforme').html(await consulta.text()).css('display', '');
+            $('#frameInformacion').html(await consulta.text()).css('display', '');
             setTimeout(() =>{$('#loaderDescargaInforme').css({'opacity' : '0', 'right' : '-260px'})}, 3000);
             setTimeout(() =>{$('#barraProgresoDescarga').removeClass('bg-danger').css('width', '0%');}, 4000);
             return;
@@ -386,23 +460,502 @@ export default class extends Controller
         setTimeout(() =>{$('#barraProgresoDescarga').removeClass('bg-success').css('width', '0%');}, 4000);
     }
 
-    cerrarErrorInforme()
+    cerrarErrorInforme(event)
     {
         /** En esta función se cierra el mensaje de error generado al descargar el informe */
         /** ------------------------------------------------------------------------------ */
 
-        $('#frameErrorInforme').addClass('animate__animated animate__fadeOut');
-        setTimeout(() => {$('#frameErrorInforme').html('').hide().removeClass('animate__animated animate__fadeOut')}, 800);
+        $('#frameInformacion').addClass('animate__animated animate__fadeOut');
+        setTimeout(() => 
+        {
+            $('#frameInformacion').html('');
+            $('#frameInformacion').hide().removeClass('animate__animated animate__fadeOut');
+        }, 800);
     }
 
     seleccionarInforme()
     {
+        /** En esta función se limpia el valor de la búsqueda dinámica cuando se realiza la selección de un informe */
+        /** ------------------------------------------------------------------------------------------------------- */
+
+        this.configuraciones = '';
         $('#busquedaRapidaHidden').val('');
     }
 
     limpiarCampos()
     {
+        /** En esta función se limpian los filtros de búsqueda */
+        /** -------------------------------------------------- */
+
         $('#filtrosInforme')[0].reset();
         $('.selectpicker').selectpicker('refresh');
+    }
+
+    showConfiguraciones()
+    {
+        /** En esta función se hace visible la sección de configuraciones */
+        /** ------------------------------------------------------------- */
+        
+        $('body').css('overflow', 'hidden');
+        let icono = $('.menuReporteador').find('i');
+        $('#frameConfiguraciones').css('display', '');
+        let btnMenuReporteador = $('.menuReporteador');
+        btnMenuReporteador.css('pointer-events', 'none');
+        icono.removeClass('fa-times').addClass('fa-bars');
+        btnMenuReporteador.removeClass('menuReporteadorError');
+        $('#menuReporteador').attr('transition-style', 'out:custom:circle-swoop');
+        if(this.configuraciones != ''){$('#frameConfiguraciones').html(this.configuraciones)}
+        setTimeout(() => {$('#menuReporteador').hide(); btnMenuReporteador.css('pointer-events', '');}, 1100);
+        btnMenuReporteador[0].dataset.opc = 0;
+    }
+
+    seleccionarConfiguracion(event)
+    {
+        /** En esta función se actualizan los estilos de la opción seleccionada en las configuraciones */
+        /** ------------------------------------------------------------------------------------------ */
+
+        let opc = event.currentTarget.dataset.opc;
+        let icono = event.currentTarget.querySelector('i');
+        let texto = event.currentTarget.querySelector('span');
+        $('.btnConfiguraciones').each(function()
+        {
+            $(this).css('background', 'white');
+            $(this).find('i').css('color', 'gray');
+            $(this).find('span').css('color', 'gray');
+        });
+        event.currentTarget.style.background = '#e9ecef';
+        icono.style.color = '#17A';
+        texto.style.color = '#17A';
+    }
+
+    seleccionarCampoAgrupacion(event)
+    {
+        /** En esta función se activan/desactivan opciones de agrupación y se habilitan en la sección de campos */
+        /** --------------------------------------------------------------------------------------------------- */
+
+        let estado = event.currentTarget.checked;
+        let campo = event.currentTarget.dataset.campo;
+        if(estado)
+        {
+            $('#check_'+campo).removeAttr('checked');
+            $('#div_'+campo).css({'pointer-events' : 'none', 'opacity' : '0.6'});
+        }
+        else
+        {
+            $('#div_'+campo).css({'pointer-events' : '', 'opacity' : '1'});
+        }
+    }
+
+    guardarConfiguraciones()
+    {
+        /** En esta función se guardan las configuraciones del informe */
+        /** ---------------------------------------------------------- */
+
+        let camposConfiguracion = [];
+        let totalColspanCabeceras = 0;
+        let camposBusquedaDinamica = [];
+        let cabecerasConfiguracion = [];
+        let countCamposSeleccionados = 0;
+        let existenFechasInvalidas = false;
+        let camposAgrupacionConfiguracion = [];
+
+        /** Se valida si existe al menos un campo seleccionado */
+        /** -------------------------------------------------- */
+
+        let self = this;
+        $('.camposConfiguracion').each(function(){if($(this).is(':checked')){countCamposSeleccionados ++}});
+        $('.camposBusquedaDinamica').each(function()
+        {
+            let campo = $(this).data('campo');
+            let tipoDato = $(this).data('tipo');
+            let tipoBusqueda = $('#select_'+campo).val();
+            if($(this).is(':checked'))
+            {
+                /** Se valida para los campos fecha si el rango seleccionado es válido */
+                /** ------------------------------------------------------------------ */
+
+                if(tipoDato === 'fecha' && tipoBusqueda === 'entre')
+                {
+                    if(($('#input_'+campo).val() > $('#input_hasta_'+campo).val()) || $('#input_'+campo).val() == '' || $('#input_hasta_'+campo).val() == '')
+                    {
+                        existenFechasInvalidas = true;
+                        $('#input_'+campo).addClass('is-invalid');
+                        $('#input_hasta_'+campo).addClass('is-invalid');
+                        setTimeout(() =>
+                        {
+                            $('#input_'+campo).removeClass('is-invalid');
+                            $('#input_hasta_'+campo).removeClass('is-invalid');
+                        }, 2000);
+                    }
+                }
+
+            }
+        });
+
+        /** Se obtienen las cabeceras configuradas */
+        /** -------------------------------------- */
+
+        $('.cabeceraConfiguracion').each(function()
+        {
+            let opc = $(this).data('opc');
+            let nombre = $('#input_nombre_'+opc).val();
+            let colspan = $('#input_campos_'+opc).val();
+            if($(this).is(':checked'))
+            {
+                let dataCabecera =
+                {
+                    'index' : opc,
+                    'nombre' : nombre,
+                    'colspan' : colspan
+                };
+                cabecerasConfiguracion.push(dataCabecera);
+                totalColspanCabeceras += parseFloat(colspan);
+            }
+        });
+        if(existenFechasInvalidas)
+        {
+            self.mensaje.mostrarMensaje('¡Seleccione un rango de fechas válido antes de continuar!', 2);
+            return;
+        }
+        if(cabecerasConfiguracion.length > 0 && (totalColspanCabeceras != countCamposSeleccionados))
+        {
+            self.mensaje.mostrarMensaje('¡El colspan de las cabeceras debe ser igual a la cantidad de campos habilitados para el informe!', 2);
+            return;
+        }
+        if(countCamposSeleccionados > 0)
+        {
+            /** Se obtienen los campos configurados */
+            /** ----------------------------------- */
+
+            $('.camposConfiguracion').each(function()
+            {
+                if($(this).is(':checked'))
+                {
+                    camposConfiguracion.push($(this).data('campo'));
+                }
+            });
+
+            /** Se obtienen los campos de agrupación configurados */
+            /** ------------------------------------------------- */
+
+            $('.camposAgrupacionConfiguracion').each(function()
+            {
+                if($(this).is(':checked'))
+                {
+                    camposAgrupacionConfiguracion.push($(this).data('campo'));
+                }
+            });
+
+            /** Se obtienen los campos de búsqueda dinámica configurados */
+            /** -------------------------------------------------------- */
+
+            $('.camposBusquedaDinamica').each(function()
+            {
+                if($(this).is(':checked'))
+                {
+                    let valorBusqueda = 
+                        ($(this).data('tipo') != 'numero')
+                        ?$('#input_'+$(this).data('campo')).val()
+                        :$('#input_'+$(this).data('campo')).val().replaceAll('.','').replace(',','.')
+                    ;
+                    let valorFechaHasta = ($(this).data('tipo') != 'fecha')?'':$('#input_hasta_'+$(this).data('campo')).val();
+                    let dataBusquedaDinamica =
+                    {
+                        'input' : valorBusqueda,
+                        'hasta' : valorFechaHasta,
+                        'tipo' : $(this).data('tipo'),
+                        'campo' : $(this).data('campo'),
+                        'select' : $('#select_'+$(this).data('campo')).val()
+                    }
+                    camposBusquedaDinamica.push(dataBusquedaDinamica);
+                }
+            });
+            $('#busquedaRapida').val('');
+            $('#busquedaRapidaHidden').val('');
+            this.configuraciones = $('#frameConfiguraciones').html();
+            this.mensaje.mostrarMensaje('¡Las configuraciones se han guardado con éxito!', 1);
+            this.aplicarConfiguraciones = $('#aplicarConfiguracionesDescarga').is(':checked');
+            this.configuracionesGuardadas = {'campos' : camposConfiguracion, 'agrupacion' : camposAgrupacionConfiguracion, 'busquedaDinamica' : camposBusquedaDinamica, 'cabeceras' : cabecerasConfiguracion};
+            $('#btnGenerarInforme').click();
+        }
+        else
+        {
+            this.mensaje.mostrarMensaje('¡Seleccione al menos un campo antes de continuar!', 2);
+        }
+    }
+
+    seleccionarCampoConfiguracion(event)
+    {
+        /** En esta función se habilita o deshabilita un campo en la sección de configuraciones */
+        /** ----------------------------------------------------------------------------------- */
+
+        let id = event.currentTarget.id;
+        let estado = event.currentTarget.checked;
+        if(estado)
+        {
+            $('#'+id).attr('checked', true);
+        }
+        else
+        {
+            $('#'+id).removeAttr('checked');
+        }
+    }
+
+    seleccionarCampoBusquedaDinamica(event)
+    {
+        /** En esta función se habilita o deshabilita un campo de búsqueda dinámica */
+        /** ----------------------------------------------------------------------- */
+
+        let estado = event.currentTarget.checked;
+        let campo = event.currentTarget.dataset.campo;
+        if(estado)
+        {
+            $('#select_'+campo).removeAttr('disabled');
+            $('#input_hasta_'+campo).removeAttr('disabled');
+            $('#input_'+campo).removeAttr('disabled').select();
+        }
+        else
+        {
+            $('#input_'+campo).attr('disabled', true);
+            $('#select_'+campo).attr('disabled', true);
+            $('#input_hasta_'+campo).attr('disabled', true);
+        }
+    }
+
+    formatearCampo(event)
+    {
+        /** En esta función se formatea el valor ingresado en los inputs */
+        /** ------------------------------------------------------------ */
+
+        new Cleave(event.currentTarget, { numeral: true, numeralPositiveOnly: true, numeralDecimalScale: 2, numeralDecimalMark: ',', delimiter: '.' });
+    }
+
+    seleccionarTipoBusqueda(event)
+    {
+        /** En esta función se hace visible un campo de fecha (Representa el rango final de una búsqueda), si la opción seleccionada equivale a "entre"; de lo contrario se oculta este campo */
+        /** --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */
+
+        let id = event.currentTarget.id;
+        let tipo = event.currentTarget.value;
+        let campo = event.currentTarget.dataset.campo;
+        $('#'+id+' option:selected').attr('selected', true);
+        let icono = $('#div_texto_busqueda_dinamica_'+campo).find('i');
+        let texto = $('#div_texto_busqueda_dinamica_'+campo).find('.montserrat');
+        if(tipo === 'entre')
+        {
+            texto.css('opacity', '0');
+            setTimeout(() => {icono.css('opacity', '1').css('display', '')}, 400);
+            setTimeout(() => 
+            {
+                texto.css('display', 'none');
+                $('#div_select_busqueda_dinamica_'+campo).css('width', '170px');
+                $('#div_input_busqueda_dinamica_'+campo).css('border-radius', '0px');
+                $('#div_texto_busqueda_dinamica_'+campo).css('width', '38px').addClass('msg');
+                $('#div_hasta_'+campo).addClass('animate__animated animate__fadeIn').css('display', 'flex');
+            }, 300);
+        }
+        else
+        {
+            icono.css('opacity', '0');
+            setTimeout(() => {texto.css('opacity', '1').css('display', '')}, 400);
+            setTimeout(() => 
+            {
+                icono.css('display', 'none');
+                $('#div_select_busqueda_dinamica_'+campo).css('width', '186px');
+                $('#div_input_busqueda_dinamica_'+campo).css('border-radius', '0px 5px 5px 0px');
+                $('#div_texto_busqueda_dinamica_'+campo).css('width', '207px').removeClass('msg');
+                $('#div_hasta_'+campo).addClass('animate__animated animate__fadeIn').css('display', 'none');
+            }, 300);
+        }
+    }
+
+    cerrarConfiguraciones()
+    {
+        /** En esta función se cierra la sección de configuraciones */
+        /** ------------------------------------------------------- */
+
+        $('body').css('overflow', '');
+        $('#frameConfiguraciones').addClass('animate__animated animate__fadeOut');
+        setTimeout(() => {$('#frameConfiguraciones').hide().removeClass('animate__animated animate__fadeOut')}, 800);
+    }
+
+    ingresarBusqueda(event)
+    {
+        /** En esta función se asigna en el value del input el valor ingresado */
+        /** ------------------------------------------------------------------ */
+
+        let id = event.currentTarget.id;
+        $('#'+id).attr('value', event.currentTarget.value);
+    }
+
+    seleccionarCabecera(event)
+    {
+        /** En esta función se habilita o deshabilita una cabecera */
+        /** ------------------------------------------------------ */
+
+        let estado = event.currentTarget.checked;
+        let opc = event.currentTarget.dataset.opc;
+        if(estado)
+        {
+            $('#input_nombre_'+opc).removeAttr('disabled');
+            $('#input_campos_'+opc).removeAttr('disabled');
+        }
+        else
+        {
+            $('#input_nombre_'+opc).attr('disabled', true);
+            $('#input_campos_'+opc).attr('disabled', true);
+        }
+    }
+
+    agregarCabecera()
+    {
+        /** En esta función se agrega una nueva cabecera al informe */
+        /** ------------------------------------------------------- */
+
+        let self = this;
+        let counCheckActivos = 0;
+        if(this.indexCabecera == -1)
+        {
+            $('.cabeceraConfiguracion').each(function()
+            {
+                if($(this).is(':checked')){counCheckActivos ++}
+                self.indexCabecera = counCheckActivos;
+            });
+        }
+
+        /** Se agrega la nueva cabecera */
+        /** --------------------------- */
+
+        $('#divCabeceras').append(
+        `
+            <div class="animate__animated animate__fadeIn" id="div_cabecera_${this.indexCabecera}" style="display:flex; align-items:center; width:100%;">
+            <div style=
+            "
+                gap:5px; 
+                height:40px;
+                display:flex;
+                padding:7px 12px; 
+                background:white;
+                align-items:center;
+                background:#e9ecef; 
+                border:1px solid #d0d4da; 
+                border-radius:5px 0px 0px 5px; 
+            ">
+                <input class="cabeceraConfiguracion" type="checkbox" id="check_${this.indexCabecera}" data-opc="${this.indexCabecera}" data-action="central--reporteador#seleccionarCampoConfiguracion central--reporteador#seleccionarCabecera">
+            </div>
+            <div style=
+            "
+                flex:1;
+                gap:5px;
+                padding:1px; 
+                height:40px;
+                display:flex;
+                background:white;
+                align-items:center; 
+                border:1px solid #d0d4da; 
+                padding-left:12px;
+                border-left:none;
+                border-right:none;
+            ">
+                <div style="display:flex;align-items:center; gap:5px; width:85px">
+                    <span class="montserrat" style="font-size:10px">Nombre</span>
+                    <i class="fas fa-angle-double-right text-info" style="font-size:9px"></i>
+                </div>
+                <input
+                    disabled 
+                    type="text" 
+                    class="form-control" 
+                    placeholder="Nombre"
+                    style="font-size:11px; height:28px" 
+                    id="input_nombre_${this.indexCabecera}" 
+                    data-action="central--reporteador#ingresarBusqueda"
+                >
+            </div>
+            <div style=
+            "
+                gap:5px; 
+                padding:1px; 
+                height:40px;
+                width:200px;
+                display:flex;
+                background:white;
+                padding-left:12px;
+                align-items:center;
+                border:1px solid #d0d4da;
+                border-right:none;
+                border-left:none;
+            ">
+                <div style="display:flex;align-items:center; gap:5px; width:110px">
+                    <span class="montserrat" style="font-size:10px">Colspan</span>
+                    <i class="fas fa-angle-double-right text-info" style="font-size:9px"></i>
+                </div>
+                <input
+                    disabled 
+                    type="text" 
+                    class="form-control" 
+                    placeholder="Colspan" 
+                    id="input_campos_${this.indexCabecera}" 
+                    style="font-size:11px; height:28px; text-align:center;" 
+                    onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                    data-action="central--reporteador#ingresarBusqueda central--reporteador#validarColspan"
+                >
+            </div>
+            <div style=
+            "
+                gap:5px; 
+                width:40px;
+                padding:1px; 
+                height:40px;
+                display:flex;
+                background:white;
+                align-items:center; 
+                justify-content:center;
+                border:1px solid #d0d4da; 
+                border-radius:0px 5px 5px 0px; 
+                border-left:none;
+            ">
+                <i class="fas fa-trash text-danger" style="cursor:pointer" data-opc="${this.indexCabecera}" data-action="click->central--reporteador#eliminarCabecera"></i>
+            </div>
+        </div>
+        `);
+        this.indexCabecera ++;
+        $('.divAgregarCabecera').css('margin-top', '5px');
+        this.mensaje.mostrarMensaje('¡La cabecera se agregó con éxito!', 1);
+    }
+
+    eliminarCabecera(event)
+    {
+        /** En esta función se elimina una cabecera del informe */
+        /** --------------------------------------------------- */
+
+        let counCheckActivos = 0;
+        let opc = event.currentTarget.dataset.opc;
+        setTimeout(() => {$('#div_cabecera_'+opc).hide('400')}, 700);
+        $('.cabeceraConfiguracion').each(function(){counCheckActivos ++});
+        this.mensaje.mostrarMensaje('¡La cabecera se eliminó con éxito!', 1);
+        $('#div_cabecera_'+opc).removeClass('animate__animated animate__fadeIn').addClass('animate__animated animate__fadeOut');
+        setTimeout(() => {$('#div_cabecera_'+opc).remove(); if(counCheckActivos == 1){$('.divAgregarCabecera').css('margin-top', '-6px')}}, 800);
+    }
+
+    validarColspan()
+    {
+        /** En esta función se valida que la sumatoria de los colspan configurados en las cabeceras, no supere el total de campos habilitados en el informe */
+        /** ----------------------------------------------------------------------------------------------------------------------------------------------- */
+
+        let totalColspanCabeceras = 0;
+        let counCheckCamposActivos = 0;
+        $('.camposConfiguracion').each(function(){if($(this).is(':checked')){counCheckCamposActivos ++}});
+        $('.cabeceraConfiguracion').each(function()
+        {
+            let opc = $(this).data('opc');
+            if($(this).is(':checked'))
+            {
+                totalColspanCabeceras += parseFloat($('#input_campos_'+opc).val());
+            }
+        });
+        if(totalColspanCabeceras != counCheckCamposActivos)
+        {
+            this.mensaje.mostrarMensaje('¡El colspan de las cabeceras debe ser igual a la cantidad de campos habilitados para el informe!');
+        }
     }
 }   

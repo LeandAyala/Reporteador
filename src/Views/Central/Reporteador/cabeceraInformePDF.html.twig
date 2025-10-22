@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height:300px;
+            font-size: 10px;
+            position:relative;
+            font-family: Helvetica, Arial, sans-serif;
+        }
+        .header {
+            left:0px;
+            bottom:30px;
+            width: 100%;
+            position:absolute;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table border="0" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+                <td style="width:70px">
+                    <img src="data:application/image;base64,{{ compania.logoCompania }}" style="width:70px">
+                </td>
+                <td style="padding-left:15px; width:{{ anchoInformacionEmpresa }}">
+                    <div style="font-weight:bold; font-size:14px">{{ compania.nombre|upper }}</div>
+                    <div style="margin-top:2px">N.I.T: {{ compania.nit }}</div>
+                    <div style="margin-top:2px">Dirección: {{ compania.direccion }}</div>
+                    <div style="margin-top:2px">Teléfono: {{ compania.telefonos }}</div>
+                </td>
+                <td style="padding-left:10px">
+                    <table border="0" style="width:100%" cellpadding="0" cellspacing="0">
+                        <tr style="background:#f2f2f2">
+                            <th style="padding:4px 7px; border:1px solid gray; text-align:left">Informe</th>
+                            <td style="padding:3px 7px; border:1px solid gray;; border-left:none">{{ nombreInforme }}</td>
+                        </tr>
+                        <tr>
+                            <th style="padding:4px 7px; border:1px solid gray; text-align:left; border-top:none">Periodo</th>
+                            <td style="padding:4px 7px; border:1px solid gray; border-top:none; border-left:none">{{ periodo }}</td>
+                        </tr>
+                        <tr style="background:#f2f2f2">
+                            <th style="padding:4px 7px; border:1px solid gray; text-align:left; border-top:none">Fecha impresión</th>
+                            <td style="padding:4px 7px; border:1px solid gray; border-top:none; border-left:none">{{ fecha }}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

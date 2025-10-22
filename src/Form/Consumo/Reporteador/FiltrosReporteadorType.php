@@ -58,36 +58,37 @@ class FiltrosReporteadorType extends AbstractType
                     'choice_attr' => function($item)
                     {   
                         $rutaPDF = '';
-                        $rutaFrame = '';
                         $rutaExcel = '';
                         $parametros = [];
                         $rutaControl = '';
+                        $rutaFrameInforme = '';
+                        $rutaFrameResumen = '';
 
                         if(!empty($item->getJson()) && is_array($item->getJson()))
                         {
                             $configuraciones = $item->getJson();
 
-                            /** Se valida si el registro tiene una ruta ruta configurada para generar el informe */
-                            /** -------------------------------------------------------------------------------- */
+                            /** Se valida si el registro tiene una ruta configurada para generar el informe */
+                            /** --------------------------------------------------------------------------- */
 
-                            if(array_key_exists('rutaFrame', $configuraciones) && is_array($configuraciones['rutaFrame']) && !empty($configuraciones['rutaFrame']))
+                            if(array_key_exists('rutaFrameInforme', $configuraciones) && is_array($configuraciones['rutaFrameInforme']) && !empty($configuraciones['rutaFrameInforme']))
                             {
-                                if((array_key_exists('nombre', $configuraciones['rutaFrame']) && !empty($configuraciones['rutaFrame']['nombre'])))
+                                if((array_key_exists('nombre', $configuraciones['rutaFrameInforme']) && !empty($configuraciones['rutaFrameInforme']['nombre'])))
                                 {
-                                    $rutaControl = $configuraciones['rutaFrame']['nombre'];
+                                    $rutaControl = $configuraciones['rutaFrameInforme']['nombre'];
                                 }
-                                if((array_key_exists('parametros', $configuraciones['rutaFrame']) && is_array($configuraciones['rutaFrame']['parametros']) && !empty($configuraciones['rutaFrame']['parametros'])))
+                                if((array_key_exists('parametros', $configuraciones['rutaFrameInforme']) && is_array($configuraciones['rutaFrameInforme']['parametros']) && !empty($configuraciones['rutaFrameInforme']['parametros'])))
                                 {
-                                    $parametros = $configuraciones['rutaFrame']['parametros'];
+                                    $parametros = $configuraciones['rutaFrameInforme']['parametros'];
                                 }
                                 if(!empty($rutaControl))
                                 {
-                                    $rutaFrame = $this->validarRuta($rutaControl, $parametros);
+                                    $rutaFrameInforme = $this->validarRuta($rutaControl, $parametros);
                                 }
                             }
 
-                            /** Se valida si el registro tiene una ruta ruta configurada para descargar el informe en formato PDF */
-                            /** ------------------------------------------------------------------------------------------------- */
+                            /** Se valida si el registro tiene una ruta configurada para descargar el informe en formato PDF */
+                            /** -------------------------------------------------------------------------------------------- */
 
                             $parametros = [];
                             $rutaControl = '';
@@ -110,8 +111,8 @@ class FiltrosReporteadorType extends AbstractType
                                 }
                             }
 
-                            /** Se valida si el registro tiene una ruta ruta configurada para descargar el informe en formato excel */
-                            /** --------------------------------------------------------------------------------------------------- */
+                            /** Se valida si el registro tiene una ruta configurada para descargar el informe en formato excel */
+                            /** ---------------------------------------------------------------------------------------------- */
 
                             $parametros = [];
                             $rutaControl = '';
@@ -134,13 +135,34 @@ class FiltrosReporteadorType extends AbstractType
                                 }
                             }
 
+                            /** Se valida si el registro tiene una ruta configurada para visualizar una sección de resumen */
+                            /** ------------------------------------------------------------------------------------------ */
+
+                            $parametros = [];
+                            $rutaControl = '';
+                            if(array_key_exists('rutaFrameResumen', $configuraciones) && is_array($configuraciones['rutaFrameResumen']) && !empty($configuraciones['rutaFrameResumen']))
+                            {
+                                if((array_key_exists('nombre', $configuraciones['rutaFrameResumen']) && !empty($configuraciones['rutaFrameResumen']['nombre'])))
+                                {
+                                    $rutaControl = $configuraciones['rutaFrameResumen']['nombre'];
+                                }
+                                if((array_key_exists('parametros', $configuraciones['rutaFrameResumen']) && is_array($configuraciones['rutaFrameResumen']['parametros']) && !empty($configuraciones['rutaFrameResumen']['parametros'])))
+                                {
+                                    $parametros = $configuraciones['rutaFrameResumen']['parametros'];
+                                }
+                                if(!empty($rutaControl))
+                                {
+                                    $rutaFrameResumen = $this->validarRuta($rutaControl, $parametros);
+                                }
+                            }
                         }
                         return 
                         [
                             'data-rutapdf' => $rutaPDF,
-                            'data-rutaframe' => $rutaFrame, 
                             'data-rutaexcel' => $rutaExcel, 
-                            'data-icon' => 'fas fa-link text-info'
+                            'data-icon' => 'fas fa-link text-info',
+                            'data-rutaframeinforme' => $rutaFrameInforme, 
+                            'data-rutaframeresumen' => $rutaFrameResumen, 
                         ];
                     }
                 ]

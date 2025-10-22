@@ -1,6 +1,11 @@
 {% extends 'base.html.twig' %}
 {% block body %}
     {{ parent() }}
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/json-formatter-js@2.5.9/dist/json-formatter.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/json-formatter-js@2.5.9/dist/json-formatter.umd.min.js"></script>
     <style>
         .campos::placeholder {
             color: white;
@@ -264,7 +269,20 @@
                 max-height:225px;
             }
         }
+
+        #chartdiv {
+            width: 100%;
+            height: 500px;
+        }
     </style>
+    <pre><code class="language-json">
+        {
+            "nombre": "Juan",
+            "edad": 30
+        }
+    </code></pre>
+    <div id="json-container"></div>
+    <div id="chartdiv"></div>
     <div style="transition:all 0.5s ease; opacity:1; width:100%; height:100%; position:absolute; background:#0000005c; z-index:4; display:none; align-items:center; justify-content:center" id="modalFactura">
         <div class="list-group-item p-0" style="border:none; background:transparent" id="frameFactura"></div>   
     </div>
@@ -434,6 +452,170 @@
                 "preventDuplicates": true,
                 "positionClass": "toast-top-right"
             }
+
+            const data = 
+            {
+                "cabecera": 
+                [
+                    {
+                        "nombre": "<div style='display:flex; align-items:center; justify-content:center; gap:5px'><i class='fas fa-info-circle text-primary'style='font-size:12px'></i><span style='font-size:12px'>Información producto</span></div>",
+                        "colspan": 10
+                    }
+                ],
+                "anchoTabla": "",
+                "periodo": "De [desde] hasta [hasta]",
+                "campos": 
+                [
+                    {
+                        "nombre": "codigo",
+                        "titulo": "Código",
+                        "tipoDato": "texto",
+                        "alineacionTitulo": "centro",
+                        "alineacionCampo": "centro",
+                        "html": ""
+                    },
+                    {
+                        "nombre": "producto",
+                        "titulo": "Producto",
+                        "tipoDato": "texto",
+                        "alineacionTitulo": "centro",
+                        "alineacionCampo": "centro",
+                        "html": ""
+                    },
+                    {
+                        "nombre": "control_lotes",
+                        "titulo": "Control lotes",
+                        "tipoDato": "texto",
+                        "alineacionTitulo": "centro",
+                        "alineacionCampo": "centro",
+                        "html": {
+                            "valor": "APLICA",
+                            "si": "<i class='fas fa-check-circle text-success' style='font-size:18px'>",
+                            "no": "<i class='fas fa-times-circle text-danger' style='font-size:18px'></i>"
+                        }
+                    },
+                    {
+                        "nombre": "medicamento",
+                        "titulo": "Medicamento",
+                        "tipoDato": "texto",
+                        "alineacionTitulo": "centro",
+                        "alineacionCampo": "centro",
+                        "html": {
+                            "valor": "APLICA",
+                            "si": "<i class='fas fa-check-circle text-success' style='font-size:18px'>",
+                            "no": "<i class='fas fa-times-circle text-danger' style='font-size:18px'></i>"
+                        }
+                    },
+                    {
+                        "nombre": "unidad_medida",
+                        "titulo": "Unidad de medida",
+                        "tipoDato": "texto",
+                        "alineacionTitulo": "centro",
+                        "alineacionCampo": "centro",
+                        "html": "<div style='display:flex; align-items:center; justify-content:center;'><div style='display:flex; align-items:center; justify-content:center; gap:5px; border-radius:5px; padding:3px 10px; font-size:10px; color:white; background:#17A2B8; width:70px; font-weight:bold'><i class='fas fa-tag' style='font-size:11px'></i> $campo</div></div>"
+                    },
+                    {
+                        "nombre": "presentacion",
+                        "titulo": "Presentación",
+                        "tipoDato": "texto",
+                        "alineacionTitulo": "centro",
+                        "alineacionCampo": "centro",
+                        "html": ""
+                    },
+                    {
+                        "nombre": "almacen",
+                        "titulo": "Almacén",
+                        "tipoDato": "texto",
+                        "alineacionTitulo": "centro",
+                        "alineacionCampo": "centro",
+                        "html": ""
+                    },
+                    {
+                        "nombre": "grupo_contable",
+                        "titulo": "Grupo contable",
+                        "tipoDato": "texto",
+                        "alineacionTitulo": "centro",
+                        "alineacionCampo": "centro",
+                        "html": ""
+                    },
+                    {
+                        "nombre": "existencias",
+                        "titulo": "Existencias",
+                        "tipoDato": "numero",
+                        "alineacionTitulo": "centro",
+                        "alineacionCampo": "derecha",
+                        "html": ""
+                    },
+                    {
+                        "nombre": "ver",
+                        "titulo": "",
+                        "tipoDato": "texto",
+                        "alineacionTitulo": "centro",
+                        "alineacionCampo": "centro",
+                        "ruta": 
+                        {
+                            "nombre": "facturas_mostrar_producto",
+                            "parametros": 
+                            {
+                                "producto": "$campo"
+                            }
+                        },
+                        "html": "<div style='display:flex; align-items:center; justify-content:center'><a style='border-radius:50%; display:flex; align-items:center; justify-content:center; width:20px; height:20px; background:#17A2B8; text-decoration:none' href='$ruta' target='_blank'><i class='fas fa-eye' style='font-size:10px; color:white;'></i></a></div>"
+                    }
+                ],
+                "agrupamiento": 
+                [
+                    {
+                    "campos": [
+                        {
+                        "nombre": "producto",
+                        "titulo": "<div style='display:flex; align-items:center; justify-content:center; gap:5px'><i class='fas fa-database'style='font-size:12px; color:#17A2B8'></i><span style='font-size:11px'>Producto</span></div>"
+                        },
+                        {
+                        "nombre": "grupo_contables",
+                        "titulo": "Grupo contable"
+                        }
+                    ],
+                    "totalizacion": [
+                        {
+                        "campo": "existencias"
+                        }
+                    ]
+                    }
+                ],
+                "paginacion": 100,
+                "totalizacion": 
+                [
+                    {
+                        "campo": "existencias"
+                    }
+                ],
+                "pdf": {
+                    "tamanio": "letter",
+                    "orientacion": "portrait",
+                    "ruta": 
+                    {
+                        "nombre": "",
+                        "parametros": 
+                        {
+                            "opc": 1
+                        }
+                    }
+                },
+                "excel": 
+                {
+                    "ruta": 
+                    {
+                        "nombre": "",
+                        "parametros": 
+                        {
+                            "opc": 1
+                        }
+                    }
+                }
+            };
+            const formatter = new JSONFormatter(data, 1, { theme: 'dark' });
+            document.getElementById("json-container").appendChild(formatter.render());
         });
 
         let estadoPassword = 1;

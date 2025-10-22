@@ -4,6 +4,7 @@ namespace App\Controller\Central\Reporteador;
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use Knp\Snappy\Pdf;
 use App\Entity\Central\meses;
 use App\Entity\Central\compania;
 use App\Entity\Central\reportes;
@@ -26,15 +27,19 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 class ReporteadorController extends AbstractController
 {
     private $em;
+    private $pdf;
     private $filaGeneral;
     private $ultimaColumna;
     private $camposTotalizados;
-    public function __construct(EntityManagerInterface $em)
+    public function __construct(EntityManagerInterface $em, Pdf $pdf)
     {
         $this->em = $em;
+        $this->pdf = $pdf;
         $this->filaGeneral = 6;
         $this->ultimaColumna = '';
         $this->camposTotalizados = [];
+        $this->camposConfigurados = [];
+        $this->configuracionesGuardadas = [];
     }
 
     /**
@@ -79,9 +84,17 @@ class ReporteadorController extends AbstractController
         $rellenoOpcionPaginator = '';
         $iconoBloqueo = 'color:gray;';
         $listRegistrosPaginacion = [];
+        $camposConfiguradosVista = '';
+        $bloqueoOpcionesDescarga = ';';
+        $cabeceraConfiguradaVista = '';
         $conexion = $bd->getConnection();
         $listRegistrosBusquedaRapida = [];
+        $listRegistrosBusquedaDinamica = [];
         $accionBloqueo = 'pointer-events:none;';
+        $camposAgrupacionConfiguradosVista = '';
+        $camposBusquedaDinamicaConfiguradosVista = '';
+        $displayConfiguracionCabecera = 'display:none;';
+        $displayConfiguracionAgrupacion = 'display:none;';
         $form = $request->request->get('filtros_reporteador');
         $busquedaRapida = $request->request->get('busquedaRapida');
         $bloqueoMenu = 'pointer-events:none; opacity:0.6 !important;';
@@ -90,6 +103,7 @@ class ReporteadorController extends AbstractController
         $informe = $bd->getRepository(reportes::class)->findOneBy(['id' => $form['informe']]);
         $fondo = base64_encode(file_get_contents($this->getParameter('imgs_directory').'fondo.jpg'));
         $logoError = base64_encode(file_get_contents($this->getParameter('imgs_directory').'logoActualizado.png'));
+        $this->configuracionesGuardadas = !empty($request->request->get('configuracionesGuardadas'))?json_decode($request->request->get('configuracionesGuardadas'), true):[];
 
         /** Se obtienen los filtros de búsqueda seleccionados */
         /** ------------------------------------------------- */
@@ -164,12 +178,12 @@ class ReporteadorController extends AbstractController
         try 
         {
             $listRegistros = $conexion->prepare($sqlInforme)->executeQuery()->fetchAll();
-
-            /** Se filtran los registros de acuerdo a la búsqueda rápida */
-            /** -------------------------------------------------------- */
-
+            if(count($listRegistros) > 0){$bloqueoMenu = '';}
             if($busquedaRapida != '')
             {
+                /** Se filtran los registros de acuerdo a la búsqueda rápida */
+                /** -------------------------------------------------------- */
+
                 foreach($listRegistros as $registro)
                 {
                     foreach($registro as $campo)
@@ -182,12 +196,94 @@ class ReporteadorController extends AbstractController
                 }
                 $listRegistros = $listRegistrosBusquedaRapida;
             }
+            else
+            {
+                /** Se filtran los registro de acuerdo a la búsqueda dinámica */
+                /** --------------------------------------------------------- */
+
+                $condicionesValidas = 0;
+                if(!empty($this->configuracionesGuardadas) && !empty($this->configuracionesGuardadas['busquedaDinamica']))
+                {
+                    foreach($listRegistros as $registro)
+                    {
+                        foreach($this->configuracionesGuardadas['busquedaDinamica'] as $busqueda)
+                        {
+                            $campoBusqueda = $busqueda['campo'];
+                            if(!empty($busqueda['input']))
+                            {
+                                if($busqueda['tipo'] == 'fecha')
+                                {
+                                    if($busqueda['select'] == 'igual')
+                                    {
+                                        if(new \DateTime($busqueda['input']) == new \DateTime($registro[$campoBusqueda])){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'entre')
+                                    {
+                                        if((new \DateTime($registro[$campoBusqueda]) >= new \DateTime($busqueda['input'])) && (new \DateTime($registro[$campoBusqueda]) <= new \DateTime($busqueda['hasta'])))
+                                        {
+                                            $condicionesValidas ++;
+                                        }
+                                    }
+                                    if($busqueda['select'] == 'mayor')
+                                    {
+                                        if(new \DateTime($registro[$campoBusqueda]) > new \DateTime($busqueda['input'])){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'menor')
+                                    {
+                                        if(new \DateTime($registro[$campoBusqueda]) < new \DateTime($busqueda['input'])){$condicionesValidas ++;}
+                                    }
+                                }
+                                else
+                                {
+                                    if($busqueda['select'] == 'igual')
+                                    {
+                                        if($busqueda['input'] == $registro[$campoBusqueda]){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'mayor')
+                                    {
+                                        if($registro[$campoBusqueda] > $busqueda['input']){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'menor')
+                                    {
+                                        if($registro[$campoBusqueda] < $busqueda['input']){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'contiene')
+                                    {
+                                        if(strpos($registro[$campoBusqueda], $busqueda['input']) !== false){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'no_contiene')
+                                    {
+                                        if(strpos($registro[$campoBusqueda], $busqueda['input']) === false){$condicionesValidas ++;}
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if($registro[$campoBusqueda] == ''){$condicionesValidas ++;}
+                            }
+                        }
+                        if($condicionesValidas == count($this->configuracionesGuardadas['busquedaDinamica']))
+                        {
+                            $listRegistrosBusquedaDinamica[] = $registro;
+                        }
+                        $condicionesValidas = 0;
+                    }
+                    $listRegistros = $listRegistrosBusquedaDinamica;
+                }
+            }
+
+            /** Se bloquean las opciones de descarga si no se encuentran registros aplicando la búsqueda rápida o dinámica */
+            /** ---------------------------------------------------------------------------------------------------------- */
+
+            if((!empty($this->configuracionesGuardadas) && !empty($this->configuracionesGuardadas['busquedaDinamica']) || $busquedaRapida != '') && count($listRegistros) == 0)
+            {
+                $bloqueoOpcionesDescarga = 'pointer-events:none; opacity:0.6 !important;';
+            }
             
             /** Se genera la paginación de los registros */
             /** ---------------------------------------- */
 
             $totalRegistros = count($listRegistros);
-            if($totalRegistros > 0){$bloqueoMenu = '';}
             foreach($listRegistros as $indexRegistro => $registro)
             {
                 $dataRegistro[] = $registro;
@@ -266,6 +362,7 @@ class ReporteadorController extends AbstractController
             /** Se validan las opciones back y next del paginator para asignar los estilos respectivos de acuerdo a la página seleccionada */
             /** -------------------------------------------------------------------------------------------------------------------------- */
 
+            $totalPaginas = count($listRegistrosPaginacion);
             $iconoBotonAnterior = ($pagina == 1)?$iconoBloqueo:'';
             $accionBotonAnterior = ($pagina == 1)?$accionBloqueo:'';
             $iconoBotonSiguiente = ($pagina == count($listRegistrosPaginacion))?$iconoBloqueo:'';
@@ -280,6 +377,7 @@ class ReporteadorController extends AbstractController
 
                 if(array_key_exists('campos', $agrupamiento[0]) && is_array($agrupamiento[0]['campos']) && !empty($agrupamiento[0]['campos']))
                 {
+                    $displayConfiguracionAgrupacion = '';
                     $keyCampos = array_keys($listRegistros[0]);
                     foreach($keyCampos as $campo)
                     {
@@ -290,6 +388,7 @@ class ReporteadorController extends AbstractController
                     }
                 }
 
+                if(!empty($this->configuracionesGuardadas)){$camposAgrupacion = $this->configuracionesGuardadas['agrupacion'];}
                 if(!empty($camposAgrupacion))
                 {
                     /** Se genera el informe con campos de agrupación */
@@ -605,6 +704,20 @@ class ReporteadorController extends AbstractController
                             <td style="border-left:1px solid #d1d4da; width:40px"></td>
                             <td>
                                 <div style="display:flex; align-items:center; justify-content:center; gap:3px">
+                                    <div class="montserrat paginas" data-action="click->central--reporteador#seleccionarPagina" data-pagina="1" data-opc="1" style=
+                                    "
+                                        width:25px; 
+                                        height:25px; 
+                                        display:flex;
+                                        cursor:pointer; 
+                                        background:white;
+                                        border-radius:50%;
+                                        align-items:center;
+                                        $accionBotonAnterior
+                                        justify-content:center; 
+                                    ">
+                                        <i class="fas fa-forward" style="transform:rotate(180deg); font-size:11px; margin-right:2px; $iconoBotonAnterior"></i>
+                                    </div>
                                     <div class="montserrat paginas" data-action="click->central--reporteador#seleccionarPagina" data-opc="2" style=
                                     "
                                         width:25px; 
@@ -634,6 +747,20 @@ class ReporteadorController extends AbstractController
                                     ">
                                         <i class="fas fa-caret-right" style="$iconoBotonSiguiente"></i>
                                     </div>
+                                    <div class="montserrat paginas" data-action="click->central--reporteador#seleccionarPagina" data-pagina="$totalPaginas" data-opc="1" style=
+                                    "
+                                        width:25px; 
+                                        height:25px; 
+                                        display:flex;
+                                        cursor:pointer; 
+                                        background:white;
+                                        border-radius:50%;
+                                        align-items:center;
+                                        $accionBotonSiguiente
+                                        justify-content:center; 
+                                    ">
+                                        <i class="fas fa-forward" style="font-size:11px; margin-left:1px; $iconoBotonSiguiente"></i>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -652,13 +779,582 @@ class ReporteadorController extends AbstractController
         catch(\Exception $e) 
         {
             $status = 'error';
+            $bloqueoMenu = 'pointer-events:none; opacity:0.6 !important;';
             $contenidoInforme = $this->renderView('Central/Reporteador/frameErrorInforme.html.twig', 
             [
+                'noCerrar' => true,
                 'line' => $e->getLine(), 
                 'file' => $e->getFile(), 
                 'message' => $e->getMessage()
             ]);
         }
+
+        /** Se añaden los campos de agrupación y se crean las secciones de campos que se visualizarán en las configuraciones del informe */
+        /** ---------------------------------------------------------------------------------------------------------------------------- */
+
+        foreach($camposAgrupacion as $campo)
+        {
+            $tipoDato = 'texto';
+            $titulo = ucfirst(str_replace('_', ' ', $campo));
+            $configuracionCampo = array_filter($configuracionCampos, fn($item) => $item['nombre'] == $campo);
+            sort($configuracionCampo);
+            if(!empty($configuracionCampo))
+            {
+                if(array_key_exists('titulo', $configuracionCampo[0])){$titulo = $configuracionCampo[0]['titulo'];}
+                if(array_key_exists('tipoDato', $configuracionCampo[0]))
+                {
+                    $tipoDato = $configuracionCampo[0]['tipoDato'];
+                }
+                $this->camposConfigurados[$campo] = 
+                [
+                    'agrupacion' => true,
+                    'tipoDato' => $tipoDato, 
+                    'titulo' => empty(strip_tags($titulo))?ucfirst(str_replace('_', ' ', $campo)):strip_tags($titulo)
+                ];
+            }
+        }
+
+        /** Se crean las cabeceras de las configuraciones */
+        /** --------------------------------------------- */
+
+        if(!empty($cabecera))
+        {
+            $displayConfiguracionCabecera = '';
+            foreach($cabecera as $index => $c)
+            {
+                $nombreCabecera = strip_tags($c['nombre']);
+                $colspanCabecera = strip_tags($c['colspan']);
+                $cabeceraConfiguradaVista .=
+                <<<TWIG
+                <div id="div_cabecera_$index" style="display:flex; align-items:center; width:100%;">
+                    <div style=
+                    "
+                        gap:5px; 
+                        height:40px;
+                        display:flex;
+                        padding:7px 12px; 
+                        background:white;
+                        align-items:center;
+                        background:#e9ecef; 
+                        border:1px solid #d0d4da; 
+                        border-radius:5px 0px 0px 5px; 
+                    ">
+                        <input class="cabeceraConfiguracion" type="checkbox" id="check_$index" data-opc="$index" checked data-action="central--reporteador#seleccionarCampoConfiguracion central--reporteador#seleccionarCabecera">
+                    </div>
+                    <div style=
+                    "
+                        flex:1;
+                        gap:5px;
+                        padding:1px; 
+                        height:40px;
+                        display:flex;
+                        background:white;
+                        align-items:center; 
+                        border:1px solid #d0d4da; 
+                        padding-left:12px;
+                        border-left:none;
+                        border-right:none;
+                    ">
+                        <div style="display:flex;align-items:center; gap:5px; width:85px">
+                            <span class="montserrat" style="font-size:10px">Nombre</span>
+                            <i class="fas fa-angle-double-right text-info" style="font-size:9px"></i>
+                        </div>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            placeholder="Nombre" 
+                            value="$nombreCabecera"
+                            id="input_nombre_$index" 
+                            style="font-size:11px; height:28px" 
+                            data-action="central--reporteador#ingresarBusqueda"
+                        >
+                    </div>
+                    <div style=
+                    "
+                        gap:5px; 
+                        padding:1px; 
+                        height:40px;
+                        width:200px;
+                        display:flex;
+                        background:white;
+                        padding-left:12px;
+                        align-items:center;
+                        border:1px solid #d0d4da;
+                        border-right:none;
+                        border-left:none;
+                    ">
+                        <div style="display:flex;align-items:center; gap:5px; width:110px">
+                            <span class="montserrat" style="font-size:10px">Colspan</span>
+                            <i class="fas fa-angle-double-right text-info" style="font-size:9px"></i>
+                        </div>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            placeholder="Colspan" 
+                            id="input_campos_$index" 
+                            value="$colspanCabecera"
+                            style="font-size:11px; height:28px; text-align:center;" 
+                            onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                            data-action="central--reporteador#ingresarBusqueda central--reporteador#validarColspan"
+                        >
+                    </div>
+                    <div style=
+                    "
+                        gap:5px; 
+                        width:40px;
+                        padding:1px; 
+                        height:40px;
+                        display:flex;
+                        background:white;
+                        align-items:center; 
+                        justify-content:center;
+                        border:1px solid #d0d4da; 
+                        border-radius:0px 5px 5px 0px; 
+                        border-left:none;
+                    ">
+                        <i class="fas fa-trash text-danger" data-opc="$index" style="cursor:pointer" data-action="click->central--reporteador#eliminarCabecera"></i>
+                    </div>
+                </div>
+                TWIG;
+            }
+        }
+
+        /** Se crean las secciones de configuraciones */
+        /** ----------------------------------------- */
+
+        $cantidadCampos = 0;
+        $fechaBusquedaDinamica = date('Y-m-d');
+        foreach($this->camposConfigurados as $key => $campo)
+        {
+            $tipo = '';
+            $cantidadCampos ++;
+            $titulo = $campo['titulo'];
+            $opcionesBusquedaDinamica = '';
+            $bloqueoCampoConfiguracion = '';
+            $divFechaHastaBusquedaDinamica = '';
+            $checkCampoConfiguracion = 'checked';
+            
+            /** Se crea el selector y el input para cada campo de la agrupación dinámica de acuerdo a su tipo de dato */
+            /** ----------------------------------------------------------------------------------------------------- */
+
+            if($campo['tipoDato'] == 'texto')
+            {
+                $tipo = 'texto';
+                $opcionesBusquedaDinamica .=
+                <<<TWIG
+                <option value="igual">Igual</option>
+                <option value="contiene">Contiene</option>
+                <option value="no_contiene">No contiene</option>
+                TWIG;
+
+                $inputBusquedaDinamica = 
+                <<<TWIG
+                <input type="text" class="form-control" style="font-size:11px; height:28px" placeholder="Buscar" id="input_$key" disabled data-action="central--reporteador#ingresarBusqueda">
+                TWIG;   
+            }
+            elseif($campo['tipoDato'] == 'fecha')
+            {
+                $tipo = 'fecha';
+                $opcionesBusquedaDinamica .=
+                <<<TWIG
+                <option value="igual">Igual</option>
+                <option value="entre">Entre</option>
+                <option value="mayor">Mayor que</option>
+                <option value="menor">Menor que</option>
+                TWIG;
+
+                $inputBusquedaDinamica = 
+                <<<TWIG
+                <input type="date" class="form-control" style="font-size:11px; height:28px" id="input_$key" value="$fechaBusquedaDinamica" disabled data-action="central--reporteador#ingresarBusqueda">
+                TWIG; 
+
+                $inputHastaBusquedaDinamica = 
+                <<<TWIG
+                <input type="date" class="form-control" style="font-size:11px; height:28px" id="input_hasta_$key" value="$fechaBusquedaDinamica" disabled data-action="central--reporteador#ingresarBusqueda">
+                TWIG;
+
+                $divFechaHastaBusquedaDinamica =
+                <<<TWIG
+                <div id="div_hasta_$key" style=
+                "
+                    flex:1;
+                    gap:5px; 
+                    height:32px;
+                    padding:1px; 
+                    display:none;
+                    background:white;
+                    align-items:center; 
+                    border:1px solid #d0d4da;
+                    border-radius:0px 5px 5px 0px;
+                    border-left:none;
+                ">
+                    $inputHastaBusquedaDinamica
+                </div>
+                TWIG;
+            }
+            else
+            {
+                $tipo = 'numero';
+                $opcionesBusquedaDinamica .=
+                <<<TWIG
+                <option value="igual">Igual</option>
+                <option value="mayor">Mayor que</option>
+                <option value="menor">Menor que</option>
+                TWIG;
+
+                $inputBusquedaDinamica = 
+                <<<TWIG
+                <input type="text" class="form-control" style="font-size:11px; height:28px" placeholder="Buscar" id="input_$key" data-action="central--reporteador#formatearCampo central--reporteador#ingresarBusqueda" disabled>
+                TWIG; 
+            }
+
+            if($campo['agrupacion'])
+            {
+                $checkCampoConfiguracion = '';
+                $bloqueoCampoConfiguracion = 'pointer-events:none; opacity:0.5;';
+            }
+            $camposConfiguradosVista .=
+            <<<TWIG
+            <div id="div_$key" style="display:flex; align-items:center; width:100%; $bloqueoCampoConfiguracion">
+                <div style=
+                "
+                    gap:5px; 
+                    height:32px;
+                    display:flex;
+                    padding:7px 12px; 
+                    background:white;
+                    align-items:center;
+                    background:#e9ecef; 
+                    border:1px solid #d0d4da; 
+                    border-radius:5px 0px 0px 5px; 
+                ">
+                    <input class="camposConfiguracion" type="checkbox" id="check_$key" data-campo="$key" $checkCampoConfiguracion data-action="central--reporteador#seleccionarCampoConfiguracion">
+                </div>
+                <div style=
+                "
+                    flex:1;
+                    gap:5px; 
+                    height:32px;
+                    display:flex;
+                    padding:7px 12px; 
+                    background:white;
+                    align-items:center; 
+                    border:1px solid #d0d4da; 
+                    border-radius:0px 5px 5px 0px; 
+                    border-left:none;
+                ">
+                    <span class="montserrat" style="font-size:11px;">$titulo</span>
+                </div>
+            </div>
+            TWIG;
+
+            $camposBusquedaDinamicaConfiguradosVista .=
+            <<<TWIG
+            <div style="display:flex; align-items:center; width:100%;">
+                <div style=
+                "
+                    gap:5px; 
+                    height:32px;
+                    display:flex;
+                    padding:7px 12px; 
+                    background:white;
+                    align-items:center;
+                    background:#e9ecef; 
+                    border:1px solid #d0d4da; 
+                    border-radius:5px 0px 0px 5px; 
+                ">
+                    <input class="camposBusquedaDinamica" type="checkbox" id="check_busqueda_dinamica_$key" data-campo="$key" data-tipo="$tipo" data-action="central--reporteador#seleccionarCampoBusquedaDinamica central--reporteador#seleccionarCampoConfiguracion">
+                </div>
+                <div id="div_texto_busqueda_dinamica_$key" style=
+                "
+                    gap:5px; 
+                    height:32px;
+                    width:207px;
+                    display:flex;
+                    padding:7px 12px; 
+                    background:white;
+                    align-items:center;
+                    position:relative;
+                    transition:all 0.5s ease;
+                    border:1px solid #d0d4da;
+                    border-left:none;
+                ">
+                    <i class="animate__animated animate__flipInX fas fa-info-circle" style="color:#17A; display:none; position:relative; transition:all 0.2s ease; opacity:0"></i>
+                    <span class="animate__animated animate__flipInX montserrat" style="font-size:11px; transition:all 0.2s ease; opacity:1">$titulo</span>
+                    <span class="tooltip">
+                        <i class="fas fa-info-circle" style="font-size:10px;"></i> 
+                        <span style="font-size:10px">$titulo</span>
+                    </span>
+                </div>
+                <div id="div_select_busqueda_dinamica_$key" style=
+                "
+                    gap:5px; 
+                    height:32px;
+                    padding:1px; 
+                    width:186px;
+                    display:flex;
+                    background:white;
+                    align-items:center; 
+                    transition:all 0.5s ease;
+                    border:1px solid #d0d4da;
+                    border-left:none;
+                ">
+                    <select class="custom-select form-control selectBusquedaDinamica" style="font-size:11px; height:28px" data-campo="$key" id="select_$key" data-action="central--reporteador#seleccionarTipoBusqueda" disabled>
+                        $opcionesBusquedaDinamica
+                    </select>
+                </div>
+                <div id="div_input_busqueda_dinamica_$key" style=
+                "
+                    flex:1;
+                    gap:5px; 
+                    height:32px;
+                    padding:1px; 
+                    display:flex;
+                    background:white;
+                    align-items:center; 
+                    border:1px solid #d0d4da;
+                    transition:all 0.5s ease;
+                    border-radius:0px 5px 5px 0px;
+                    border-left:none;
+                ">
+                    $inputBusquedaDinamica
+                </div>
+                $divFechaHastaBusquedaDinamica
+            </div>
+            TWIG;
+
+            if($campo['agrupacion'])
+            {
+                $titulo = $campo['titulo'];
+                $camposAgrupacionConfiguradosVista .=
+                <<<TWIG
+                <div style="display:flex; align-items:center; width:100%">
+                    <div style=
+                    "
+                        gap:5px; 
+                        height:32px;
+                        display:flex;
+                        padding:7px 12px; 
+                        background:white;
+                        align-items:center;
+                        background:#e9ecef; 
+                        border:1px solid #d0d4da; 
+                        border-radius:5px 0px 0px 5px; 
+                    ">
+                        <input class="camposAgrupacionConfiguracion" type="checkbox" id="check_agrupacion_$key" data-campo="$key" data-action="central--reporteador#seleccionarCampoAgrupacion central--reporteador#seleccionarCampoConfiguracion" checked>
+                    </div>
+                    <div style=
+                    "
+                        flex:1;
+                        gap:5px; 
+                        height:32px;
+                        display:flex;
+                        padding:7px 12px; 
+                        background:white;
+                        align-items:center; 
+                        border:1px solid #d0d4da; 
+                        border-radius:0px 5px 5px 0px; 
+                        border-left:none;
+                    ">
+                        <span class="montserrat" style="font-size:11px;">$titulo</span>
+                    </div>
+                </div>
+                TWIG;
+            }
+        }
+
+        $altoSeccion = ($cantidadCampos > 10)?380:($cantidadCampos * 35) + 30;
+        $seccionConfiguraciones =
+        <<<TWIG
+        <div class="animate__animated animate__fadeIn" style="display:flex; align-items:center; justify-content:center; height:100%;">
+            <div style="filter:drop-shadow(0px 0px 6px gray); border-radius:15px; padding:42px 25px 30px 25px; background:white; width:700px; overflow:hidden; position:relative">
+                <i 
+                    data-opc="2"
+                    data-action="click->central--reporteador#cerrarConfiguraciones"
+                    class="fas fa-times-circle cerrarError text-danger animate__animated animate__fadeInRight animate__delay-1s" 
+                    style="position:absolute; right:18px; top:15px; font-size:15px; cursor:pointer; z-index:2; transition:all 0.5s ease; border-radius:50%"
+                ></i>
+                <i class="fas fa-cog fa-spin text-secondary" style="opacity:0.2; position:absolute; top:-105px; left:-131px; font-size:205px; --fa-animation-duration: 15s;"></i>
+                <img src="data:image;base64,$fondo" style="width:100%; height:100%; object-fit:cover; position:absolute; opacity:0.1; z-index:0; top:0px; left:0px">
+                <div class="animate__animated animate__fadeInDown" style="display:flex; align-items:center; gap:5px; border-radius:16px 0px; padding:10px 20px; background:#17A; color:white; position:relative; z-index:-1">
+                    <i class="fas fa-cog" style="color:white; font-size:12px"></i>
+                    <span class="montserrat">Configuraciones</span>
+                </div>
+                <hr>
+                <div class="animate__animated animate__fadeIn animate__delay-1s" style="position:relative">
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button 
+                                role="tab" 
+                                type="button" 
+                                id="campos-tab" 
+                                data-toggle="tab" 
+                                data-opc="campos"
+                                aria-selected="true"
+                                data-target="#campos" 
+                                aria-controls="campos" 
+                                class="nav-link btnConfiguraciones active"
+                                data-action="central--reporteador#seleccionarConfiguracion" 
+                                style="transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; gap:5px; background:#e9ecef; color:#17A; border-radius:9px 9px 0px 0px; border:1px solid #d0d4da; height:35px;"
+                            >
+                                <i class="fas fa-check-circle" style="font-size:12px"></i>
+                                <span class="montserrat" style="font-size:11px">Campos</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation" style="$displayConfiguracionAgrupacion">
+                            <button 
+                                role="tab" 
+                                type="button" 
+                                data-toggle="tab" 
+                                id="agrupacion-tab" 
+                                aria-selected="true"
+                                data-opc="agrupacion"
+                                data-target="#agrupacion" 
+                                aria-controls="agrupacion" 
+                                class="nav-link btnConfiguraciones"
+                                data-action="central--reporteador#seleccionarConfiguracion" 
+                                style="transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; gap:5px; border-radius:9px 9px 0px 0px; border:1px solid #d0d4da; height:35px;"
+                            >
+                                <i class="fas fa-layer-group" style="font-size:12px; color:gray"></i>
+                                <span style="color:gray; font-size:11px" class="montserrat">Agrupación</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation" style="$displayConfiguracionCabecera">
+                            <button 
+                                role="tab" 
+                                type="button" 
+                                data-toggle="tab" 
+                                id="cabecera-tab" 
+                                aria-selected="true"
+                                data-opc="cabecera"
+                                data-target="#cabecera" 
+                                aria-controls="cabecera" 
+                                class="nav-link btnConfiguraciones"
+                                data-action="central--reporteador#seleccionarConfiguracion" 
+                                style="transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; gap:5px; border-radius:9px 9px 0px 0px; border:1px solid #d0d4da; height:35px;"
+                            >
+                                <i class="fas fa-bookmark" style="font-size:12px; color:gray"></i>
+                                <span style="color:gray; font-size:11px" class="montserrat">Cabeceras</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button 
+                                role="tab" 
+                                type="button" 
+                                data-toggle="tab" 
+                                aria-selected="true"
+                                id="busquedaDinamica-tab" 
+                                data-opc="busquedaDinamica"
+                                data-target="#busquedaDinamica" 
+                                aria-controls="busquedaDinamica" 
+                                class="nav-link btnConfiguraciones"
+                                data-action="central--reporteador#seleccionarConfiguracion" 
+                                style="transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; gap:5px; border-radius:9px 9px 0px 0px; border:1px solid #d0d4da; height:35px;"
+                            >
+                                <i class="fas fa-search" style="font-size:12px; color:gray"></i>
+                                <span class="montserrat" style="color:gray; font-size:11px">Búsqueda dinámica</span>
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" style="background:white">
+                        <div class="tab-pane fade show active listadoTablaConfiguraciones" id="campos" role="tabpanel" aria-labelledby="campos-tab" style="padding:1px; overflow-y:auto; transition:all 0.5s ease;">
+                            <div style=
+                            "
+                                gap:3px;
+                                display:flex; 
+                                padding:15px 15px; 
+                                flex-direction:column; 
+                                justify-content:center; 
+                                border:1px solid #E2E2E2;
+                                border-radius:0px 0px 5px 5px; 
+                                border-top:none; 
+                            ">
+                                $camposConfiguradosVista
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="agrupacion" role="tabpanel" aria-labelledby="agrupacion-tab">
+                            <div style=
+                            "
+                                gap:3px;
+                                display:flex; 
+                                padding:15px 15px; 
+                                flex-direction:column;
+                                height:{$altoSeccion}px;
+                                border:1px solid #E2E2E2;
+                                border-radius:0px 0px 5px 5px; 
+                                border-top:none; 
+                            ">
+                                $camposAgrupacionConfiguradosVista
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="cabecera" role="tabpanel" aria-labelledby="cabecera-tab">
+                            <div class="listadoTablaConfiguraciones" style="padding:1px; overflow-y:auto; transition:all 0.5s ease; height:{$altoSeccion}px;">
+                                <div style=
+                                "
+                                    gap:3px;
+                                    display:flex; 
+                                    padding:15px 15px; 
+                                    flex-direction:column;
+                                    border:1px solid #E2E2E2;
+                                    transition:all 0.5s ease;
+                                    border-radius:0px 0px 5px 5px; 
+                                    border-top:none;
+                                ">
+                                    <div id="divCabeceras" style="gap:3px; display:flex; flex-direction:column;">
+                                        $cabeceraConfiguradaVista
+                                    </div>
+                                    <div class="divAgregarCabecera" data-action="click->central--reporteador#agregarCabecera" style=
+                                    "   
+                                        display:flex; 
+                                        padding:10px; 
+                                        margin-top:5px; 
+                                        cursor:pointer;
+                                        border-radius:5px; 
+                                        align-items:center; 
+                                        justify-content:center; 
+                                        border:1px solid #d1d4da; 
+                                        transition:all 0.5s ease;
+                                        border-style:dashed; gap:5px; 
+                                    ">
+                                        <i class="fas fa-plus" style="font-size:9px; color:gray; transition:all 0.5s ease;"></i>
+                                        <span style="font-size:10px; color:#808080e0; font-weight:bold; transition:all 0.5s ease;">Agregar cabecera</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="busquedaDinamica" role="tabpanel" aria-labelledby="busquedaDinamica-tab" >
+                            <div class="listadoTablaConfiguraciones" style="padding:1px; overflow-y:auto; transition:all 0.5s ease; height:{$altoSeccion}px;">
+                                <div style=
+                                "
+                                    gap:3px;
+                                    display:flex; 
+                                    padding:15px 15px; 
+                                    flex-direction:column; 
+                                    justify-content:center; 
+                                    border:1px solid #E2E2E2;
+                                    border-radius:0px 0px 5px 5px; 
+                                    border-top:none; 
+                                ">
+                                    $camposBusquedaDinamicaConfiguradosVista
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="animate__animated animate__flipInX" style="display:flex; align-items:center; justify-content:space-between; margin-top:10px" id="botonesConfiguraciones">
+                    <button class="btn btn-success" id="btnGuardarConfiguraciones" data-action="central--reporteador#guardarConfiguraciones"><i class="fas fa-save"></i> Guardar configuraciones</button>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:10px" id="divAplicarConfiguraciones">
+                        <span class="montserrat" style="font-size:11px; font-weight:bold">Aplicar al descargar informe</span>
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input checkConfiguracion" id="aplicarConfiguracionesDescarga" data-action="central--reporteador#seleccionarCampoConfiguracion">
+                            <label class="custom-control-label" for="aplicarConfiguracionesDescarga"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        TWIG;
 
         /** Se genera la plantilla del informe */
         /** ---------------------------------- */
@@ -780,6 +1476,7 @@ class ReporteadorController extends AbstractController
                             <div id="menuReporteador" transition-style="in:custom:circle-swoop" style=
                                 "
                                     top:36px; 
+                                    z-index:1;
                                     display:none; 
                                     width: 220px;
                                     position:absolute; 
@@ -791,19 +1488,27 @@ class ReporteadorController extends AbstractController
                                     transition:all 0.5s ease; 
                                     border: 1px solid #d2d4da; 
                                 ">
-                                <div class="itemMenu" style="cursor:pointer; border-radius:3px; display:flex; align-items:center; gap:10px; padding:5px 15px; width:100%" data-action="click->central--reporteador#descargarPDF">
+                                <div class="itemMenu" style="cursor:pointer; border-radius:3px; display:flex; align-items:center; gap:10px; padding:5px 15px; width:100%; $bloqueoOpcionesDescarga" data-action="click->central--reporteador#descargarPDF">
                                     <div style="width:16px">
                                         <i class="far fa-file-pdf text-danger" style="font-size:15px"></i>
                                     </div>
                                     <i class="fas fa-angle-double-right flecha text-danger" style="opacity:0; font-size:9px; transition:all 0.5s ease"></i>
                                     <span class="montserrat-text" style="font-size:12px; margin-left:-19px; transition:all 0.5s ease">Descargar PDF</span>
                                 </div>
-                                <div class="itemMenu" style="cursor:pointer; border-radius:3px; display:flex; align-items:center; gap:10px; padding:5px 15px; width:100%" data-action="click->central--reporteador#descargarExcel">
+                                <div class="itemMenu" style="cursor:pointer; border-radius:3px; display:flex; align-items:center; gap:10px; padding:5px 15px; width:100%; $bloqueoOpcionesDescarga" data-action="click->central--reporteador#descargarExcel">
                                     <div style="width:16px">
                                         <i class="far fa-file-excel text-success" style="font-size:15px"></i>
                                     </div>
                                     <i class="fas fa-angle-double-right flecha text-success" style="opacity:0; font-size:9px; transition:all 0.5s ease"></i>
                                     <span class="montserrat-text" style="font-size:12px; margin-left:-19px; transition:all 0.5s ease">Descargar EXCEL</span>
+                                </div>
+                                <hr style="width:95%; margin-top:10px; margin-bottom:9px">
+                                <div class="itemMenu" style="cursor:pointer; border-radius:3px; display:flex; align-items:center; gap:10px; padding:5px 15px; width:100%;" data-action="click->central--reporteador#showConfiguraciones" id="opcionConfiguraciones">
+                                    <div style="width:16px">
+                                        <i class="fas fa-cog text-secondary" style="font-size:15px"></i>
+                                    </div>
+                                    <i class="fas fa-angle-double-right flecha text-secondary" style="opacity:0; font-size:9px; transition:all 0.5s ease"></i>
+                                    <span class="montserrat-text" style="font-size:12px; margin-left:-19px; transition:all 0.5s ease">Configuraciones</span>
                                 </div>
                             </div>
                             <div id="loaderDescargaInforme" style=
@@ -836,17 +1541,19 @@ class ReporteadorController extends AbstractController
                             </div>
                         </div>
                     </div>
-                    <div class="animate__animated animate__fadeInLeft" style="position:relative; margin-top:50px; margin-left:15px; width:fit-content; display:flex; align-items:center; $bloqueoMenu">
-                        <button id="btnBusquedaRapida" style="transition:all 0.5s ease; position:absolute; border-radius:50%; right:6px; background:#17A; color:white" class="btn btn-sm" data-action="central--reporteador#busquedaRapida" data-opc="1"><i class="fas fa-search" style="font-size:12px"></i></button>
-                        <input id="busquedaRapida" class="form-control buscar montserrat-text" type="text" placeholder="Búsqueda rápida" data-central--reporteador-target="busquedaRapida" style=
-                        "
-                            width:220px; 
-                            height:36px; 
-                            font-size:12px; 
-                            transition:all 0.5s ease;
-                            padding:0px 53px 0px 19px;
-                            border-radius:20px 20px 20px 5px; 
-                        " data-action="keypress->central--reporteador#busquedaRapida" data-opc="2" value="$busquedaRapida">
+                    <div style="display:flex; align-items:center; gap:30px; margin-top:50px;">
+                        <div class="animate__animated animate__fadeInLeft" style="position:relative; margin-left:15px; width:fit-content; display:flex; align-items:center; $bloqueoMenu">
+                            <button id="btnBusquedaRapida" style="transition:all 0.5s ease; position:absolute; border-radius:50%; right:6px; background:#17A; color:white" class="btn btn-sm" data-action="central--reporteador#busquedaRapida" data-opc="1"><i class="fas fa-search" style="font-size:12px"></i></button>
+                            <input id="busquedaRapida" class="form-control buscar montserrat-text" type="text" placeholder="Búsqueda rápida" data-central--reporteador-target="busquedaRapida" style=
+                            "
+                                width:220px; 
+                                height:36px; 
+                                font-size:12px; 
+                                transition:all 0.5s ease;
+                                padding:0px 53px 0px 19px;
+                                border-radius:20px 20px 20px 5px; 
+                            " data-action="keypress->central--reporteador#busquedaRapida" data-opc="2" value="$busquedaRapida">
+                        </div>
                     </div>
                     <hr style="margin-left:15px; margin-right:15px">
                     <div class="animate__animated animate__fadeIn animate__delay-1s listadoTabla" style="margin-top:25px; padding:3px; overflow-y:auto; overflow-x:auto; transition:all 0.5s ease">
@@ -858,12 +1565,14 @@ class ReporteadorController extends AbstractController
             </div>
         </div>
         $contenidoPaginacion
+        <input type="hidden" id="statusHidden" value="$status" data-central--reporteador-target="statusHidden">
         <input type="hidden" id="paginaHidden" value="$pagina" data-central--reporteador-target="paginaHidden">
+        <input type="hidden" id="totalRegistrosHidden" value="$totalRegistros" data-central--reporteador-target="totalRegistrosHidden">
         <input type="hidden" id="busquedaRapidaHidden" value="$busquedaRapida" data-central--reporteador-target="busquedaRapidaHidden">
         TWIG;
-        return new Response(json_encode(['status' => $status, 'message' => $message, 'plantilla' => $plantilla]));
+        return new Response(json_encode(['status' => $status, 'message' => $message, 'plantilla' => $plantilla, 'seccionConfiguraciones' => $seccionConfiguraciones]));
     }
-    
+
     public function crearTablaRegistros(Request $request, $configuraciones, $listRegistros, $agrupacion = false)
     {   
         /** 
@@ -894,6 +1603,19 @@ class ReporteadorController extends AbstractController
         $camposTotalizados = $this->camposTotalizados;
         $ruta = $request->getScheme().'://'.$request->server->get('HTTP_HOST');
         $alineaciones = ['centro' => 'center', 'derecha' => 'right', 'izquierda' => 'left'];
+        $cabecerasConfiguracion = !empty($this->configuracionesGuardadas)?$this->configuracionesGuardadas['cabeceras']:[];
+        $camposGuardadosConfiguracion = !empty($this->configuracionesGuardadas)?$this->configuracionesGuardadas['campos']:[];
+        if(!empty($camposGuardadosConfiguracion))
+        {
+            foreach($camposTotalizados as $key => $campo)
+            {   
+                if(!in_array($key, $camposGuardadosConfiguracion))
+                {
+                    unset($camposTotalizados[$key]);
+                    unset($this->camposTotalizados[$key]);
+                }
+            }
+        }
 
         /** Se obtiene el json que contiene las configuraciones del informe */
         /** --------------------------------------------------------------- */
@@ -904,7 +1626,7 @@ class ReporteadorController extends AbstractController
             if(array_key_exists('cabecera', $configuraciones) && is_array($configuraciones['cabecera']) && !empty($configuraciones['cabecera'])){$cabecera = $configuraciones['cabecera'];}
             if(array_key_exists('totalizacion', $configuraciones['agrupamiento'][0]) && !empty($configuraciones['agrupamiento'][0]['totalizacion']) && is_array($configuraciones['agrupamiento'][0]['totalizacion']))
             {
-                $camposTotalizados = [];
+                if(empty($this->configuracionesGuardadas) || !empty($this->configuracionesGuardadas['agrupacion'])){$camposTotalizados = [];}
                 $camposTotalizacion = $configuraciones['agrupamiento'][0]['totalizacion'];
             }
         }
@@ -918,6 +1640,20 @@ class ReporteadorController extends AbstractController
             {
                 foreach($camposTotalizacion as $ct)
                 {
+                    /** Se valida si existen campos guardados en las configuraciones */
+                    /** ------------------------------------------------------------ */
+
+                    if(!empty($camposGuardadosConfiguracion))
+                    {
+                        if(!in_array($ct['campo'], $camposGuardadosConfiguracion))
+                        {
+                            continue;
+                        }
+                    }
+
+                    /** Se obtienen los campos de totalización */
+                    /** -------------------------------------- */
+
                     if(array_key_exists('campo', $ct) && array_key_exists($ct['campo'], $registro))
                     {
                         if(array_key_exists($ct['campo'], $camposTotalizados))
@@ -942,9 +1678,19 @@ class ReporteadorController extends AbstractController
             $rellenoCampo = (($indexRegistro + 1) % 2 == 0) ? '#17A2B814':'';
             foreach($registro as $key => $campo)
             {
+                /** Se valida si existen campos guardados en configuraciones */
+                /** -------------------------------------------------------- */
+
+                if(!empty($camposGuardadosConfiguracion))
+                {
+                    $registro = $camposGuardadosConfiguracion;
+                    if(!in_array($key, $camposGuardadosConfiguracion)){continue;}
+                }
+
                 /** Se crean los títulos del informe con sus respectivos estilos */
                 /** ------------------------------------------------------------ */
                 
+                $tipoDato = 'texto';
                 $alineacionCampo = 'left';
                 $alineacionTitulo = 'center';
                 $titulo = ucfirst(str_replace('_', ' ', $key));
@@ -976,15 +1722,18 @@ class ReporteadorController extends AbstractController
                     if(array_key_exists('tipoDato', $configuracionCampo[0]) && $configuracionCampo[0]['tipoDato'] == 'moneda')
                     {
                         $campo = number_format($campo, 2, ',', '.');
+                        $tipoDato = $configuracionCampo[0]['tipoDato'];
                     }
 
                     if(array_key_exists('tipoDato', $configuracionCampo[0]) && $configuracionCampo[0]['tipoDato'] == 'numero')
                     {
                         $campo = number_format($campo, 2, '.', '');
+                        $tipoDato = $configuracionCampo[0]['tipoDato'];
                     }
 
                     if(array_key_exists('tipoDato', $configuracionCampo[0]) && $configuracionCampo[0]['tipoDato'] == 'fecha')
                     {
+                        $tipoDato = $configuracionCampo[0]['tipoDato'];
                         $campo = (new \DateTime($campo))->format('Y-m-d');
                     }
 
@@ -1036,15 +1785,15 @@ class ReporteadorController extends AbstractController
                 if($index == 1)
                 {
                     $estiloBordesCampo = 'border-left:1px solid #d0d4da';
-                    $claseTitulo = empty($cabecera)?'class="tituloInicial"':'';
-                    $estiloBordesTitulo = empty($cabecera)?'border-radius:10px 0px 0px 3px':'';
+                    $claseTitulo = (empty($cabecera) || (!empty($this->configuracionesGuardadas) && empty($cabecerasConfiguracion)))?'class="tituloInicial"':'';
+                    $estiloBordesTitulo = (empty($cabecera) || (!empty($this->configuracionesGuardadas) && empty($cabecerasConfiguracion)))?'border-radius:10px 0px 0px 3px':'';
                 }
 
                 if($index == count($registro))
                 {
                     $estiloBordesCampo = 'border-right:1px solid #d0d4da';
-                    $claseTitulo = empty($cabecera)?'class="tituloFinal"':'';
-                    $estiloBordesTitulo = empty($cabecera)?'border-radius:0px 10px 3px 0px; border-right:1px solid #d0d4da':'border-right:1px solid #d0d4da';
+                    $claseTitulo = (empty($cabecera) || (!empty($this->configuracionesGuardadas) && empty($cabecerasConfiguracion)))?'class="tituloFinal"':'';
+                    $estiloBordesTitulo = (empty($cabecera) || (!empty($this->configuracionesGuardadas) && empty($cabecerasConfiguracion)))?'border-radius:0px 10px 3px 0px; border-right:1px solid #d0d4da':'border-right:1px solid #d0d4da';
                 }
 
                 /** Se crean los títulos del informe */
@@ -1126,6 +1875,16 @@ class ReporteadorController extends AbstractController
                 }
                 $estiloBordesCampo = '';
                 $index ++;
+
+                /** Se guarda la información de cada título para crear los campos de configuraciones */
+                /** -------------------------------------------------------------------------------- */
+
+                $this->camposConfigurados[$key] = 
+                [
+                    'agrupacion' => false,
+                    'tipoDato' => $tipoDato, 
+                    'titulo' => empty(strip_tags($titulo))?ucfirst(str_replace('_', ' ', $key)):strip_tags($titulo)
+                ];
             }
             $filasInforme .=
             <<<TWIG
@@ -1140,24 +1899,40 @@ class ReporteadorController extends AbstractController
         /** Se crea la sección de la cabecera */
         /** --------------------------------- */
         
-        if(!empty($cabecera))
+        if((!empty($cabecera) && empty($this->configuracionesGuardadas)) || !empty($cabecerasConfiguracion))
         {
-            foreach($cabecera as $index => $c)
+            $cabeceras = $cabecera;
+            $keyCabeceras = array_keys($cabecera);
+            if(!empty($cabecerasConfiguracion)){$cabeceras = $cabecerasConfiguracion;}
+            foreach($cabeceras as $index => $c)
             {
-                $tituloCabecera = $c['nombre'];
-                $colSpanCabecera = $c['colspan'];
+                if(array_key_exists('index', $c))
+                {
+                    $tituloCabecera = $c['nombre'];
+                    $colSpanCabecera = $c['colspan'];    
+                    if(in_array($c['index'], $keyCabeceras))
+                    {
+                        $cabeceraTexto = strip_tags($cabecera[$c['index']]['nombre']);
+                        $tituloCabecera = str_replace($cabeceraTexto, $c['nombre'], $cabecera[$c['index']]['nombre']);
+                    }
+                }
+                else
+                {
+                    $tituloCabecera = $c['nombre'];
+                    $colSpanCabecera = $c['colspan'];
+                }
 
                 if($index == 0)
                 {
                     $estiloBordesTitulo = 'border-radius:10px 0px 0px 0px';
                 }
 
-                if($index == (count($cabecera) - 1))
+                if($index == (count($cabeceras) - 1))
                 {
                     $estiloBordesTitulo = 'border-radius:0px 10px 0px 0px; border-right:1px solid #d0d4da';
                 }
 
-                if(count($cabecera) == 1)
+                if(count($cabeceras) == 1)
                 {
                     $estiloBordesTitulo = 'border-radius:10px 10px 0px 0px; border-right:1px solid #d0d4da';
                 }
@@ -1170,7 +1945,7 @@ class ReporteadorController extends AbstractController
                     </div>
                 </th>
                 TWIG;
-                $estiloBordes = '';
+                $estiloBordesTitulo = '';
             }
             $trCabecera = 
             <<<TWIG
@@ -1253,7 +2028,7 @@ class ReporteadorController extends AbstractController
     }
 
     /**
-     * @Route("/Central/Reporteador/descargarInformePDF", name="central_reporteador_descargar_informe_pdf")
+    * @Route("/Central/Reporteador/descargarInformePDF", name="central_reporteador_descargar_informe_pdf")
     */
     public function descargarInformePDF(Request $request)
     {
@@ -1272,7 +2047,6 @@ class ReporteadorController extends AbstractController
         $filtros = [];
         $message = '';
         $periodo = '';
-        $cabecera = [];
         $bd = $this->em;
         $plantilla = '';
         $keyCampos = [];
@@ -1290,6 +2064,7 @@ class ReporteadorController extends AbstractController
         $conexion = $bd->getConnection();
         $session = $request->getSession();
         $listRegistrosBusquedaRapida = [];
+        $listRegistrosBusquedaDinamica = [];
         $form = $request->request->get('filtros_reporteador');
         $busquedaRapida = $request->request->get('busquedaRapida');
         $compania = $bd->getRepository(compania::class)->findOneBy([]);
@@ -1297,6 +2072,7 @@ class ReporteadorController extends AbstractController
         $informe = $bd->getRepository(reportes::class)->findOneBy(['id' => $form['informe']]);
         $pdfOptions->set('defaultFont', 'Helvetica')->set('sizeFont', '9')->setIsRemoteEnabled(true);
         $fechaActual = (new \DateTime('now', new \DateTimeZone('America/Bogota')))->format('Y-m-d H:i:s');
+        $this->configuracionesGuardadas = !empty($request->request->get('configuracionesGuardadas'))?json_decode($request->request->get('configuracionesGuardadas'), true):[];
 
         try 
         {            
@@ -1334,7 +2110,6 @@ class ReporteadorController extends AbstractController
             {
                 if(array_key_exists('campos', $configuraciones)){$configuracionCampos = $configuraciones['campos'];}
                 if(array_key_exists('pdf', $configuraciones) && !empty($configuraciones['pdf']) && is_array($configuraciones['pdf'])){$configuracionesPDF = $configuraciones['pdf'];}
-                if(array_key_exists('cabecera', $configuraciones) && is_array($configuraciones['cabecera']) && !empty($configuraciones['cabecera'])){$cabecera = $configuraciones['cabecera'];}
                 if(array_key_exists('agrupamiento', $configuraciones) && is_array($configuraciones['agrupamiento']) && !empty($configuraciones['agrupamiento'])){$agrupamiento = $configuraciones['agrupamiento'];}
                 if(array_key_exists('totalizacion', $configuraciones) && !empty($configuraciones['totalizacion']) && is_array($configuraciones['totalizacion'])){$camposTotalizacion = $configuraciones['totalizacion'];}
                 if(array_key_exists('periodo', $configuraciones) && !empty($configuraciones['periodo']))
@@ -1363,12 +2138,11 @@ class ReporteadorController extends AbstractController
             /** --------------------------------------- */
 
             $listRegistros = $conexion->prepare($sqlInforme)->executeQuery()->fetchAll();
-
-            /** Se filtran los registros de acuerdo a la búsqueda rápida */
-            /** -------------------------------------------------------- */
-
             if($busquedaRapida != '')
             {
+                /** Se filtran los registros de acuerdo a la búsqueda rápida */
+                /** -------------------------------------------------------- */
+
                 foreach($listRegistros as $registro)
                 {
                     foreach($registro as $campo)
@@ -1380,6 +2154,81 @@ class ReporteadorController extends AbstractController
                     }
                 }
                 $listRegistros = $listRegistrosBusquedaRapida;
+            }
+            else
+            {
+                /** Se filtran los registro de acuerdo a la búsqueda dinámica */
+                /** --------------------------------------------------------- */
+
+                $condicionesValidas = 0;
+                if(!empty($this->configuracionesGuardadas) && !empty($this->configuracionesGuardadas['busquedaDinamica']))
+                {
+                    foreach($listRegistros as $registro)
+                    {
+                        foreach($this->configuracionesGuardadas['busquedaDinamica'] as $busqueda)
+                        {
+                            $campoBusqueda = $busqueda['campo'];
+                            if(!empty($busqueda['input']))
+                            {
+                                if($busqueda['tipo'] == 'fecha')
+                                {
+                                    if($busqueda['select'] == 'igual')
+                                    {
+                                        if(new \DateTime($busqueda['input']) == new \DateTime($registro[$campoBusqueda])){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'entre')
+                                    {
+                                        if((new \DateTime($registro[$campoBusqueda]) >= new \DateTime($busqueda['input'])) && (new \DateTime($registro[$campoBusqueda]) <= new \DateTime($busqueda['hasta'])))
+                                        {
+                                            $condicionesValidas ++;
+                                        }
+                                    }
+                                    if($busqueda['select'] == 'mayor')
+                                    {
+                                        if(new \DateTime($registro[$campoBusqueda]) > new \DateTime($busqueda['input'])){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'menor')
+                                    {
+                                        if(new \DateTime($registro[$campoBusqueda]) < new \DateTime($busqueda['input'])){$condicionesValidas ++;}
+                                    }
+                                }
+                                else
+                                {
+                                    if($busqueda['select'] == 'igual')
+                                    {
+                                        if($busqueda['input'] == $registro[$campoBusqueda]){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'mayor')
+                                    {
+                                        if($registro[$campoBusqueda] > $busqueda['input']){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'menor')
+                                    {
+                                        if($registro[$campoBusqueda] < $busqueda['input']){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'contiene')
+                                    {
+                                        if(strpos($registro[$campoBusqueda], $busqueda['input']) !== false){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'no_contiene')
+                                    {
+                                        if(strpos($registro[$campoBusqueda], $busqueda['input']) === false){$condicionesValidas ++;}
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if($registro[$campoBusqueda] == ''){$condicionesValidas ++;}
+                            }
+                        }
+                        if($condicionesValidas == count($this->configuracionesGuardadas['busquedaDinamica']))
+                        {
+                            $listRegistrosBusquedaDinamica[] = $registro;
+                        }
+                        $condicionesValidas = 0;
+                    }
+                    $listRegistros = $listRegistrosBusquedaDinamica;
+                }
             }
 
             /** Se obtiene la totalización de los campos */
@@ -1422,6 +2271,7 @@ class ReporteadorController extends AbstractController
                 }
             }
 
+            if(!empty($this->configuracionesGuardadas)){$camposAgrupacion = $this->configuracionesGuardadas['agrupacion'];}
             if(!empty($camposAgrupacion))
             {
                 /** Se genera el informe con campos de agrupación */
@@ -1480,16 +2330,14 @@ class ReporteadorController extends AbstractController
                     <div style=
                     "
                         margin-top:5px;
+                        font-weight:bold;
                         padding:12px 17px;
                         background:#f2f2f2;
                         border:1px solid gray; 
+                        border-right:1px solid gray; 
                         border-radius:5px 5px 0px 0px; 
                     ">
-                        <table border="0" cellpadding="0" cellspacing="0">
-                            <tr>
-                                <th>$tituloAgrupado</th>
-                            </tr>
-                        </table>
+                        $tituloAgrupado
                     </div>
                     <div style="border: 1px solid gray; padding:10px; border-radius: 0px 0px 5px 5px; margin-top:-1px;">
                         $tablaRegistros
@@ -1503,22 +2351,25 @@ class ReporteadorController extends AbstractController
 
                 if(!empty($this->camposTotalizados))
                 {
+                    $indexTotales = 0;
                     foreach($this->camposTotalizados as $ct)
                     {
                         $tituloTotal = $ct[0];
                         $valorTotal = number_format($ct[1], 2, ',', '.');
+                        $borderTop = ($indexTotales == 0)?'':'border-top:none;';
                         $divTotalesGenerales .= 
                         <<<TWIG
                             <tr>
-                                <td style="text-align:center; padding:5px 7px">
+                                <td style="text-align:center; padding:5px 7px; border:1px solid gray; $borderTop">
                                     $tituloTotal
                                 </td>
-                                <td style="text-align:right; padding:5px 7px">
+                                <td style="text-align:right; padding:5px 7px; border:1px solid gray; border-left:none; $borderTop">
                                     $valorTotal
                                 </td>
                             </tr>
                         </div>
                         TWIG;
+                        $indexTotales ++;
                     }
                     $divTotalesGenerales =
                     <<<TWIG
@@ -1526,7 +2377,7 @@ class ReporteadorController extends AbstractController
                         <div style="background:#f2f2f2; text-align:center; font-weight:bold; padding:7px; border:1px solid gray; border-bottom:none; border-radius:5px 5px 0px 0px;">
                             TOTALES DEL INFORME
                         </div>
-                        <table border="1" cellpadding="0" cellspacing="0" style="width:100%">
+                        <table border="0" cellpadding="0" cellspacing="0" style="width:100%">
                             $divTotalesGenerales
                         </table>
                     </div>
@@ -1564,96 +2415,65 @@ class ReporteadorController extends AbstractController
 
         $tipoHoja = 'letter';
         $orientacion = 'portrait';
-        $anchoInformacionEmpresa = '280px';
+        $anchoInformacionEmpresa = '350px';
         if(!empty($configuracionesPDF))
         {
             if(array_key_exists('tipoHoja', $configuracionesPDF) && !empty($configuracionesPDF['tipoHoja'])){$tipoHoja = $configuracionesPDF['tipoHoja'];}
             if(array_key_exists('orientacion', $configuracionesPDF) && !empty($configuracionesPDF['orientacion'])){$orientacion = $configuracionesPDF['orientacion'];}
-            if($orientacion == 'landscape'){$anchoInformacionEmpresa = '400px';}
+            if($orientacion == 'landscape'){$anchoInformacionEmpresa = '450px';}
         }
 
         /** Se genera la plantilla del informe */
         /** ---------------------------------- */
 
-        $dompdf = new Dompdf($pdfOptions);
+        $cabecera = $this->renderView('Central/Reporteador/cabeceraInformePDF.html.twig', 
+        [
+            'periodo' => $periodo,
+            'compania' => $compania, 
+            'fecha' => $fechaActual,
+            'nombreInforme' => $nombreInforme,
+            'anchoInformacionEmpresa' => $anchoInformacionEmpresa
+        ]);
         $html =
         <<<TWIG
-        <style>
-            * {
-                font-size: 10px;
-            }
-
-            @page {
-                margin: 220px 20px 40px 20px;
-            }
-
-            header {
-                position: fixed;
-                top: -160px;
-                left: 0px;
-                right: 0px;
-                height: 50px;
-            }
-        </style>
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {
+                    font-family: Helvetica, Arial, sans-serif;
+                    font-size: 10px;
+                    margin: 0;
+                    padding: 0;
+                }
+                .contenido {
+                    margin-top: 20px;
+                }
+            </style>
+        </head>
         <body>
-            <header>
-                <table border="0" width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                        <td style="width:70px">
-                            <img src="data:application/image;base64,$logo" style="width:70px">
-                        </td>
-                        <td style="padding-left:15px; width:$anchoInformacionEmpresa">
-                            <div style="font-weight:bold; font-size:14px">$nombreCompania</div>
-                            <div style="margin-top:2px">N.I.T: $nitCompania</div>
-                            <div style="margin-top:2px">Dirección: $direccionCompania</div>
-                            <div style="margin-top:2px">Teléfono: $telefonoCompania</div>
-                        </td>
-                        <td style="padding-left:10px">
-                            <table border="0" style="width:100%" cellspacing="0" cellpadding="0">
-                                <tr>
-                                    <td>
-                                        <div style="font-weight:bold; background:#f2f2f2; border-radius:5px 0px 0px 0px; padding:5px 7px; border:1px solid gray; border-right:none">Informe</div>
-                                    </td>
-                                    <td>
-                                        <div style="background:#f2f2f2; border-radius:0px 5px 0px 0px; padding:5px 7px; border:1px solid gray">$nombreInforme</div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight:bold; padding:5px 7px; border:1px solid gray; border-right:none; border-top:none">Periodo</div>
-                                    </td>
-                                    <td>
-                                        <div style="; padding:5px 7px; border:1px solid gray; border-top:none">$periodo</div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div style="font-weight:bold; background:#f2f2f2; border-radius:0px 0px 0px 5px; padding:5px 7px; border:1px solid gray; border-top:none; border-right:none">Fecha imprime</div>
-                                    </td>
-                                    <td>
-                                        <div style="background:#f2f2f2; border-radius:0px 0px 5px 0px; padding:5px 7px; border:1px solid gray; border-top:none;">$fechaActual</div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                </table>
-            </header>
-            <div>
+            <div class="contenido">
                 $contenidoPDF
             </div>
         </body>
+        </html>
         TWIG;
-
-        /** Se genera el PDF del informe */
-        /** ---------------------------- */
-
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper($tipoHoja, $orientacion);
-        $dompdf->render();
-        $nombreInforme = strtolower(str_replace(' ', '_', $nombreInforme));
-        $dompdf->get_canvas()->page_text(282, 766, "Pagina: {PAGE_NUM} de {PAGE_COUNT}", 'Helvetica', 6, array(0, 0, 0));
-        $pdf = $dompdf->output();
+        $pdf = $this->pdf->getOutputFromHtml($html, 
+        [
+            'dpi' => 96,
+            'margin-top' => 30,
+            'margin-left' => 5,
+            'margin-right' => 5,
+            'margin-bottom' => 10,
+            'footer-font-size' => 4,
+            'page-size' => $tipoHoja,
+            'header-html' => $cabecera,
+            'orientation' => $orientacion,
+            'footer-font-name' => 'Helvetica',
+            'enable-local-file-access' => true,
+            'footer-center' => 'Pagina [page] de [toPage]',
+        ]);
         return new Response(
             $pdf,
             200,
@@ -1694,6 +2514,19 @@ class ReporteadorController extends AbstractController
         $camposTotalizados = $this->camposTotalizados;
         $ruta = $request->getScheme().'://'.$request->server->get('HTTP_HOST');
         $alineaciones = ['centro' => 'center', 'derecha' => 'right', 'izquierda' => 'left'];
+        $cabecerasConfiguracion = !empty($this->configuracionesGuardadas)?$this->configuracionesGuardadas['cabeceras']:[];
+        $camposGuardadosConfiguracion = !empty($this->configuracionesGuardadas)?$this->configuracionesGuardadas['campos']:[];
+        if(!empty($camposGuardadosConfiguracion))
+        {
+            foreach($camposTotalizados as $key => $campo)
+            {   
+                if(!in_array($key, $camposGuardadosConfiguracion))
+                {
+                    unset($camposTotalizados[$key]);
+                    unset($this->camposTotalizados[$key]);
+                }
+            }
+        }
 
         /** Se obtiene el json que contiene las configuraciones del informe */
         /** --------------------------------------------------------------- */
@@ -1704,7 +2537,7 @@ class ReporteadorController extends AbstractController
             if(array_key_exists('cabecera', $configuraciones) && is_array($configuraciones['cabecera']) && !empty($configuraciones['cabecera'])){$cabecera = $configuraciones['cabecera'];}
             if(array_key_exists('totalizacion', $configuraciones['agrupamiento'][0]) && !empty($configuraciones['agrupamiento'][0]['totalizacion']) && is_array($configuraciones['agrupamiento'][0]['totalizacion']))
             {
-                $camposTotalizados = [];
+                if(empty($this->configuracionesGuardadas) || !empty($this->configuracionesGuardadas['agrupacion'])){$camposTotalizados = [];}
                 $camposTotalizacion = $configuraciones['agrupamiento'][0]['totalizacion'];
             }
         }
@@ -1718,6 +2551,20 @@ class ReporteadorController extends AbstractController
             {
                 foreach($camposTotalizacion as $ct)
                 {
+                    /** Se valida si existen campos guardados en las configuraciones */
+                    /** ------------------------------------------------------------ */
+                    
+                    if(!empty($camposGuardadosConfiguracion))
+                    {
+                        if(!in_array($ct['campo'], $camposGuardadosConfiguracion))
+                        {
+                            continue;
+                        }
+                    }
+
+                    /** Se obtienen los campos de totalización */
+                    /** -------------------------------------- */
+
                     if(array_key_exists('campo', $ct) && array_key_exists($ct['campo'], $registro))
                     {
                         if(array_key_exists($ct['campo'], $camposTotalizados))
@@ -1742,6 +2589,15 @@ class ReporteadorController extends AbstractController
             $rellenoCampo = (($indexRegistro + 1) % 2 == 0) ? '#17A2B814':'';
             foreach($registro as $key => $campo)
             {
+                /** Se valida si existen campos guardados en configuraciones */
+                /** -------------------------------------------------------- */
+
+                if(!empty($camposGuardadosConfiguracion))
+                {
+                    $registro = $camposGuardadosConfiguracion;
+                    if(!in_array($key, $camposGuardadosConfiguracion)){continue;}
+                }
+
                 /** Se crean los títulos del informe con sus respectivos estilos */
                 /** ------------------------------------------------------------ */
                 
@@ -1813,9 +2669,10 @@ class ReporteadorController extends AbstractController
 
                 if($indexRegistro == 0)
                 {   
+                    $borderLeft = ($index == 1)?'':'border-left:none';
                     $titulosPDF .=
                     <<<TWIG
-                    <td style="font-weight:bold; padding:4px; text-align:$alineacionTitulo; background:#f2f2f2; border:1px solid gray">$titulo</td>
+                    <td style="font-weight:bold; padding:4px; text-align:$alineacionTitulo; background:#f2f2f2; border:1px solid gray; $borderLeft; border-bottom:none">$titulo</td>
                     TWIG;
                     $divRelleno = '';
                     $claseTitulo = '';
@@ -1825,9 +2682,11 @@ class ReporteadorController extends AbstractController
                 /** Se crea cada registro del informe */
                 /** --------------------------------- */
 
+                $borderLeft = ($index == 1)?'':'border-left:none';
+                $borderTop = ($indexRegistro == 0)?'':'border-top:none';
                 $tdCampo .= 
                 <<<TWIG
-                <td style="padding:3px 7px; border:1px solid gray; text-align:$alineacionCampo">$campo</td>
+                <td style="padding:3px 7px; border:1px solid gray; text-align:$alineacionCampo; $borderTop; $borderLeft">$campo</td>
                 TWIG;
 
                 /** Se diseña la tabla de acuerdo a los totales configurados */
@@ -1897,9 +2756,11 @@ class ReporteadorController extends AbstractController
         /** Se crea la sección de la cabecera */
         /** --------------------------------- */
         
-        if(!empty($cabecera))
+        if((!empty($cabecera) && empty($this->configuracionesGuardadas)) || !empty($cabecerasConfiguracion))
         {
-            foreach($cabecera as $index => $c)
+            $cabeceras = $cabecera;
+            if(!empty($cabecerasConfiguracion)){$cabeceras = $cabecerasConfiguracion;}
+            foreach($cabeceras as $index => $c)
             {
                 $colSpanCabecera = $c['colspan'];
                 $tituloCabecera = strip_tags($c['nombre']);
@@ -1909,12 +2770,12 @@ class ReporteadorController extends AbstractController
                     $estiloBordesTitulo = 'border-radius:5px 0px 0px 0px';
                 }
 
-                if($index == (count($cabecera) - 1))
+                if($index == (count($cabeceras) - 1))
                 {
                     $estiloBordesTitulo = 'border-radius:0px 5px 0px 0px; border-right:1px solid gray';
                 }
 
-                if(count($cabecera) == 1)
+                if(count($cabeceras) == 1)
                 {
                     $estiloBordesTitulo = 'border-radius:5px 5px 0px 0px; border-right:1px solid gray';
                 }
@@ -1927,7 +2788,7 @@ class ReporteadorController extends AbstractController
                     </div>
                 </th>
                 TWIG;
-                $estiloBordes = '';
+                $estiloBordesTitulo = 'border-radius:1px 1px 0px 0px';
             }
             $trCabecera = 
             <<<TWIG
@@ -1951,7 +2812,7 @@ class ReporteadorController extends AbstractController
                     $tdTotal .= 
                     <<<TWIG
                     <th colspan="$campoTotal">
-                        <div style="background:#f2f2f2; text-align:right; padding:7px; border:1px solid gray; border-right:1px solid #f2f2f2; border-top:none; border-radius:0px 0px 0px 5px">
+                        <div style="background:#f2f2f2; text-align:right; padding:7px; height:12px; border:1px solid gray; border-right:none; border-top:none; border-radius:0px 0px 0px 5px">
                             Total &raquo;
                         </div>
                     </th>
@@ -1961,11 +2822,11 @@ class ReporteadorController extends AbstractController
                 {
                     $campo = !empty($campoTotal)?$campoTotal[0]:'';
                     $alineacionCampo = !empty($campoTotal)?$campoTotal[1]:'';
-                    $estiloBordes = ($index == (count($tablaTotales) - 1))?'border-bottom:1px solid gray; border-right:1px solid gray; border-radius:0px 0px 5px 0px;':'border-bottom:1px solid gray; border-right:1px solid #f2f2f2';
+                    $estiloBordes = ($index == (count($tablaTotales) - 1))?'border-radius:0px 0px 5px 0px; border-right:1px solid gray; border-bottom:1px solid gray; border-left:none;':'border-radius:1px; border-right:none; border-bottom:1px solid gray;';
                     $tdTotal .= 
                     <<<TWIG
                     <th>
-                        <div style="background:#f2f2f2; text-align:$alineacionCampo; padding:7px; height:12px; $estiloBordes">
+                        <div style="background:#f2f2f2; text-align:$alineacionCampo; padding:7px; height:12px; border:none; border-top:none; $estiloBordes">
                             $campo
                         </div>
                     </th>
@@ -1999,7 +2860,7 @@ class ReporteadorController extends AbstractController
     }
 
     /**
-     * @Route("/Central/Reporteador/descargarInformeExcel", name="central_reporteador_descargar_informe_excel")
+    * @Route("/Central/Reporteador/descargarInformeExcel", name="central_reporteador_descargar_informe_excel")
     */
     public function descargarInformeExcel(Request $request)
     {
@@ -2018,7 +2879,6 @@ class ReporteadorController extends AbstractController
         $filtros = [];
         $message = '';
         $periodo = '';
-        $cabecera = [];
         $bd = $this->em;
         $plantilla = '';
         $keyCampos = [];
@@ -2040,6 +2900,7 @@ class ReporteadorController extends AbstractController
         $periodoCabecera = new RichText();
         $listRegistrosBusquedaRapida = [];
         $session = $request->getSession();
+        $listRegistrosBusquedaDinamica = [];
         $sheet = $spreadsheet->getActiveSheet();
         $logoTmp = tempnam(sys_get_temp_dir(), 'logoTmp');
         $rutaLogo = $this->getParameter('imgs_directory');
@@ -2049,6 +2910,7 @@ class ReporteadorController extends AbstractController
         $alineaciones = ['centro' => 'center', 'derecha' => 'right', 'izquierda' => 'left'];
         $informe = $bd->getRepository(reportes::class)->findOneBy(['id' => $form['informe']]);
         $fechaActual = (new \DateTime('now', new \DateTimeZone('America/Bogota')))->format('Y-m-d H:i:s');
+        $this->configuracionesGuardadas = !empty($request->request->get('configuracionesGuardadas'))?json_decode($request->request->get('configuracionesGuardadas'), true):[];
 
         try 
         {
@@ -2089,7 +2951,6 @@ class ReporteadorController extends AbstractController
                 if(array_key_exists('campos', $configuraciones)){$configuracionCampos = $configuraciones['campos'];}
                 if(array_key_exists('pdf', $configuraciones) && !empty($configuraciones['pdf']) && is_array($configuraciones['pdf'])){$configuracionesPDF = $configuraciones['pdf'];}
                 if(array_key_exists('paginacion', $configuraciones) && $configuraciones['paginacion'] && $configuraciones['paginacion'] >= 10){$paginacion = $configuraciones['paginacion'];}
-                if(array_key_exists('cabecera', $configuraciones) && is_array($configuraciones['cabecera']) && !empty($configuraciones['cabecera'])){$cabecera = $configuraciones['cabecera'];}
                 if(array_key_exists('agrupamiento', $configuraciones) && is_array($configuraciones['agrupamiento']) && !empty($configuraciones['agrupamiento'])){$agrupamiento = $configuraciones['agrupamiento'];}
                 if(array_key_exists('totalizacion', $configuraciones) && !empty($configuraciones['totalizacion']) && is_array($configuraciones['totalizacion'])){$camposTotalizacion = $configuraciones['totalizacion'];}
                 if(array_key_exists('periodo', $configuraciones) && !empty($configuraciones['periodo']))
@@ -2118,12 +2979,11 @@ class ReporteadorController extends AbstractController
             /** --------------------------------------- */
 
             $listRegistros = $conexion->prepare($sqlInforme)->executeQuery()->fetchAll();
-
-            /** Se filtran los registros de acuerdo a la búsqueda rápida */
-            /** -------------------------------------------------------- */
-
             if($busquedaRapida != '')
             {
+                /** Se filtran los registros de acuerdo a la búsqueda rápida */
+                /** -------------------------------------------------------- */
+
                 foreach($listRegistros as $registro)
                 {
                     foreach($registro as $campo)
@@ -2135,6 +2995,81 @@ class ReporteadorController extends AbstractController
                     }
                 }
                 $listRegistros = $listRegistrosBusquedaRapida;
+            }
+            else
+            {
+                /** Se filtran los registro de acuerdo a la búsqueda dinámica */
+                /** --------------------------------------------------------- */
+
+                $condicionesValidas = 0;
+                if(!empty($this->configuracionesGuardadas) && !empty($this->configuracionesGuardadas['busquedaDinamica']))
+                {
+                    foreach($listRegistros as $registro)
+                    {
+                        foreach($this->configuracionesGuardadas['busquedaDinamica'] as $busqueda)
+                        {
+                            $campoBusqueda = $busqueda['campo'];
+                            if(!empty($busqueda['input']))
+                            {
+                                if($busqueda['tipo'] == 'fecha')
+                                {
+                                    if($busqueda['select'] == 'igual')
+                                    {
+                                        if(new \DateTime($busqueda['input']) == new \DateTime($registro[$campoBusqueda])){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'entre')
+                                    {
+                                        if((new \DateTime($registro[$campoBusqueda]) >= new \DateTime($busqueda['input'])) && (new \DateTime($registro[$campoBusqueda]) <= new \DateTime($busqueda['hasta'])))
+                                        {
+                                            $condicionesValidas ++;
+                                        }
+                                    }
+                                    if($busqueda['select'] == 'mayor')
+                                    {
+                                        if(new \DateTime($registro[$campoBusqueda]) > new \DateTime($busqueda['input'])){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'menor')
+                                    {
+                                        if(new \DateTime($registro[$campoBusqueda]) < new \DateTime($busqueda['input'])){$condicionesValidas ++;}
+                                    }
+                                }
+                                else
+                                {
+                                    if($busqueda['select'] == 'igual')
+                                    {
+                                        if($busqueda['input'] == $registro[$campoBusqueda]){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'mayor')
+                                    {
+                                        if($registro[$campoBusqueda] > $busqueda['input']){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'menor')
+                                    {
+                                        if($registro[$campoBusqueda] < $busqueda['input']){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'contiene')
+                                    {
+                                        if(strpos($registro[$campoBusqueda], $busqueda['input']) !== false){$condicionesValidas ++;}
+                                    }
+                                    if($busqueda['select'] == 'no_contiene')
+                                    {
+                                        if(strpos($registro[$campoBusqueda], $busqueda['input']) === false){$condicionesValidas ++;}
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if($registro[$campoBusqueda] == ''){$condicionesValidas ++;}
+                            }
+                        }
+                        if($condicionesValidas == count($this->configuracionesGuardadas['busquedaDinamica']))
+                        {
+                            $listRegistrosBusquedaDinamica[] = $registro;
+                        }
+                        $condicionesValidas = 0;
+                    }
+                    $listRegistros = $listRegistrosBusquedaDinamica;
+                }
             }
 
             /** Se obtiene la totalización de los campos */
@@ -2177,142 +3112,57 @@ class ReporteadorController extends AbstractController
                 }
             }
 
+            if(!empty($this->configuracionesGuardadas)){$camposAgrupacion = $this->configuracionesGuardadas['agrupacion'];}
             if(!empty($camposAgrupacion))
             {
                 /** Se genera el informe con campos de agrupación */
                 /** --------------------------------------------- */
                 
                 $listAgrupada = [];
-                $campoControl = '';
-                $campoAnterior = '';
-                $camposReferencia = [];
+                $keyAgrupacion = [];
                 $divTotalesGenerales = '';
                 $camposAgrupacion = array_slice($camposAgrupacion, 0, 3);
                 
                 /** Se ordena la información de acuerdo a los campos de agrupación configurados en el informe */
                 /** ----------------------------------------------------------------------------------------- */
         
-                foreach($camposAgrupacion as $index => $campo)
+                foreach($listRegistros as $registro)
                 {
-                    if(empty($campoControl))
+                    foreach($camposAgrupacion as $campo)
                     {
-                        foreach($listRegistros as $registro)
-                        {
-                            $listAgrupada[$campo][$registro[$campo]] = $registro[$campo];
-                        }
+                        $keyAgrupacion[] = $registro[$campo];
+                        unset($registro[$campo]);
                     }
-                    else
-                    {
-                        if($index == 1)
-                        {
-                            foreach($listAgrupada[$campoControl] as $c)
-                            {
-                                $camposReferencia[] = $c;
-                                foreach($listRegistros as $registro)
-                                {
-                                    if($registro[$campoControl] == $c)
-                                    {
-                                        $listAgrupada[$campo][$c][$registro[$campo]] = $registro[$campo];
-                                    }
-                                }
-                            }
-                            unset($camposReferencia[array_key_last($camposReferencia)]);
-                        }
-                        else
-                        {
-                            foreach($camposReferencia as $cr)
-                            {
-                                foreach($listAgrupada[$campoControl][$cr] as $c)
-                                {
-                                    $camposReferenciaControl[] = $c;
-                                    foreach($listRegistros as $registro)
-                                    {
-                                        if($registro[$campoControl] == $c)
-                                        {
-                                            $listAgrupada[$campo][$c][$registro[$campo]] = $registro[$campo];
-                                        }
-                                    }
-                                }
-                            }
-                            $camposReferencia = $camposReferenciaControl;
-                        }
-                    }
-                    $campoControl = $campo;
-                    $listAgrupada[$campo]['referencia'] = array_key_exists($index + 1, $camposAgrupacion)?$camposAgrupacion[$index + 1]:'registros';
-        
-                    /** Se guardan los registros de tal manera que se asocien al último nivel de agrupación */
-                    /** ----------------------------------------------------------------------------------- */
-        
-                    if($listAgrupada[$campo]['referencia'] == 'registros')
-                    {
-                        if(empty($camposReferencia))
-                        {
-                            $campoAnterior = $camposAgrupacion[0];
-                            foreach($listAgrupada[$campoAnterior] as $c)
-                            {
-                                foreach($listRegistros as $registro)
-                                {
-                                    if($registro[$campoAnterior] == $c)
-                                    {
-                                        foreach($camposAgrupacion as $campo){unset($registro[$campo]);}
-                                        $listAgrupada['registros'][$c][] = $registro;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            foreach($camposReferencia as $cr)
-                            {
-                                foreach($listAgrupada[$campoControl][$cr] as $c)
-                                {
-                                    foreach($listRegistros as $registro)
-                                    {
-                                        $campoAnterior = $registro[$camposAgrupacion[count($camposAgrupacion) - 2]];
-                                        if($campoAnterior == $cr && $registro[$campoControl] == $c)
-                                        {
-                                            foreach($camposAgrupacion as $campo){unset($registro[$campo]);}
-                                            $listAgrupada['registros'][$campoAnterior.$c][] = $registro;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    $keyAgrupacion = implode('_', $keyAgrupacion);
+                    $listAgrupada[$keyAgrupacion][] = $registro;
+                    $keyAgrupacion = [];
                 }
 
                 /** Se crea la sección de agrupamiento con todos los campos seleccionados */
                 /** --------------------------------------------------------------------- */
 
-                $this->ultimaColumna = Coordinate::stringFromColumnIndex(count($listAgrupada['registros'][array_key_first($listAgrupada['registros'])][0]));
+                $this->ultimaColumna = Coordinate::stringFromColumnIndex(count($listAgrupada[array_key_first($listAgrupada)][0]));
                 foreach($listAgrupada as $key => $items)
                 {
-                    if($key === array_key_first($listAgrupada))
+                    $tituloAgrupado = [];
+                    $camposAgrupadosCabecera = [];
+                    $camposAgrupadosCabecera = explode('_', $key);
+                    foreach($camposAgrupadosCabecera as $keyCampoAgrupado => $campoAgrupado)
                     {
+                        $key = $camposAgrupacion[$keyCampoAgrupado];
                         $campo = array_filter($agrupamiento[0]['campos'], fn($item) => $item['nombre'] == $key);
                         sort($campo);
-                        $titulo = $campo[0]['titulo'];
-
-                        /** Se obtiene la información de cada campo de agrupación */
-                        /** ----------------------------------------------------- */
-
-                        foreach($items as $keyItem => $item)
-                        {
-                            if($keyItem == 'referencia'){continue;}
-                            $nombreAgrupacion = explode('-', $item);
-                            if(count($nombreAgrupacion) > 1)
-                            {
-                                unset($nombreAgrupacion[0]);
-                                $nombreAgrupacion = implode('-', $nombreAgrupacion);
-                            }
-                            else
-                            {
-                                $nombreAgrupacion = $item;
-                            }
-                            $tituloCampo = '      '.$titulo.' » '.$nombreAgrupacion;
-                            $this->crearTablaAgrupadaExcel($request, $listAgrupada[$items['referencia']], $item, $items['referencia'], $listAgrupada, $tituloCampo, $agrupamiento[0]['campos'], $sheet, $configuraciones);
-                        }
+                        $titulo = strip_tags($campo[0]['titulo']);
+                        $campoAgrupado = explode('-', $campoAgrupado);
+                        $campoAgrupado = (count($campoAgrupado) > 1)?$campoAgrupado[1]:$campoAgrupado[0];
+                        $tituloAgrupado[] = $titulo.' » '.$campoAgrupado;
                     }
+                    $tituloAgrupado = implode('  |  ', $tituloAgrupado);
+
+                    /** Se crea la tabla de registros para cada agrupación */
+                    /** -------------------------------------------------- */
+
+                    $this->crearTablaAgrupadaExcel($request, $tituloAgrupado, $sheet, $configuraciones, $items);
                 }
 
                 /** Se genera la sección de totales obtenidos a partir de los campos de agrupación */
@@ -2529,6 +3379,19 @@ class ReporteadorController extends AbstractController
         $camposTotalizados = $this->camposTotalizados;
         $ruta = $request->getScheme().'://'.$request->server->get('HTTP_HOST');
         $alineaciones = ['centro' => 'center', 'derecha' => 'right', 'izquierda' => 'left'];
+        $cabecerasConfiguracion = !empty($this->configuracionesGuardadas)?$this->configuracionesGuardadas['cabeceras']:[];
+        $camposGuardadosConfiguracion = !empty($this->configuracionesGuardadas)?$this->configuracionesGuardadas['campos']:[];
+        if(!empty($camposGuardadosConfiguracion))
+        {
+            foreach($camposTotalizados as $key => $campo)
+            {   
+                if(!in_array($key, $camposGuardadosConfiguracion))
+                {
+                    unset($camposTotalizados[$key]);
+                    unset($this->camposTotalizados[$key]);
+                }
+            }
+        }
 
         /** Se definen los campos iniciales del excel */
         /** ----------------------------------------- */
@@ -2555,7 +3418,7 @@ class ReporteadorController extends AbstractController
             if(array_key_exists('cabecera', $configuraciones) && is_array($configuraciones['cabecera']) && !empty($configuraciones['cabecera'])){$cabecera = $configuraciones['cabecera'];}
             if(array_key_exists('totalizacion', $configuraciones['agrupamiento'][0]) && !empty($configuraciones['agrupamiento'][0]['totalizacion']) && is_array($configuraciones['agrupamiento'][0]['totalizacion']))
             {
-                $camposTotalizados = [];
+                if(empty($this->configuracionesGuardadas) || !empty($this->configuracionesGuardadas['agrupacion'])){$camposTotalizados = [];}
                 $camposTotalizacion = $configuraciones['agrupamiento'][0]['totalizacion'];
             }
         }
@@ -2569,6 +3432,20 @@ class ReporteadorController extends AbstractController
             {
                 foreach($camposTotalizacion as $ct)
                 {
+                    /** Se valida si existen campos guardados en las configuraciones */
+                    /** ------------------------------------------------------------ */
+                    
+                    if(!empty($camposGuardadosConfiguracion))
+                    {
+                        if(!in_array($ct['campo'], $camposGuardadosConfiguracion))
+                        {
+                            continue;
+                        }
+                    }
+
+                    /** Se obtienen los campos de totalización */
+                    /** -------------------------------------- */
+
                     if(array_key_exists('campo', $ct) && array_key_exists($ct['campo'], $registro))
                     {
                         if(array_key_exists($ct['campo'], $camposTotalizados))
@@ -2591,9 +3468,17 @@ class ReporteadorController extends AbstractController
         {   
             $finColspan = false;
             $rellenoCampo = (($indexRegistro + 1) % 2 == 0)?'#17A2B814':'';
-            $this->ultimaColumna = Coordinate::stringFromColumnIndex(count($registro));
             foreach($registro as $key => $campo)
             {
+                /** Se valida si existen campos guardados en configuraciones */
+                /** -------------------------------------------------------- */
+
+                if(!empty($camposGuardadosConfiguracion))
+                {
+                    $registro = $camposGuardadosConfiguracion;
+                    if(!in_array($key, $camposGuardadosConfiguracion)){continue;}
+                }
+                
                 /** Se crean los títulos del informe con sus respectivos estilos */
                 /** ------------------------------------------------------------ */
                 
@@ -2601,6 +3486,7 @@ class ReporteadorController extends AbstractController
                 $alineacionTitulo = 'center';
                 $titulo = ucfirst(str_replace('_', ' ', $key));
                 $columna = Coordinate::stringFromColumnIndex($index);
+                $this->ultimaColumna = Coordinate::stringFromColumnIndex(count($registro));
                 $configuracionCampo = array_filter($configuracionCampos, fn($item) => $item['nombre'] == $key);
 
                 /** Se validan las configuraciones de cada campo */
@@ -2665,8 +3551,10 @@ class ReporteadorController extends AbstractController
                     /** Se crea la sección de la cabecera */
                     /** --------------------------------- */
                     
-                    if(!empty($cabecera))
+                    if((!empty($cabecera) && empty($this->configuracionesGuardadas)) || !empty($cabecerasConfiguracion))
                     {
+                        $cabeceras = $cabecera;
+                        if(!empty($cabecerasConfiguracion)){$cabeceras = $cabecerasConfiguracion;}
                         if($indexCabecera == 0)
                         {
                             if(!$agrupacion)
@@ -2679,7 +3567,7 @@ class ReporteadorController extends AbstractController
                                 $sheet->getStyle('A6:'.$this->ultimaColumna.'6')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
                                 $sheet->getStyle('A6:'.$this->ultimaColumna.'6')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         
-                                foreach($cabecera as $index => $c)
+                                foreach($cabeceras as $c)
                                 {
                                     $colSpanCabecera = $c['colspan'];
                                     $tituloCabecera = strip_tags($c['nombre']);
@@ -2723,7 +3611,7 @@ class ReporteadorController extends AbstractController
                                 $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
                                 $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         
-                                foreach($cabecera as $c)
+                                foreach($cabeceras as $c)
                                 {
                                     $colSpanCabecera = $c['colspan'];
                                     $tituloCabecera = strip_tags($c['nombre']);
@@ -2948,160 +3836,52 @@ class ReporteadorController extends AbstractController
         }
     }
 
-    public function crearTablaAgrupadaExcel(Request $request, $data, $item, $referencia, $listAgrupada, $titulo, $camposAgrupacion, $sheet, $configuraciones)
+    public function crearTablaAgrupadaExcel(Request $request, $titulo, $sheet, $configuraciones, $registros)
     {
         /** 
             * En esta función se crean las tablas del archivo excel, de acuerdo a los campos de agrupación configurados en el informe
             * -----------------------------------------------------------------------------------------------------------------------
             * @access public
         */
-        
-        if($referencia == 'registros')
-        {
-            foreach($listAgrupada[array_key_first($listAgrupada)] as $key => $item)
-            {
-                if($key == 'referencia'){continue;}
-                $nombreAgrupacion = explode('-', $key);
-                if(count($nombreAgrupacion) > 1)
-                {
-                    unset($nombreAgrupacion[0]);
-                    $nombreAgrupacion = implode('-', $nombreAgrupacion);
-                }
-                else
-                {
-                    $nombreAgrupacion = $key;
-                } 
-                
-                /** Se crea el título de agrupación con todos los campos relacionados */
-                /** ----------------------------------------------------------------- */
-                
-                $sheet->getRowDimension($this->filaGeneral)->setRowHeight(30);
-                $sheet->setCellValue('A'.$this->filaGeneral, strip_tags($titulo));
-                $sheet->mergeCells('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral);
-                $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
 
-                /** Se aplican estilos a la cabecera del informe */
-                /** -------------------------------------------- */
+        $sheet->getRowDimension($this->filaGeneral)->setRowHeight(30);
+        $sheet->setCellValue('A'.$this->filaGeneral, '      '.$titulo);
+        $sheet->mergeCells('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral);
+        $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
 
-                $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->getFill()
-                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                    ->getStartColor()->setARGB('f2f2f2')
-                ;
-                $styles = 
+        /** Se aplican estilos a la cabecera del informe */
+        /** -------------------------------------------- */
+
+        $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('f2f2f2')
+        ;
+        $styles = 
+        [
+            'borders' => 
+            [
+                'allBorders' => 
                 [
-                    'borders' => 
-                    [
-                        'allBorders' => 
-                        [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                            'color' => ['argb' => 'FFB0B0B0'],
-                        ],
-                    ],
-                ];
-                $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->getFont()->setBold(true)->setSize(11);
-                $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->applyFromArray($styles);
-                $this->filaGeneral ++;
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color' => ['argb' => 'FFB0B0B0'],
+                ],
+            ],
+        ];
+        $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->getFont()->setBold(true)->setSize(11);
+        $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->applyFromArray($styles);
+        $this->filaGeneral ++;
 
-                /** Se crea la tabla de detalles correspondiente a cada agrupación */
-                /** -------------------------------------------------------------- */
+        /** Se crea la tabla de detalles correspondiente a cada agrupación */
+        /** -------------------------------------------------------------- */
 
-                $this->crearTablaRegistrosExcel($request, $configuraciones, $listAgrupada['registros'][$item], true, $sheet);
+        $this->crearTablaRegistrosExcel($request, $configuraciones, $registros, true, $sheet);
 
-                /** Se crea un separador */
-                /** -------------------- */
+        /** Se crea un separador */
+        /** -------------------- */
 
-                $sheet->getRowDimension($this->filaGeneral)->setRowHeight(30);
-                $sheet->mergeCells('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral);
-                $this->filaGeneral ++;
-            }
-        }
-        else
-        {
-            if($data['referencia'] != 'registros')
-            {
-                $campo = array_filter($camposAgrupacion, fn($item) => $item['nombre'] == $referencia);
-                sort($campo);
-                $tituloCampo = $campo[0]['titulo'];
-
-                foreach($data[$item] as $key => $itemAgrupacion)
-                {
-                    $nombreAgrupacion = explode('-', $itemAgrupacion);
-                    if(count($nombreAgrupacion) > 1)
-                    {
-                        unset($nombreAgrupacion[0]);
-                        $nombreAgrupacion = implode('-', $nombreAgrupacion);
-                    }
-                    else
-                    {
-                        $nombreAgrupacion = $itemAgrupacion;
-                    }
-                    $titulo .= '  |  '. $tituloCampo.' » '.$nombreAgrupacion;
-                    $this->crearTablaAgrupadaExcel($request, $listAgrupada[$data['referencia']], $itemAgrupacion, $data['referencia'], $listAgrupada, $titulo, $camposAgrupacion, $sheet, $configuraciones);
-                }
-            }
-            else
-            {
-                foreach($data[$item] as $key => $itemAgrupacion)
-                {
-                    $campo = array_filter($camposAgrupacion, fn($item) => $item['nombre'] == $referencia);
-                    sort($campo);
-                    $tituloCampo = $campo[0]['titulo'];
-                    $nombreAgrupacion = explode('-', $key);
-                    if(count($nombreAgrupacion) > 1)
-                    {
-                        unset($nombreAgrupacion[0]);
-                        $nombreAgrupacion = implode('-', $nombreAgrupacion);
-                    }
-                    else
-                    {
-                        $nombreAgrupacion = $key;
-                    } 
-                    
-                    /** Se crea el título de agrupación con todos los campos relacionados */
-                    /** ----------------------------------------------------------------- */
-                    
-                    $sheet->getRowDimension($this->filaGeneral)->setRowHeight(30);
-                    $tituloCampo = $titulo.'  |  '.$tituloCampo.' » '.$nombreAgrupacion;
-                    $sheet->setCellValue('A'.$this->filaGeneral, strip_tags($tituloCampo));
-                    $sheet->mergeCells('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral);
-                    $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-
-                    /** Se aplican estilos a la cabecera del informe */
-                    /** -------------------------------------------- */
-
-                    $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->getFill()
-                        ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                        ->getStartColor()->setARGB('f2f2f2')
-                    ;
-                    $styles = 
-                    [
-                        'borders' => 
-                        [
-                            'allBorders' => 
-                            [
-                                'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                                'color' => ['argb' => 'FFB0B0B0'],
-                            ],
-                        ],
-                    ];
-                    $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->getFont()->setBold(true)->setSize(11);
-                    $sheet->getStyle('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral)->applyFromArray($styles);
-                    $this->filaGeneral ++;
-
-                    /** Se crea la tabla de detalles correspondiente a cada agrupación */
-                    /** -------------------------------------------------------------- */
-
-                    $this->crearTablaRegistrosExcel($request, $configuraciones, $listAgrupada['registros'][$item.$itemAgrupacion], true, $sheet);
-
-                    /** Se crea un separador */
-                    /** -------------------- */
-
-                    $sheet->getRowDimension($this->filaGeneral)->setRowHeight(30);
-                    $sheet->mergeCells('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral);
-                    $this->filaGeneral ++;
-                }
-            }
-        }
+        $sheet->getRowDimension($this->filaGeneral)->setRowHeight(30);
+        $sheet->mergeCells('A'.$this->filaGeneral.':'.$this->ultimaColumna.$this->filaGeneral);
+        $this->filaGeneral ++;
     }
 
     /**

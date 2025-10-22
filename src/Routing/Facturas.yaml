@@ -56,3 +56,7 @@ descargar_pdf_informe_conciliacion:
 generar_informe_conciliacion:
     path:      /Facturas/generarInformeConciliacion,{opc}
     defaults:   {_controller: App\Controller\Facturas\FacturasController::generarInformeConciliacion,opc: 0}
+
+facturas_frame_resumen:
+    path:      /Facturas/frameResumen,{opc}
+    defaults:   {_controller: App\Controller\Facturas\FacturasController::frameResumen,opc: 0}

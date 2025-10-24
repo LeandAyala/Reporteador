@@ -1,0 +1,330 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    {{ parent() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/sql/sql.min.js"></script>
+    <style>
+        * {
+            font-size: 13px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            position: relative;
+        }
+
+        .montserrat {
+            font-family: "Montserrat", serif;
+            font-optical-sizing: auto;
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        .montserrat-text {
+            font-family: "Montserrat", serif;
+            font-optical-sizing: auto;
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        .btn.dropdown-toggle.bs-placeholder.btn-light, .btn.dropdown-toggle.btn-light {
+            border: 1px solid #d0d4da;
+        }
+
+        .listado {
+            max-height:780px;
+        }
+
+        .listado::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        .listado::-webkit-scrollbar-thumb {
+            background-color: #dee2e6;
+            border-radius: 20px;
+        }
+
+        body::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background-color: #dee2e6;
+            border-radius: 20px;
+        }
+
+        .logo {
+            animation: animarLogo 2s linear infinite;
+        }
+        
+        .loader {
+            top: 2px;
+            left: 10px;
+            width: 40px;
+            height: 40px;
+            display: block;
+            position:absolute;
+            border-radius: 50%;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #007BFF;
+            animation: spin 2s linear infinite, cambiarColorLogo 20s linear infinite;
+        }
+
+        @keyframes in-circle-swoop {
+            from {
+                clip-path: var(--circle-top-right-out);
+            }
+            to {
+                clip-path: var(--circle-bottom-right-in);
+            }
+        }
+
+        [transition-style="in:custom:circle-swoop"] {
+            --transition__duration: 1s;
+            animation-name: in-circle-swoop;
+        }
+
+        @keyframes out-circle-swoop {
+            from {
+                clip-path: var(--circle-bottom-right-in);
+            }
+            to {
+                clip-path: var(--circle-top-right-out);
+            }
+        }
+
+        [transition-style="out:custom:circle-swoop"] {
+            --transition__duration: 1s;
+            --transition__easing: cubic-bezier(.30, 1, .25, 1);
+            animation-name: out-circle-swoop;
+        }
+
+        @keyframes spin {
+            0% {transform: rotate(0deg)}
+            100% {transform: rotate(360deg)}
+        }
+
+        @keyframes animarLogo {
+            0% {transform:scale(0.2)}
+            50% {transform:scale(0.3)}
+            100% {transform:scale(0.2)}
+        }
+
+        @keyframes cambiarColorLogo {
+            0% {border-top: 6px solid #007BFF}
+            50% {border-top: 6px solid #28A745}
+            75% {border-top: 6px solid #DC3545}
+            100% {border-top: 6px solid #007BFF}
+        }
+
+        .modal-lg {
+            max-width:1200px;
+        }
+
+        .CodeMirror {
+            height: 120px;
+            resize: vertical;
+            min-height: 120px;
+            max-height: 400px;
+            border-radius: 5px;
+            border: 1px solid #d0d4da;
+        }
+
+        .CodeMirror-linenumber {
+            text-align: center;
+        }
+
+        #errorValidarSql:hover {
+            background: #DC3545 !important;
+        }
+
+        .btnCerrarError:hover {
+            box-shadow: 0px 0px 8px 0px;
+        }
+
+        .lineaError {
+            border-radius: 3px;
+            transition: all 0.5s ease;
+            background: #DC354526 !important;
+        }
+
+        .camposJson:hover div {
+            background: #007BFF !important;
+        }   
+
+        .camposJson:hover span {
+            color: #007BFF;
+        }  
+
+        .divAgregarConfiguracion:hover {
+            border:1px solid #17A2B8 !important;
+            border-style:dashed !important;
+        }
+
+        .divAgregarConfiguracion:hover * {
+            color:#17A2B8 !important;
+        }
+    </style>
+    <div class="container-fluid pt-4" data-turbo="true" {{ stimulus_controller('facturas--reporteador',
+        {
+            'urlGuardarInforme' : path('facturas_guardar_informe')
+        }
+    )}}>
+        <div class="col-12 animate__animated animate__fadeIn" style="display:flex; align-items:center; justify-content:center">
+            <div class="card shadow-lg p-0 mb-5 bg-white rounded" style="width:100%">
+                <div class="card-body" style="overflow:hidden">
+                    <div class="list-group-item active font-weight-bold" style="border-radius:5px 5px 0px 0px">Configuración de informes</div>
+                    <div class="list-group-item">
+                    </div>
+                    <div class="list-group-item">
+                        <button type="button" id="btnNuevoInforme" class="btn btn-primary" data-action="facturas--reporteador#showModalNuevoInforme"><i class="fas fa-external-link-alt"></i> Nuevo</button>
+                        <button type="button" id="btnRegresar" class="btn btn-danger"><i class="fas fa-caret-left"></i> Regresar</button>
+                    </div>
+                </div>
+            </div>      
+        </div>
+
+        {# Modal para visualizar crear/editar informes #}
+        {# ------------------------------------------- #}
+
+        <div id="nuevoInforme" class="modal fade">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header btn-primary font-weight-bold" style="display:flex; align-items:center">
+                        <i class="fas fa-external-link-alt" style="font-size:12px"></i>
+                        <span style="margin-left:5px">Nuevo informe</span>
+                        <button type="button" class="close" onclick="$('#nuevoInforme').modal('hide')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        {{ form_start(formNuevoInforme, {'attr' : {'class' : 'mb-0', 'data-action' : 'facturas--reporteador#guardarInforme', 'data-facturas--reporteador-target' : 'formNuevoInforme'}})}}
+                            <div class="container-fluid animate__animated animate__fadeIn" style="margin-top: 10px;">
+                                <div class="list-group-item" style="border:none; padding-top:0px; padding-left:0px; padding-right:0px; padding-bottom:0px">
+                                    <div style="display:none" data-facturas--reporteador-target="guardandoInforme" id="guardandoInforme">
+                                        <div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; left:0; top:0; opacity:0.6"></div>
+                                        <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; left:0; top:0; display:flex; align-items:center; justify-content:center">
+                                            <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+                                                <div style="position:relative;">
+                                                    <div class="loader"></div>
+                                                    <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                                                </div>
+                                                <b style="font-size:13px">Guardando información...</b>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 pr-0">
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    {{ form_label(formNuevoInforme.nombre,formNuevoInforme.nombre, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
+                                                </div>
+                                                {{ form_widget(formNuevoInforme.nombre, {'attr' : {'class' : 'form-control'}})}}
+                                            </div>
+                                        </div>
+                                        <div class="col-3 pr-0">
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    {{ form_label(formNuevoInforme.modulo,formNuevoInforme.modulo, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
+                                                </div>
+                                                {{ form_widget(formNuevoInforme.modulo, {'attr' : {'class' : 'form-control custom-select'}})}}
+                                            </div>
+                                        </div>
+                                        <div class="col-3">
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    {{ form_label(formNuevoInforme.tipo,formNuevoInforme.tipo, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
+                                                </div>
+                                                {{ form_widget(formNuevoInforme.tipo, {'attr' : {'class' : 'form-control', 'onkeypress' : 'return event.charCode >= 48 && event.charCode <= 57' }})}}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <div class="animate__animated animate__flipInX" id="divConfigurarSql" style="background:#17A2B8; transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; border-radius:12px 0px; gap:5px; padding:5px 10px; width:125px;">
+                                        <i class="fas fa-code" style="font-size:10px; color:white"></i>
+                                        <span class="montserrat" style="font-size:9px; color:white">Configurar SQL</span>
+                                    </div> 
+                                    <div class="row" style="margin-top:2px">
+                                        <div class="col-12" style="position:relative; overflow:hidden">
+                                            <div id="errorValidarSql" class="animate__animated animate__fadeInDown" style=
+                                            "
+                                                gap:5px; 
+                                                z-index:1; 
+                                                width:98%; 
+                                                left:12px;
+                                                color:white; 
+                                                height:120px; 
+                                                display:none; 
+                                                cursor:pointer;
+                                                padding:15px 20px;
+                                                position:absolute; 
+                                                border-radius:5px; 
+                                                background:#dc3545eb;
+                                                flex-direction:column; 
+                                                justify-content:center; 
+                                                transition:all 0.5s ease;
+                                            ">
+                                                <div style="display:flex; align-items:center; gap:5px; position:relative">
+                                                    <div class="btnCerrarError" data-action="click->facturas--reporteador#hideMensajeError" style=
+                                                    "
+                                                        top:-13px;
+                                                        width:17px; 
+                                                        right:-9px;
+                                                        padding:6px; 
+                                                        height:17px; 
+                                                        display:flex; 
+                                                        border-radius:50%; 
+                                                        position:absolute; 
+                                                        background:#DC3545; 
+                                                        align-items:center;
+                                                        border:2px solid white; 
+                                                        justify-content:center; 
+                                                        transition:all 0.5s ease;
+                                                    ">
+                                                        <i class="fas fa-times" style="color:white; font-size:7px"></i>
+                                                    </div>
+                                                    <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; background:white; width:20px; height:20px; padding:10px">
+                                                        <i class="fas fa-code" style="color:#DC3545; font-size:9px"></i>
+                                                    </div>
+                                                    <span style="font-size:12px; font-weight:bold">Error al validar el SQL</span>
+                                                </div>
+                                                <hr style="width: 100%; color: white; border-color: white; opacity: 0.4; margin-top: 5px; margin-bottom: 5px;">
+                                                <div style="display:flex; align-items:center; gap:3px; padding-left:10px">
+                                                    <span style="font-size:12px;" id="msgError"></span>
+                                                </div>
+                                            </div>
+                                            {{ form_widget(formNuevoInforme.sql, {'attr' : {'class' : 'form-control' }})}}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="list-group-item p-0" style="border:none">
+                                    <hr>
+                                    <div class="animate__animated animate__flipInX" style="background:#17A2B8; transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; border-radius:12px 0px; gap:5px; padding:5px 10px; width:125px;">
+                                        <i class="fas fa-code" style="font-size:10px; color:white"></i>
+                                        <span class="montserrat" style="font-size:9px; color:white">Configurar JSON</span>
+                                    </div> 
+                                    <div style="margin-top:2px; display:flex; gap:10px; width:100%">
+                                        <div id="frameCamposJson" style="border: 1px solid #d0d4da; border-radius:5px; flex:1; padding:5px 0px">
+                                            
+                                        </div>
+                                        <div style="border: 1px solid #d0d4da; border-radius:5px; width:400px">
+                                            
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="container-fluid" style="margin-top:20px;">
+                                <hr>
+                                <button type="submit" class="btn btn-success" id="btnGuardarInforme" data-facturas--reporteador-target="btnGuardarInforme"><i class="fas fa-save"></i> Guardar</button>
+                                <button type="button" class="btn btn-danger" onclick="$('#nuevoInforme').modal('hide')"><i class="fas fa-ban"></i> Cancelar</button>
+                            </div>
+                        {{ form_end(formNuevoInforme) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1628,7 +1628,7 @@ class MakeReporteadorCommand extends Command
                  * @access public
                 */
 
-                \$formFiltros = \$this->createForm(FiltrosReporteadorType::class, null, ['tipo' => 1, 'modulo' => 'puntoventa']);
+                \$formFiltros = \$this->createForm(FiltrosReporteadorType::class, null, ['tipo' => 1, 'modulo' => 'Punto de venta']);
                 return \$this->render('$moduloGeneral\\Reporteador\\reporteador.html.twig', ['formFiltros' => \$formFiltros->createView()]);
             }
         }

@@ -1,0 +1,286 @@
+<div class="list-group-item animate__animated animate__fadeIn" style="border:none">
+    <div class="row">
+        <div class="col-12">
+            <div class="listado" style="display:flex; flex-direction:column; gap:3px; overflow-y:auto; padding-right:2px; max-height:5000px">
+                <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer" onclick="$('#rutaFrameInforme').toggle('400')">
+                    <div style=
+                    "
+                        width:20px;
+                        height:20px;
+                        padding:6px;
+                        display:flex;
+                        border-radius:50%;
+                        background:#17A2B8;
+                        align-items:center;
+                        justify-content:center;
+                        transition:all 0.5s ease;
+                    ">
+                        <i class="fas fa-paper-plane" style="font-size:8px; color:white; margin-left:-1px"></i>
+                    </div>
+                    <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">Ruta frame informe</span>
+                </div>
+                <div id="rutaFrameInforme" style="border-radius:0px 0px 5px 5px; padding:15px; border:1px solid #d0d4da; display:none; margin-top:-4px; margin-left:2px; margin-right:2px">
+                    <div style="width:100%; display:flex; gap:10px; position:relative">
+                        <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
+                            <i class="fas fa-check" style="font-size:12px"></i>
+                        </div>
+                        <input type="text" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta frame informe" value="{{ (configuraciones.rutaFrameInforme|length > 0) ? configuraciones.rutaFrameInforme.nombre : '' }}">
+                    </div>
+                    <div style="width:100%; position:relative; margin-top:30px; padding:0px 15px">
+                        <hr>
+                        <div class="bg-light" style="position:absolute; display:flex; align-items:center; justify-content:center; border-radius:15px; gap:5px; border:1px solid #d0d4da; padding:4px 10px; top:-13px">
+                            <i class="fas fa-cog" style="font-size:9px"></i>
+                            <span class="montserrat" style="font-size:9px">Parámetros</span>
+                        </div>
+                        <div id="listParametrosRutaFrame" style="display:flex; width:100%; gap:3px; flex-direction:column">
+                            {% if configuraciones.rutaFrameInforme|length > 0 %}
+                                {% for parametro in configuraciones.rutaFrameInforme %}
+                                    Test
+                                {% endfor %}
+                            {% endif %}
+                            <div class="divAgregarConfiguracion" data-action="" style=
+                            "   
+                                display:flex; 
+                                padding:10px; 
+                                margin-top:5px; 
+                                cursor:pointer;
+                                border-radius:5px; 
+                                align-items:center; 
+                                justify-content:center; 
+                                border:1px solid #d1d4da; 
+                                transition:all 0.5s ease;
+                                border-style:dashed; gap:5px; 
+                            ">
+                                <i class="fas fa-plus" style="font-size:9px; color:gray; transition:all 0.5s ease;"></i>
+                                <span style="font-size:10px; color:#808080e0; font-weight:bold; transition:all 0.5s ease;">Agregar parámetro</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer" onclick="$('#periodo').toggle('400')">
+                    <div style=
+                    "
+                        width:20px;
+                        height:20px;
+                        padding:6px;
+                        display:flex;
+                        border-radius:50%;
+                        background:#17A2B8;
+                        align-items:center;
+                        justify-content:center;
+                        transition:all 0.5s ease;
+                    ">
+                        <i class="fas fa-scroll" style="font-size:8px; color:white;"></i>
+                    </div>
+                    <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">Periodo</span>
+                </div>
+                <div id="periodo" style="border-radius:0px 0px 5px 5px; padding:15px; border:1px solid #d0d4da; display:none; margin-top:-4px; margin-left:2px; margin-right:2px">
+                    <div style="width:100%; display:flex; gap:10px; position:relative">
+                        <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
+                            <i class="fas fa-check" style="font-size:12px"></i>
+                        </div>
+                        <input type="text" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Periodo" value="{{ configuraciones.periodo }}">
+                    </div>
+                </div>
+                <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer" onclick="$('#anchoTabla').toggle('400')">
+                    <div style=
+                    "
+                        width:20px;
+                        height:20px;
+                        padding:6px;
+                        display:flex;
+                        border-radius:50%;
+                        background:#17A2B8;
+                        align-items:center;
+                        justify-content:center;
+                        transition:all 0.5s ease;
+                    ">
+                        <i class="fas fa-arrows-alt-h" style="font-size:10px; color:white;"></i>
+                    </div>
+                    <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">Ancho de tabla</span>
+                </div>
+                <div id="anchoTabla" style="border-radius:0px 0px 5px 5px; padding:15px; border:1px solid #d0d4da; display:none; margin-top:-4px; margin-left:2px; margin-right:2px">
+                    <div style="width:100%; display:flex; gap:10px; position:relative">
+                        <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
+                            <i class="fas fa-check" style="font-size:12px"></i>
+                        </div>
+                        <input type="text" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ancho de tabla" value="{{ configuraciones.anchoTabla }}" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                    </div>
+                </div>
+                <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer" onclick="$('#cabecera').toggle('400')">
+                    <div style=
+                    "
+                        width:20px;
+                        height:20px;
+                        padding:6px;
+                        display:flex;
+                        border-radius:50%;
+                        background:#17A2B8;
+                        align-items:center;
+                        justify-content:center;
+                        transition:all 0.5s ease;
+                    ">
+                        <i class="fas fa-bookmark" style="font-size:8px; color:white;"></i>
+                    </div>
+                    <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">Cabecera</span>
+                </div>
+                <div id="cabecera" style="border-radius:0px 0px 5px 5px; padding:15px; border:1px solid #d0d4da; display:none; margin-top:-4px; margin-left:2px; margin-right:2px">
+                    <div id="listCabeceras" style="display:flex; width:100%; gap:3px; flex-direction:column">
+                        <div style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
+                            <div style="display:flex; position:relative; flex:1">
+                                <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
+                                    <i class="fas fa-check" style="font-size:12px"></i>
+                                </div>
+                                <input type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Cabecera">
+                            </div>
+                            <div style="display:flex; position:relative; width:150px">
+                                <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
+                                    <i class="fas fa-tag" style="font-size:12px"></i>
+                                </div>
+                                <input type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Colspan" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                            </div>
+                            <div style="display:flex; position:relative; width:14px; justify-content:end">
+                                <i class="fas fa-trash text-danger"></i>
+                            </div>
+                        </div>
+                        <div class="divAgregarConfiguracion" data-action="" style=
+                        "   
+                            display:flex; 
+                            padding:10px; 
+                            margin-top:5px; 
+                            cursor:pointer;
+                            border-radius:5px; 
+                            align-items:center; 
+                            justify-content:center; 
+                            border:1px solid #d1d4da; 
+                            transition:all 0.5s ease;
+                            border-style:dashed; gap:5px; 
+                        ">
+                            <i class="fas fa-plus" style="font-size:9px; color:gray; transition:all 0.5s ease;"></i>
+                            <span style="font-size:10px; color:#808080e0; font-weight:bold; transition:all 0.5s ease;">Agregar cabecera</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer">
+                    <div style=
+                    "
+                        width:20px;
+                        height:20px;
+                        padding:6px;
+                        display:flex;
+                        border-radius:50%;
+                        background:#17A2B8;
+                        align-items:center;
+                        justify-content:center;
+                        transition:all 0.5s ease;
+                    ">
+                        <i class="fas fa-check" style="font-size:9px; color:white;"></i>
+                    </div>
+                    <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">Campos</span>
+                </div>
+                <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer">
+                    <div style=
+                    "
+                        width:20px;
+                        height:20px;
+                        padding:6px;
+                        display:flex;
+                        border-radius:50%;
+                        background:#17A2B8;
+                        align-items:center;
+                        justify-content:center;
+                        transition:all 0.5s ease;
+                    ">
+                        <i class="fas fa-layer-group" style="font-size:9px; color:white; margin-top:-1px"></i>
+                    </div>
+                    <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">Agrupamiento</span>
+                </div>
+                <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer">
+                    <div style=
+                    "
+                        width:20px;
+                        height:20px;
+                        padding:6px;
+                        display:flex;
+                        border-radius:50%;
+                        background:#17A2B8;
+                        align-items:center;
+                        justify-content:center;
+                        transition:all 0.5s ease;
+                    ">
+                        <i class="fas fa-sort" style="font-size:9px; color:white; margin-top:-1px"></i>
+                    </div>
+                    <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">Paginación</span>
+                </div>
+                <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer">
+                    <div style=
+                    "
+                        width:20px;
+                        height:20px;
+                        padding:6px;
+                        display:flex;
+                        border-radius:50%;
+                        background:#17A2B8;
+                        align-items:center;
+                        justify-content:center;
+                        transition:all 0.5s ease;
+                    ">
+                        <i class="fas fa-coins" style="font-size:8px; color:white;"></i>
+                    </div>
+                    <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">Totalización</span>
+                </div>
+                <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer">
+                    <div style=
+                    "
+                        width:20px;
+                        height:20px;
+                        padding:6px;
+                        display:flex;
+                        border-radius:50%;
+                        background:#17A2B8;
+                        align-items:center;
+                        justify-content:center;
+                        transition:all 0.5s ease;
+                    ">
+                        <i class="fas fa-download" style="font-size:8px; color:white;"></i>
+                    </div>
+                    <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">PDF</span>
+                </div>
+                <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer">
+                    <div style=
+                    "
+                        width:20px;
+                        height:20px;
+                        padding:6px;
+                        display:flex;
+                        border-radius:50%;
+                        background:#17A2B8;
+                        align-items:center;
+                        justify-content:center;
+                        transition:all 0.5s ease;
+                    ">
+                        <i class="fas fa-download" style="font-size:8px; color:white;"></i>
+                    </div>
+                    <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">EXCEL</span>
+                </div>
+                <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer">
+                    <div style=
+                    "
+                        width:20px;
+                        height:20px;
+                        padding:6px;
+                        display:flex;
+                        border-radius:50%;
+                        background:#17A2B8;
+                        align-items:center;
+                        justify-content:center;
+                        transition:all 0.5s ease;
+                    ">
+                        <i class="fas fa-paper-plane" style="font-size:8px; color:white; margin-left:-1px"></i>
+                    </div>
+                    <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">Ruta frame resumen</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

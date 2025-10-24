@@ -11,6 +11,7 @@ use App\Entity\Central\reportes;
 use App\Entity\Central\compania;
 use App\Entity\Facturas\Reporte;
 use App\Entity\Productos\Producto;
+use App\Form\Facturas\NuevoInformeType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Form\Facturas\NuevoFacturaType;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -18,6 +19,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use Stichoza\GoogleTranslate\GoogleTranslate;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -30,9 +32,11 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 class FacturasController extends AbstractController
 {
     private $em;
+    private $translate;
     public function __construct(EntityManagerInterface $em)
     {
         $this->em = $em;
+        $this->translate = new GoogleTranslate('es');
     }
 
     public function listarFacturas()
@@ -424,41 +428,41 @@ class FacturasController extends AbstractController
         </style>
         <body>
             <header>
-                <table border="0" width="100%" cellpadding="0" cellspacing="0">
+                <table border='0' width='100%' cellpadding='0' cellspacing='0'>
                     <tr>
-                        <td style="width:70px">
-                            <img src="data:application/image;base64,$logo" style="width:70px">
+                        <td style='width:70px'>
+                            <img src='data:application/image;base64,$logo' style='width:70px'>
                         </td>
-                        <td style="padding-left:15px; width:280px">
-                            <div style="font-weight:bold; font-size:14px">$nombreCompania</div>
-                            <div style="margin-top:2px">N.I.T: $nitCompania</div>
-                            <div style="margin-top:2px">Dirección: $direccionCompania</div>
-                            <div style="margin-top:2px">Teléfono: $telefonoCompania</div>
+                        <td style='padding-left:15px; width:280px'>
+                            <div style='font-weight:bold; font-size:14px'>$nombreCompania</div>
+                            <div style='margin-top:2px'>N.I.T: $nitCompania</div>
+                            <div style='margin-top:2px'>Dirección: $direccionCompania</div>
+                            <div style='margin-top:2px'>Teléfono: $telefonoCompania</div>
                         </td>
-                        <td style="padding-left:10px">
-                            <table border="0" style="width:100%" cellspacing="0" cellpadding="0">
+                        <td style='padding-left:10px'>
+                            <table border='0' style='width:100%' cellspacing='0' cellpadding='0'>
                                 <tr>
                                     <td>
-                                        <div style="font-weight:bold; background:#f2f2f2; border-radius:5px 0px 0px 0px; padding:5px 7px; border:1px solid gray; border-right:none">Informe</div>
+                                        <div style='font-weight:bold; background:#f2f2f2; border-radius:5px 0px 0px 0px; padding:5px 7px; border:1px solid gray; border-right:none'>Informe</div>
                                     </td>
                                     <td>
-                                        <div style="background:#f2f2f2; border-radius:0px 5px 0px 0px; padding:5px 7px; border:1px solid gray">$nombreInforme</div>
+                                        <div style='background:#f2f2f2; border-radius:0px 5px 0px 0px; padding:5px 7px; border:1px solid gray'>$nombreInforme</div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>
-                                        <div style="font-weight:bold; padding:5px 7px; border:1px solid gray; border-right:none; border-top:none">Periodo</div>
+                                        <div style='font-weight:bold; padding:5px 7px; border:1px solid gray; border-right:none; border-top:none'>Periodo</div>
                                     </td>
                                     <td>
-                                        <div style="; padding:5px 7px; border:1px solid gray; border-top:none">$periodo</div>
+                                        <div style='; padding:5px 7px; border:1px solid gray; border-top:none'>$periodo</div>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>
-                                        <div style="font-weight:bold; background:#f2f2f2; border-radius:0px 0px 0px 5px; padding:5px 7px; border:1px solid gray; border-top:none; border-right:none">Fecha imprime</div>
+                                        <div style='font-weight:bold; background:#f2f2f2; border-radius:0px 0px 0px 5px; padding:5px 7px; border:1px solid gray; border-top:none; border-right:none'>Fecha imprime</div>
                                     </td>
                                     <td>
-                                        <div style="background:#f2f2f2; border-radius:0px 0px 5px 0px; padding:5px 7px; border:1px solid gray; border-top:none;">$fechaActual</div>
+                                        <div style='background:#f2f2f2; border-radius:0px 0px 5px 0px; padding:5px 7px; border:1px solid gray; border-top:none;'>$fechaActual</div>
                                     </td>
                                 </tr>
                             </table>
@@ -466,7 +470,7 @@ class FacturasController extends AbstractController
                     </tr>
                 </table>
             </header>
-            <div style="text-align:center; font-weight:bold; border:1px solid #E2E2E2; padding:17px; border-radius:5px">
+            <div style='text-align:center; font-weight:bold; border:1px solid #E2E2E2; padding:17px; border-radius:5px'>
                 No se encontraron registros para listar
             </div>
         </body>
@@ -479,7 +483,7 @@ class FacturasController extends AbstractController
         $dompdf->setPaper('letter', 'portrait');
         $dompdf->render();
         $nombreInforme = strtolower(str_replace(' ', '_', $nombreInforme));
-        $dompdf->get_canvas()->page_text(282, 766, "Pagina: {PAGE_NUM} de {PAGE_COUNT}", 'Helvetica', 6, array(0, 0, 0));
+        $dompdf->get_canvas()->page_text(282, 766, 'Pagina: {PAGE_NUM} de {PAGE_COUNT}', 'Helvetica', 6, array(0, 0, 0));
         $pdf = $dompdf->output();
         return new Response(
             $pdf,
@@ -546,6 +550,128 @@ class FacturasController extends AbstractController
          * @access public
         */
 
-        return $this->render('Facturas/Reporteador/configuracionInformes.html.twig');
+        $bd = $this->em;
+        $formNuevoInforme = $this->createForm(NuevoInformeType::class, null);
+        return $this->render('Facturas/Reporteador/configuracionInformes.html.twig', ['formNuevoInforme' => $formNuevoInforme->createView()]);
+    }
+
+    public function guardarInforme(Request $request)
+    {
+        /** 
+         * En esta función se efectúa el registro/edición de informes
+         * ----------------------------------------------------------
+         * @access public
+        */
+
+        /** Definición de variables */
+        /** ----------------------- */
+        
+        $campos = [];
+        $message = '';
+        $bd = $this->em;
+        $camposJson = '';
+        $status = 'success';
+        $valoresConsulta = [];
+        $conexion = $bd->getConnection();
+        $form = $request->request->get('nuevo_informe');
+        $reporte = ($form['idRegistro'] > 0)?$bd->getRepository(reportes::class)->findOneBy(['id' => $form['idRegistros']]):new reportes();
+
+        /** Se reemplazan las variables del SQL */
+        /** ----------------------------------- */
+
+        $sql = str_replace('limit 0', '', strtolower($form['sql'])).' limit 0';
+        $sql = preg_replace("/'\[[^]]+\]'/", "null", $sql);
+        $sql = preg_replace("/\[[^]]+\]/", "null", $sql);
+
+        /** Se valida si el SQL es correcto */
+        /** ------------------------------- */
+
+        try
+        {
+            $result = $conexion->prepare($sql)->executeQuery()->fetchAll();
+            $result = $conexion->getNativeConnection()->prepare($sql);
+            $result->execute();
+            for($i = 0; $i < $result->columnCount(); $i++) 
+            {
+                $meta = $result->getColumnMeta($i);
+                $dataCampo =
+                [
+                    'html' => '',
+                    'tipoDato' => 'texto',
+                    'nombre' => $meta['name'],
+                    'alineacionCampo' => 'centro',
+                    'alineacionTitulo' => 'centro',
+                    'titulo' => ucfirst(str_replace('_', ' ', $meta['name'])),
+                    'ruta' => 
+                    [
+                        'nombre' => '',
+                        'parametros' => []
+                    ]
+                ];
+                $campos[] = $dataCampo;
+            }
+
+            /** Se crean las configuraciones del informe */
+            /** ---------------------------------------- */
+
+            if($form['idRegistro'] == 0 || ($form['idRegistro'] > 0 && empty($reporte->getJson())))
+            {
+                $configuraciones = 
+                [
+                    'rutaFrameInforme' => ['nombre' => 'ruta_test', 'parametros' => ['opc' => 1]],
+                    'periodo' => '',
+                    'anchoTabla' => '',
+                    'cabecera' => [],
+                    'campos' => $campos,
+                    'agrupamiento' => 
+                    [
+                        [
+                            'campos' => [],
+                            'totalizacion' => []
+                        ]
+                    ],
+                    'paginacion' => 10,
+                    'totalizacion' => [],
+                    'pdf' => 
+                    [
+                        'tipoHoja' => '',
+                        'orientacion' => '',
+                        'ruta' => []
+                    ],
+                    'excel' => 
+                    [
+                        'ruta' => []
+                    ],
+                    'rutaFrameResumen' => []
+                ];    
+            }
+            else
+            {
+                $configuraciones = $reporte->getJson();
+                $configuraciones['campos'] = $campos;
+            }
+            
+            /** Se efectúa el registro/edición del informe */
+            /** ------------------------------------------ */
+
+            $reporte->setSql($form['sql']);
+            $reporte->setTipo($form['tipo']);
+            $reporte->setJson($configuraciones);
+            $reporte->setNombre($form['nombre']);
+            $reporte->setModulo($form['modulo']);
+            $bd->persist($reporte);
+            //$bd->flush();
+
+            /** Se obtiene la vista para configurar los campos de json */
+            /** ------------------------------------------------------ */
+
+            $camposJson = $this->renderView('Facturas\Reporteador\frameCamposJson.html.twig', ['configuraciones' => $configuraciones]);
+        }
+        catch(\Exception $e)
+        {
+            $status = 'error';
+            $message = $e->getMessage();
+        }
+        return new Response(json_encode(['status' => $status, 'message' => $message, 'camposJson' => $camposJson]));
     }
 }

@@ -60,3 +60,11 @@ generar_informe_conciliacion:
 facturas_frame_resumen:
     path:      /Facturas/frameResumen,{opc}
     defaults:   {_controller: App\Controller\Facturas\FacturasController::frameResumen,opc: 0}
+
+facturas_configuracion_informes:
+    path:      /Facturas/configuracionInformes
+    defaults:   {_controller: App\Controller\Facturas\FacturasController::configurarInformes}
+
+facturas_guardar_informe:
+    path:      /Facturas/guardarInforme
+    defaults:   {_controller: App\Controller\Facturas\FacturasController::guardarInforme}

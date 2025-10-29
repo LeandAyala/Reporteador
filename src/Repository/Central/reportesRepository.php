@@ -39,28 +39,19 @@ class reportesRepository extends ServiceEntityRepository
         }
     }
 
-//    /**
-//     * @return reportes[] Returns an array of reportes objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('r')
-//            ->andWhere('r.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('r.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
+    public function findInformes($modulo, $tipo)
+    {
+        /** 
+         * En esta función se obtiene una lista de informes de acuerdo a los parámetros de búsqueda seleccionados
+         * ------------------------------------------------------------------------------------------------------
+         * @access public
+        */
 
-//    public function findOneBySomeField($value): ?reportes
-//    {
-//        return $this->createQueryBuilder('r')
-//            ->andWhere('r.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+        $andTipo = !empty($tipo)?"and i.tipo = $tipo":'';
+        return $this->createQueryBuilder('i')
+            ->where("i.modulo = '$modulo' $andTipo")
+            ->andWhere('i.estado = 1')
+            ->getQuery()->getResult()
+        ;
+    }
 }

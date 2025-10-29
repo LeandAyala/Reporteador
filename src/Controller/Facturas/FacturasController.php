@@ -25,6 +25,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use App\Form\Facturas\FiltrosBusquedaFacturaType;
+use App\Form\Facturas\FiltrosBusquedaInformesType;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Doctrine\DBAL\Exception\ConstraintViolationException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -552,7 +553,12 @@ class FacturasController extends AbstractController
 
         $bd = $this->em;
         $formNuevoInforme = $this->createForm(NuevoInformeType::class, null);
-        return $this->render('Facturas/Reporteador/configuracionInformes.html.twig', ['formNuevoInforme' => $formNuevoInforme->createView()]);
+        $formFiltrosInforme = $this->createForm(FiltrosBusquedaInformesType::class, null);
+        return $this->render('Facturas/Reporteador/configuracionInformes.html.twig', 
+        [
+            'formNuevoInforme' => $formNuevoInforme->createView(),
+            'formFiltrosInforme' => $formFiltrosInforme->createView()
+        ]);
     }
 
     public function guardarInforme(Request $request)
@@ -565,16 +571,22 @@ class FacturasController extends AbstractController
 
         /** Definición de variables */
         /** ----------------------- */
-        
+
         $campos = [];
         $message = '';
+        $tipoError = 0;
+        $idInforme = 0;
         $bd = $this->em;
         $camposJson = '';
+        $nombreCampos = [];
         $status = 'success';
+        $configuraciones = [];
         $valoresConsulta = [];
         $conexion = $bd->getConnection();
         $form = $request->request->get('nuevo_informe');
-        $reporte = ($form['idRegistro'] > 0)?$bd->getRepository(reportes::class)->findOneBy(['id' => $form['idRegistros']]):new reportes();
+        $configuracionesInforme = json_decode($request->request->get('configuraciones'), true);
+        $reporte = ($form['idRegistro'] > 0)?$bd->getRepository(reportes::class)->findOneBy(['id' => $form['idRegistro']]):new reportes();
+        $reporteFound = $bd->getRepository(reportes::class)->findOneBy(['nombre' => $form['nombre'], 'tipo' => $form['tipo'], 'modulo' => $form['modulo'], 'estado' => 1]);
 
         /** Se reemplazan las variables del SQL */
         /** ----------------------------------- */
@@ -586,92 +598,191 @@ class FacturasController extends AbstractController
         /** Se valida si el SQL es correcto */
         /** ------------------------------- */
 
-        try
+        if(empty($reporteFound) || $reporteFound->getId() === intval($form['idRegistro']))
         {
-            $result = $conexion->prepare($sql)->executeQuery()->fetchAll();
-            $result = $conexion->getNativeConnection()->prepare($sql);
-            $result->execute();
-            for($i = 0; $i < $result->columnCount(); $i++) 
+            try
             {
-                $meta = $result->getColumnMeta($i);
-                $dataCampo =
-                [
-                    'html' => '',
-                    'tipoDato' => 'texto',
-                    'nombre' => $meta['name'],
-                    'alineacionCampo' => 'centro',
-                    'alineacionTitulo' => 'centro',
-                    'titulo' => ucfirst(str_replace('_', ' ', $meta['name'])),
-                    'ruta' => 
-                    [
-                        'nombre' => '',
-                        'parametros' => []
-                    ]
-                ];
-                $campos[] = $dataCampo;
-            }
-
-            /** Se crean las configuraciones del informe */
-            /** ---------------------------------------- */
-
-            if($form['idRegistro'] == 0 || ($form['idRegistro'] > 0 && empty($reporte->getJson())))
-            {
-                $configuraciones = 
-                [
-                    'rutaFrameInforme' => ['nombre' => 'ruta_test', 'parametros' => ['opc' => 1]],
-                    'periodo' => '',
-                    'anchoTabla' => '',
-                    'cabecera' => [],
-                    'campos' => $campos,
-                    'agrupamiento' => 
-                    [
+                if(!empty($form['sql']))
+                {
+                    $result = $conexion->prepare($sql)->executeQuery()->fetchAll();
+                    $result = $conexion->getNativeConnection()->prepare($sql);
+                    $result->execute();
+                    for($i = 0; $i < $result->columnCount(); $i++) 
+                    {   
+                        $meta = $result->getColumnMeta($i);
+                        $dataCampo =
                         [
-                            'campos' => [],
-                            'totalizacion' => []
-                        ]
-                    ],
-                    'paginacion' => 10,
-                    'totalizacion' => [],
-                    'pdf' => 
+                            'nombre' => $meta['name'],
+                            'titulo' => ucfirst(str_replace('_', ' ', $meta['name'])),
+                            'tipoDato' => 'texto',
+                            'alineacionCampo' => 'centro',
+                            'alineacionTitulo' => 'centro',
+                            'ruta' => 
+                            [
+                                'nombre' => '',
+                                'parametros' => []
+                            ],
+                            'html' => ''
+                        ];
+                        $campos[] = $dataCampo;
+                        $nombreCampos[] = $meta['name'];
+                    }
+                }
+    
+                /** Se crean las configuraciones del informe */
+                /** ---------------------------------------- */
+    
+                if($form['idRegistro'] == 0)
+                {
+                    $configuraciones = 
                     [
-                        'tipoHoja' => '',
-                        'orientacion' => '',
-                        'ruta' => []
-                    ],
-                    'excel' => 
-                    [
-                        'ruta' => []
-                    ],
-                    'rutaFrameResumen' => []
-                ];    
+                        'rutaFrameInforme' => [],
+                        'periodo' => '',
+                        'anchoTabla' => '',
+                        'cabecera' => [],
+                        'campos' => $campos,
+                        'agrupamiento' => 
+                        [
+                            [
+                                'campos' => [],
+                                'totalizacion' => []
+                            ]
+                        ],
+                        'paginacion' => 10,
+                        'totalizacion' => [],
+                        'pdf' => 
+                        [
+                            'tipoHoja' => '',
+                            'orientacion' => '',
+                            'ruta' => []
+                        ],
+                        'excel' => 
+                        [
+                            'ruta' => []
+                        ],
+                        'rutaFrameResumen' => []
+                    ];    
+                }
+                else
+                {
+                    if(!empty($campos))
+                    {
+                        foreach($campos as $campo)
+                        {
+                            $campoExistente = array_filter($configuracionesInforme['campos'], fn($item) => $item['nombre'] === $campo['nombre']);
+                            if(empty($campoExistente)){$configuracionesInforme['campos'][] = $campo;}
+                        }
+                    }
+                    $configuraciones = $configuracionesInforme;
+                }
+                
+                /** Se efectúa el registro/edición del informe */
+                /** ------------------------------------------ */
+    
+                $reporte->setSql($form['sql']);
+                $reporte->setTipo($form['tipo']);
+                $reporte->setJson($configuraciones);
+                $reporte->setNombre($form['nombre']);
+                $reporte->setModulo($form['modulo']);
+                if($form['idRegistro'] == 0){$reporte->setEstado(1);}
+                $bd->persist($reporte);
+                $bd->flush();
+    
+                /** Se obtiene la vista para configurar los campos de json */
+                /** ------------------------------------------------------ */
+    
+                $idInforme = $reporte->getId();
+                $camposJson = $this->renderView('Facturas\Reporteador\frameCamposJson.html.twig', ['configuraciones' => $configuraciones, 'campos' => $nombreCampos]);
             }
-            else
+            catch(\Exception $e)
             {
-                $configuraciones = $reporte->getJson();
-                $configuraciones['campos'] = $campos;
+                $status = 'error';
+                $message = $e->getLine().' - '.$e->getFile().' - '.$e->getMessage();
             }
-            
-            /** Se efectúa el registro/edición del informe */
-            /** ------------------------------------------ */
-
-            $reporte->setSql($form['sql']);
-            $reporte->setTipo($form['tipo']);
-            $reporte->setJson($configuraciones);
-            $reporte->setNombre($form['nombre']);
-            $reporte->setModulo($form['modulo']);
-            $bd->persist($reporte);
-            //$bd->flush();
-
-            /** Se obtiene la vista para configurar los campos de json */
-            /** ------------------------------------------------------ */
-
-            $camposJson = $this->renderView('Facturas\Reporteador\frameCamposJson.html.twig', ['configuraciones' => $configuraciones]);
         }
-        catch(\Exception $e)
+        else
         {
+            $tipoError = 1;
             $status = 'error';
-            $message = $e->getMessage();
+            $message = '¡Ya existe un informe con el nombre, tipo y módulo especificados!';
         }
-        return new Response(json_encode(['status' => $status, 'message' => $message, 'camposJson' => $camposJson]));
+        return new Response(json_encode(
+        [
+            'status' => $status, 
+            'message' => $message,
+            'tipoError' => $tipoError,
+            'idInforme' => $idInforme,
+            'campos' => $nombreCampos, 
+            'camposJson' => $camposJson, 
+            'configuraciones' => $configuraciones
+        ]));
+    }
+
+    public function obtenerInforme(Request $request)
+    {
+        /** 
+         * En esta función se obtiene la información de un reporte específico
+         * ------------------------------------------------------------------
+         * @access public
+        */
+
+        $bd = $this->em;
+        $nombreCampos = [];
+        $id = $request->request->get('idRegistro');
+        $informe = $bd->getRepository(reportes::class)->findOneBy(['id' => $id]);
+        if(array_key_exists('campos', $informe->getJson()))
+        {
+            foreach($informe->getJson()['campos'] as $campo){$nombreCampos[] = $campo['nombre'];}
+        }
+        $camposJson = $this->renderView('Facturas\Reporteador\frameCamposJson.html.twig', ['configuraciones' => $informe->getJson(), 'campos' => $nombreCampos]);
+        return new Response(json_encode(
+        [
+            'sql' => $informe->getSql(),
+            'camposJson' => $camposJson,
+            'json' => $informe->getJson(),
+            'tipo' => $informe->getTipo(),
+            'nombre' => $informe->getNombre(),
+            'modulo' => $informe->getModulo(),
+        ]));
+    }
+
+    public function frameListaInformes(Request $request)
+    {
+        /** 
+         * En esta función se genere la lista de informes a partir de los parámetros de búsqueda seleccionados
+         * ---------------------------------------------------------------------------------------------------
+         * @access public
+        */
+
+        $bd = $this->em;
+        $form = $request->request->get('filtros_busqueda_informes');
+        $listInformes = $bd->getRepository(reportes::class)->findInformes($form['modulo'], $form['tipo']);
+        $plantilla = $this->renderView('Facturas\Reporteador\frameListaInformes.html.twig', ['listInformes' => $listInformes]);
+        return new Response(json_encode(
+        [
+            'plantilla' => $plantilla, 
+            'countRegistros' => count($listInformes)
+        ]));
+    }
+
+    public function eliminarInforme(Request $request)
+    {
+        /** 
+         * En esta función se actualiza el estado del informe a 2, tomando esta acción como la eliminación 
+         * del registro por cuanto no volverá a estar disponible en la lista de informes.
+         * -----------------------------------------------------------------------------------------------
+         * @access public
+        */
+
+        $bd = $this->em;
+        $idRegistro = $request->request->get('idRegistro');
+        $informe = $bd->getRepository(reportes::class)->find($idRegistro);
+        if(!empty($informe))
+        {
+            $informe->setEstado(2);
+            $bd->persist($informe);
+            $bd->flush();
+        }
+        return new Response(json_encode(['status' => 'success']));
     }
 }

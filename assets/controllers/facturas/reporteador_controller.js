@@ -3,24 +3,31 @@ import { Controller } from "@hotwired/stimulus";
 
 export default class extends Controller 
 {
+    campos = [];
     editor = null;
     lineaError = -1;
     mensaje = new mensajes();
 
     static values = 
     {
-        'urlGuardarInforme' : String
+        'urlObtenerInforme' : String,
+        'urlGuardarInforme' : String,
+        'urlEliminarInforme' : String,
+        'urlFrameListaInformes' : String
     };
+
     static targets = 
     [
-        'btnGuardarInforme'
+        'btnGuardarInforme', 'formNuevoInforme', 'formFiltrosInforme'
     ];
 
     connect()
     {
         var self = this;
         console.log('connect');
+        this.actualizarListaInforme();
         $('.selectpicker').selectpicker('refresh');
+        $('#modalNuevoInforme').on('hidden.bs.modal', function(){self.hidePopoverEliminarInforme()});
         $('#btnRegresar').on('click', function(){$(this).html('<i class="fas fa-spinner fa-spin"></i> Regresando')});
         const editor = CodeMirror.fromTextArea(document.getElementById('nuevo_informe_sql'), 
         {
@@ -39,12 +46,75 @@ export default class extends Controller
         /** En esta función se hace visible el modal para crear/actualizar informes */
         /** ----------------------------------------------------------------------- */
 
+        event.preventDefault();
+        let btnShowModal = event.currentTarget;
+        let formInforme = this.formNuevoInformeTarget;
+        let idRegistro = event.currentTarget.dataset.id;
+        let nombreInforme = event.currentTarget.dataset.nombre;
+        let idActual = $('#nuevo_informe_idRegistro').val();
         setTimeout(() =>
         {
             this.editor.refresh();
             $('.CodeMirror-vscrollbar').addClass('listado');
         }, 500);
-        $('#nuevoInforme').modal('show');
+
+        /** Se cargan los campos del informe */
+        /** -------------------------------- */
+
+        $('#nuevo_informe_idRegistro').val(0);
+        if(idRegistro > 0)
+        {
+            let form = new FormData();
+            form.append('idRegistro', idRegistro);
+            $('#nombreInforme').text(nombreInforme);
+            $('#cargandoInforme').css('display', '');
+            btnShowModal.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            $('#tituloNuevoInforme').text(`Actualizar informe - ${nombreInforme}`);
+            $('#iconoNuevoInforme').removeClass('fa-external-link-alt').addClass('fa-edit');
+            let consulta = await fetch(this.urlObtenerInformeValue, {'method' : 'POST', 'body' : form});
+            let result = await consulta.json();
+
+            /** Se actualiza el modal con los campos del informe */
+            /** ------------------------------------------------ */
+
+            $('#jsonContainer').html('');
+            this.editor.setValue(result.sql);
+            $('#nuevo_informe_tipo').val(result.tipo);
+            $('#cargandoInforme').css('display', 'none');
+            $('#divConfiguracionJson').css('display', '');
+            $('#nuevo_informe_nombre').val(result.nombre);
+            $('#nuevo_informe_modulo').val(result.modulo);
+            $('#frameCamposJson').html(result.camposJson);
+            setTimeout(() =>{this.editor.refresh()}, 200);
+            $('#nuevo_informe_idRegistro').val(idRegistro);
+            btnShowModal.innerHTML = '<i class="fas fa-cog"></i>';
+            let formatter = new JSONFormatter(result.json, 1, { theme: 'light' });
+            document.getElementById("jsonContainer").appendChild(formatter.render());
+            $('#botonesInforme').removeClass('animate__flipInX').addClass('animate__flipOutX');
+            setTimeout(() => 
+            {
+                $('#btnEliminarInforme').css('display', '');
+                $('#botonesInforme').removeClass('animate__flipOutX').addClass('animate__flipInX');               
+            }, 800);
+        }
+        else
+        {
+            $('#iconoNuevoInforme').removeClass('fa-edit').addClass('fa-external-link-alt');
+            $('#divConfiguracionJson').css('display', 'none');
+            $('#tituloNuevoInforme').text(`Nuevo informe`);
+            if(idActual > 0)
+            {
+                formInforme.reset();
+                $('#botonesInforme').removeClass('animate__flipInX').addClass('animate__flipOutX');
+                setTimeout(() => 
+                {
+                    $('#btnEliminarInforme').css('display', 'none');
+                    $('#botonesInforme').removeClass('animate__flipOutX').addClass('animate__flipInX');               
+                }, 800);
+            }
+            this.editor.setValue('');
+        }
+        $('#modalNuevoInforme').modal('show');
     }
 
     async guardarInforme(event)
@@ -54,6 +124,7 @@ export default class extends Controller
 
         event.preventDefault();
         let timeMostrarError = 1;
+        let configuraciones = {};
         $('#nuevo_informe_sql').val(this.editor.getValue());
         let btnGuardarInforme = this.btnGuardarInformeTarget;
         if(this.lineaError > -1)
@@ -64,15 +135,213 @@ export default class extends Controller
             this.editor.refresh();
             this.lineaError = -1;
         }
+
+        /** Se obtienen todas las configuraciones del informe */
+        /** ------------------------------------------------- */
+
+        let pdf = {};
+        let excel = {};
+        let campos = [];
+        let cabeceras = [];
+        let agrupamiento = [];
+        let totalizacion = [];
+        let rutaFrameResumen = {};
+        let rutaFrameInforme = {};
+        let parametrosRutaPdf = {};
+        let camposAgrupamiento = [];
+        let parametrosRutaExcel = {};
+        let parametrosRutaFrameInforme = {};
+        let parametrosRutaFrameResumen = {};
+        let camposTotalizacionAgrupamiento = [];
         let form = new FormData(event.currentTarget);
-        if($('#nuevo_informe_sql').val() === '')
+
+        /** Parámetros rutaFrameInforme */
+        /** --------------------------- */
+
+        $('.parametrosRutaFrame').each(function()
         {
-            setTimeout(() => { $('#divConfigurarSql').css('background', '#17A2B8');}, 3000);
-            setTimeout(() => {$('#btnGuardarInforme').prop('disabled', false)}, 200);
-            this.mensaje.mostrarMensaje('¡Configure un sql antes de continuar!');
-            $('#divConfigurarSql').css('background', '#DC3545');
-            return;
+            let key = $(this).data('key');
+            let valor = $('#inputValorParametrosRutaFrame'+key).val();
+            let nombre = $('#inputNombreParametrosRutaFrame'+key).val();
+            if(nombre != '' && valor != '')
+            {
+                parametrosRutaFrameInforme[`${nombre}`] = valor;
+            }
+        });
+        if($('#inputRutaFrameInforme').val() != '')
+        {
+            rutaFrameInforme = {'nombre' : $('#inputRutaFrameInforme').val(), 'parametros' : parametrosRutaFrameInforme};
         }
+
+        /** Cabeceras del informe */
+        /** --------------------- */
+
+        $('.cabecera').each(function()
+        {
+            let key = $(this).data('key');
+            let nombre = $('#inputNombreCabecera'+key).val();
+            let colspan = $('#inputColspanCabecera'+key).val();
+            if(nombre != '' && colspan != '')
+            {
+                cabeceras.push({'nombre' : nombre, 'colspan' : colspan});
+            }
+        });
+
+        /** Campos del informe */
+        /** ------------------ */
+
+        $('.campos').each(function()
+        {
+            let ruta = {};
+            let parametros = {};
+            let key = $(this).data('key');
+            let html = $('#inputHtmlCampo'+key).val();
+            let nombre = $('#inputNombreCampo'+key).val();
+            let titulo = $('#inputTituloCampo'+key).val();
+            let tipoDato = $('#selectTipoDatoCampo'+key).val();
+            let nombreRuta = $('#selectAlineacionTitulo'+key).val();
+            let alineacionCampo = $('#selectAlineacionCampo'+key).val();
+            let alineacionTitulo = $('#selectAlineacionTitulo'+key).val();
+
+            /** Se obtienen los parámetros configurados en la ruta de cada campo */
+            /** ---------------------------------------------------------------- */
+
+            $('.parametrosRutaCampo'+nombre).each(function()
+            {
+                let key = $(this).data('key');
+                let valor = $(`#inputValorParametrosRutaCampo${nombre}${key}`).val();
+                let nombreRuta = $(`#inputNombreParametrosRutaCampo${nombre}${key}`).val();
+                if(nombreRuta != '' && valor != '')
+                {
+                    parametros[`${nombreRuta}`] = valor;
+                }
+            });
+            if(nombreRuta != '')
+            {
+                ruta = {'nombre' : nombreRuta, 'parametros' : parametros}
+            }
+            campos.push(
+            {
+                'nombre' : nombre, 
+                'titulo' : titulo, 
+                'tipoDato' : tipoDato, 
+                'alineacionCampo' : alineacionCampo, 
+                'alineacionTitulo' : alineacionTitulo, 
+                'ruta' : ruta,
+                'html' : html 
+            });
+
+        });
+
+        /** Campos de agrupación */
+        /** -------------------- */
+
+        $('.agrupamiento').each(function()
+        {
+            let key = $(this).data('key');
+            let nombre = $('#selectAgrupamiento'+key).val();
+            let titulo = $('#inputAgrupamiento'+key).val();
+            camposAgrupamiento.push({'nombre' : nombre, 'titulo' : titulo});
+        });
+
+        /** Totales de agrupación */
+        /** --------------------- */
+
+        if(camposAgrupamiento.length > 0)
+        {
+            $('.totalizacionAgrupamiento').each(function()
+            {
+                let key = $(this).data('key');
+                let campo = $('#selectTotalizacionAgrupamiento'+key).val();
+                camposTotalizacionAgrupamiento.push({'campo' : campo});
+            });
+        }
+
+        /** Totales del informe */
+        /** ------------------- */
+
+        $('.totalizacionInforme').each(function()
+        {
+            let key = $(this).data('key');
+            let campo = $('#selectTotalizacionInforme'+key).val();
+            totalizacion.push({'campo' : campo});
+        });
+        agrupamiento = [{'campos' : camposAgrupamiento, 'totalizacion' : camposTotalizacionAgrupamiento}];
+
+        /** PDF del informe */
+        /** --------------- */
+
+        pdf = {'tipoHoja' : $('#tipoHoja').val(), 'orientacion' : $('#orientacion').val(), 'ruta' : {}};
+
+        /** Se obtienen los parámetros configurados en la ruta del PDF */
+        /** ---------------------------------------------------------- */
+
+        $('.parametrosRutaPdf').each(function()
+        {
+            let key = $(this).data('key');
+            let valor = $('#inputValorParametrosRutaPdf'+key).val();
+            let nombre = $('#inputNombreParametrosRutaPdf'+key).val();
+            if(valor !== '' && nombre !== '')
+            {
+                parametrosRutaPdf[`${nombre}`] = valor;
+            }
+        });
+        if($('#inputRutaPdf').val() !== '')
+        {
+            pdf.ruta = {'nombre' : $('#inputRutaPdf').val(), 'parametros' : parametrosRutaPdf};;
+        }
+
+        /** Se obtienen los parámetros configurados en la ruta del EXCEL */
+        /** ------------------------------------------------------------ */
+
+        $('.parametrosRutaExcel').each(function()
+        {
+            let key = $(this).data('key');
+            let valor = $('#inputValorParametrosRutaExcel'+key).val();
+            let nombre = $('#inputNombreParametrosRutaExcel'+key).val();
+            if(valor !== '' && nombre !== '')
+            {
+                parametrosRutaExcel[`${nombre}`] = valor;
+            }
+        });
+        if($('#inputRutaExcel').val() !== '')
+        {
+            excel.ruta = {'nombre' : $('#inputRutaExcel').val(), 'parametros' : parametrosRutaExcel};
+        }
+
+        /** Parámetros rutaFrameResumen */
+        /** --------------------------- */
+
+        $('.parametrosRutaFrameResumen').each(function()
+        {
+            let key = $(this).data('key');
+            let valor = $('#inputValorParametrosRutaFrameResumen'+key).val();
+            let nombre = $('#inputNombreParametrosRutaFrameResumen'+key).val();
+            if(nombre != '' && valor != '')
+            {
+                parametrosRutaFrameResumen[`${nombre}`] = valor;
+            }
+        });
+        if($('#inputRutaFrameResumen').val() != '')
+        {
+            rutaFrameResumen = {'nombre' : $('#inputRutaFrameResumen').val(), 'parametros' : parametrosRutaFrameResumen};
+        }
+
+        /** Se crea las configuraciones del informe */
+        /** --------------------------------------- */
+
+        configuraciones.rutaFrameInforme = rutaFrameInforme;
+        configuraciones.periodo = $('#periodoInforme').val();
+        configuraciones.anchoTabla = $('#anchoTablaInforme').val();
+        configuraciones.cabecera = cabeceras;
+        configuraciones.campos = campos;
+        configuraciones.agrupamiento = agrupamiento;
+        configuraciones.paginacion = $('#paginacionInforme').val();
+        configuraciones.totalizacion = totalizacion;
+        configuraciones.pdf = pdf;
+        configuraciones.excel = excel;
+        configuraciones.rutaFrameResumen = rutaFrameResumen;
+        form.append('configuraciones', JSON.stringify(configuraciones));
         
         /** Se guarda/edita el informe */
         /** -------------------------- */
@@ -87,25 +356,61 @@ export default class extends Controller
 
         if(result.status == 'success')
         {
+            this.campos = result.campos;
+            $('#jsonContainer').html('');
+            $('#divConfiguracionJson').css('display', '');
+            if(Number($('#nuevo_informe_idRegistro').val()) == 0)
+            {
+                $('#divTituloNuevoInforme').addClass('animate__animated animate__flipOutX');
+                setTimeout(() => 
+                {
+                    $('#iconoNuevoInforme').removeClass('fa-external-link-alt').addClass('fa-edit');
+                    $('#tituloNuevoInforme').text(`Actualizar informe - ${$('#nuevo_informe_nombre').val()}`);
+                    $('#divTituloNuevoInforme').removeClass('animate__animated animate__flipOutX').addClass('animate__animated animate__flipInX');
+                }, 800);
+                setTimeout(() => {$('#divTituloNuevoInforme').removeClass('animate__animated animate__flipInX')}, 2000);
+            }
+            $('#nuevo_informe_idRegistro').val(result.idInforme);
+            $('#nombreInforme').text($('#nuevo_informe_nombre').val());
+            $('#botonesInforme').removeClass('animate__flipInX').addClass('animate__flipOutX');
+            setTimeout(() => 
+            {
+                $('#btnEliminarInforme').css('display', '');
+                $('#botonesInforme').removeClass('animate__flipOutX').addClass('animate__flipInX');               
+            }, 800);
+            let formatter = new JSONFormatter(result.configuraciones, 1, { theme: 'light' });
+            document.getElementById("jsonContainer").appendChild(formatter.render());
             this.mensaje.mostrarMensaje('¡El informe se ha guardado con éxito!', 1);
             $('#frameCamposJson').html(result.camposJson);
+
+            /** Se actualiza la lista de informes */
+            /** --------------------------------- */
+
+            await this.actualizarListaInforme();
         }
         else
-        {   
-            $('#msgError').text(result.message);
-            let lineaSplit = result.message.split('LINE');
-            setTimeout(() => {$('#errorValidarSql').css('display', 'flex')}, timeMostrarError);
-
-            /** Se resalta la línea que contien el error */
-            /** ---------------------------------------- */
-            
-            if(lineaSplit.length > 1)
+        {  
+            if(result.tipoError == 0)
             {
-                let lineaError = Number(lineaSplit[1].split(':')[0].trim()) - 1;
-                this.editor.addLineClass(lineaError, 'background', 'lineaError');
-                this.lineaError = lineaError;
-                this.editor.refresh();
+                $('#msgError').text(result.message);
+                let lineaSplit = result.message.split('LINE');
+                setTimeout(() => {$('#errorValidarSql').css('display', 'flex')}, timeMostrarError);
+    
+                /** Se resalta la línea que contien el error */
+                /** ---------------------------------------- */
+                
+                if(lineaSplit.length > 1)
+                {
+                    let lineaError = Number(lineaSplit[1].split(':')[0].trim()) - 1;
+                    this.editor.addLineClass(lineaError, 'background', 'lineaError');
+                    this.lineaError = lineaError;
+                    this.editor.refresh();
+                } 
             } 
+            else
+            {
+                this.mensaje.mostrarMensaje(result.message, 2);
+            }
         }
     }
 
@@ -116,5 +421,240 @@ export default class extends Controller
 
         $('#errorValidarSql').removeClass('animate__fadeInDown').addClass('animate__fadeOutUp');
         setTimeout(() => {$('#errorValidarSql').hide().removeClass('animate__fadeOutUp').addClass('animate__fadeInDown')}, 1000);
+    }
+
+    agregarParametro(event)
+    {
+        /** En esta función se agregar parámetros en las configuraciones donde está permitido incluir rutas */
+        /** ----------------------------------------------------------------------------------------------- */
+
+        let key = 0;
+        let clase = event.currentTarget.dataset.clase;
+        let lista = event.currentTarget.dataset.lista;
+        $('.'+clase).each(function(){key ++});
+        let nombreInput = clase[0].toUpperCase() + clase.substring(1) + (key + 1);
+        $('#'+lista).append(
+        `
+            <div class="${clase} animate__animated animate__fadeIn" data-key="${key + 1}" id="${clase + (key + 1)}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
+                <div style="display:flex; position:relative; flex:1">
+                    <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
+                        <i class="fas fa-check" style="font-size:12px"></i>
+                    </div>
+                    <input id="inputNombre${nombreInput}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Nombre parámetro">
+                </div>
+                <div style="display:flex; position:relative; width:150px">
+                    <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
+                        <i class="fas fa-tag" style="font-size:12px"></i>
+                    </div>
+                    <input id="inputValor${nombreInput}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Valor parámetro">
+                </div>
+                <div style="display:flex; position:relative; width:14px; justify-content:end">
+                    <i class="fas fa-trash text-danger" data-key="${clase + (key + 1)}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarParametro"></i>
+                </div>
+            </div>
+        `);
+    }
+
+    eliminarParametro(event)
+    {
+        /** En esta función se eliminan parámetros en las configuraciones donde está permitido agregar rutas */
+        /** ------------------------------------------------------------------------------------------------ */
+
+        let key = event.currentTarget.dataset.key;
+        setTimeout(() =>{$('#'+key).remove()}, 1000);
+        setTimeout(() =>{$('#'+key).hide(400)}, 600);
+        $('#'+key).removeClass('animate__animated animate__fadeIn').addClass('animate__animated animate__fadeOut');
+    }
+
+    agregarCabecera()
+    {
+        /** En esta función se agregar parámetros en las configuraciones donde está permitido incluir rutas */
+        /** ----------------------------------------------------------------------------------------------- */
+
+        let key = 0;
+        $('.cabecera').each(function(){key ++});
+        $('#listCabeceras').append(
+        `
+            <div class="cabecera animate__animated animate__fadeIn" data-key="${key + 1}" id="cabecera${key + 1}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
+                <div style="display:flex; position:relative; flex:1">
+                    <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
+                        <i class="fas fa-check" style="font-size:12px"></i>
+                    </div>
+                    <input id="inputNombreCabecera${key + 1}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Nombre cabecera">
+                </div>
+                <div style="display:flex; position:relative; width:150px">
+                    <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
+                        <i class="fas fa-tag" style="font-size:12px"></i>
+                    </div>
+                    <input id="inputColspanCabecera${key + 1}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Colspan" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div style="display:flex; position:relative; width:14px; justify-content:end">
+                    <i class="fas fa-trash text-danger" data-key="cabecera${key + 1}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarCabecera"></i>
+                </div>
+            </div>
+        `);
+    }
+
+    eliminarCabecera(event)
+    {
+        /** En esta función se eliminan parámetros en las configuraciones donde está permitido agregar rutas */
+        /** ------------------------------------------------------------------------------------------------ */
+
+        let key = event.currentTarget.dataset.key;
+        setTimeout(() =>{$('#'+key).remove()}, 1000);
+        setTimeout(() =>{$('#'+key).hide(400)}, 600);
+        $('#'+key).removeClass('animate__animated animate__fadeIn').addClass('animate__animated animate__fadeOut');
+    }  
+
+    agregarAgrupamiento()
+    {
+        /** En esta función se agregan campos de agrupamiento */
+        /** ------------------------------------------------- */
+
+        let key = 0;
+        let campos = '';
+        $('.agrupamiento').each(function(){key ++});
+        this.campos.forEach((item) => {campos += `<option class="optionConfiguraciones" value="${item}">${item}</option>`});
+        $('#listAgrupamiento').append(
+        `
+            <div class="agrupamiento animate__animated animate__fadeIn" data-key="${key + 1}" id="agrupamiento${key + 1}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
+                <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
+                    <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
+                        <i class="fas fa-tag" style="font-size:12px"></i>
+                    </div>
+                    <select class="form-control custom-select" id="selectAgrupamiento${key + 1}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
+                        ${campos}
+                    </select>
+                </div>
+                <div style="display:flex; position:relative; flex:1">
+                    <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
+                        <i class="fas fa-check" style="font-size:12px"></i>
+                    </div>
+                    <input id="inputAgrupamiento${key + 1}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Título agrupamiento">
+                </div>
+                <div style="display:flex; position:relative; width:14px; justify-content:end">
+                    <i class="fas fa-trash text-danger" data-key="agrupamiento${key + 1}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarAgrupamiento"></i>
+                </div>
+            </div>
+        `);
+    }
+
+    eliminarAgrupamiento(event)
+    {
+        /** En esta función se eliminan campos de agrupamiento */
+        /** -------------------------------------------------- */
+
+        let key = event.currentTarget.dataset.key;
+        setTimeout(() =>{$('#'+key).remove()}, 1000);
+        setTimeout(() =>{$('#'+key).hide(400)}, 600);
+        $('#'+key).removeClass('animate__animated animate__fadeIn').addClass('animate__animated animate__fadeOut');
+    } 
+
+    agregarTotalizacion(event)
+    {
+        /** En esta función se agregar campos de totalización */
+        /** ------------------------------------------------- */
+
+        let key = 0;
+        let campos = '';
+        let clase = event.currentTarget.dataset.clase;
+        let lista = event.currentTarget.dataset.lista;
+        $('.'+clase).each(function(){key ++});
+        let nombreSelect = clase[0].toUpperCase() + clase.substring(1) + (key + 1);
+        this.campos.forEach((item) => {campos += `<option class="optionConfiguraciones" value="${item}">${item}</option>`});
+        $('#'+lista).append(
+        `
+            <div class="${clase} animate__animated animate__fadeIn" data-key="${key + 1}" id="${clase + (key + 1)}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
+                <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
+                    <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
+                        <i class="fas fa-tag" style="font-size:12px"></i>
+                    </div>
+                    <select class="form-control custom-select" id="select${nombreSelect}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
+                        ${campos}
+                    </select>
+                </div>
+                <div style="display:flex; position:relative; width:14px; justify-content:end">
+                    <i class="fas fa-trash text-danger" data-key="${clase + (key + 1)}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarTotalizacion"></i>
+                </div>
+            </div>
+        `);
+    }
+
+    eliminarTotalizacion(event)
+    {
+        /** En esta función se eliminan campos de totalización */
+        /** -------------------------------------------------- */
+
+        let key = event.currentTarget.dataset.key;
+        setTimeout(() =>{$('#'+key).remove()}, 1000);
+        setTimeout(() =>{$('#'+key).hide(400)}, 600);
+        $('#'+key).removeClass('animate__animated animate__fadeIn').addClass('animate__animated animate__fadeOut');
+    }
+
+    async actualizarListaInforme()
+    {
+        /** En esta función se actualiza la lista de informes */
+        /** ------------------------------------------------- */
+        
+        $('#cargandoListaInformes').css('display', '');
+        let form = new FormData(this.formFiltrosInformeTarget);
+        let consulta = await fetch(this.urlFrameListaInformesValue, {'method' : 'POST', 'body' : form});
+        let result = await consulta.json();
+        $('#frameListaInformes').html(result.plantilla);
+        $('#cargandoListaInformes').css('display', 'none');
+        $('#totalRegistros').removeClass('animate__animated animate__flipInX').addClass('animate__animated animate__flipOutX');
+        setTimeout(() =>
+        {
+            if(result.countRegistros > 0)
+            {
+                $('#totalRegistros').removeClass('animate__animated animate__flipOutX').addClass('animate__animated animate__flipInX');
+                $('#totalRegistros').html(`Total registros: ${result.countRegistros}`);
+            }
+        }, 800); 
+    }
+
+    async enviarFiltrosInforme(event)
+    {
+        /** En esta función se actualiza la lista de informes de acuerdo a los parámetros de búsqueda seleccionados */
+        /** ------------------------------------------------------------------------------------------------------- */
+
+        event.preventDefault();
+        $('#btnBuscarInformes').html('<i class="fas fa-spinner fa-spin"></i>');
+        await this.actualizarListaInforme();
+        $('#btnBuscarInformes').html('<i class="fas fa-search"></i>');
+    }
+
+    showPopoverEliminarInforme()
+    {
+        /** En esta función se hace visible el popover para eliminar un informe */
+        /** ------------------------------------------------------------------- */
+
+        $('#popoverEliminarInforme').css('display', '');
+    }
+
+    hidePopoverEliminarInforme(event = null)
+    {
+        /** En esta función se oculta el popover para eliminar un informe */
+        /** ------------------------------------------------------------- */
+
+        if(event != null){event.preventDefault();}
+        $('#popoverEliminarInforme').removeClass('animate__fadeIn').addClass('animate__fadeOut');
+        setTimeout(()=>{$('#popoverEliminarInforme').hide().removeClass('animate__fadeOut').addClass('animate__fadeIn')}, 1000);
+    }
+
+    async confirmarEliminarInforme()
+    {
+        /** En esta función se hace efectiva la eliminación de un informe que consiste en actualizar el estado a 2 */
+        /** ------------------------------------------------------------------------------------------------------ */
+
+        let form = new FormData();
+        this.hidePopoverEliminarInforme();
+        form.append('idRegistro', $('#nuevo_informe_idRegistro').val());
+        $('#btnEliminarInforme').html('<i class="fas fa-spinner fa-spin"></i> Eliminando');
+        await fetch(this.urlEliminarInformeValue, {'method' : 'POST', 'body' : form});
+        this.mensaje.mostrarMensaje('¡El informe se ha eliminado con éxito!', 1);
+        $('#btnEliminarInforme').html('<i class="fas fa-trash"></i> Eliminar');
+        $('#modalNuevoInforme').modal('hide');
+        await this.actualizarListaInforme();
     }
 }   

@@ -1,0 +1,28 @@
+<div class="row animate__animated animate__fadeIn">
+    <div class="col-12">
+        {% if listInformes|length > 0 %}
+            <table class="table table-sm table-bordered table-hover mb-0">
+                <tr class="bg-light text-primary">
+                    <td style="width:40px"></td>
+                    <th style="text-align:center">Nombre</th>
+                    <th style="text-align:center">Módulo</th>
+                    <th style="text-align:center">Tipo</th>
+                </tr>
+                {% for informe in listInformes %}
+                    <tr>
+                        <td style="text-align:center">
+                            <a href="" data-nombre="{{ informe.nombre }}" data-id="{{ informe.id }}" data-action="facturas--reporteador#showModalNuevoInforme"><i class="fas fa-cog text-primary"></i></a>
+                        </td>
+                        <td style="text-align:center">{{ informe.nombre }}</td>
+                        <td style="text-align:center">{{ informe.modulo }}</td>
+                        <td style="text-align:center">{{ informe.tipo }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <div class="text-danger" style="display:flex; align-items:center; justify-content:center; font-weight:bold; height:50px">
+                ¡No se encontraron registros para listar!
+            </div>
+        {% endif %}
+    </div>
+</div>

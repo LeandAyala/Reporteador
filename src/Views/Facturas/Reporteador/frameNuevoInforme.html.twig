@@ -1,0 +1,119 @@
+<div style="display:none" data-facturas--reporteador-target="cargandoInforme" id="cargandoInforme">
+<div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; left:0; top:0; opacity:0.6"></div>
+<div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; left:0; top:0; display:flex; align-items:center; justify-content:center">
+    <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+        <div style="position:relative;">
+            <div class="loader"></div>
+            <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+        </div>
+        <b style="font-size:13px">Cargando información...</b>
+    </div>
+</div>
+</div>
+{{ form_start(formNuevoInforme, {'attr' : {'class' : 'mb-0', 'data-action' : 'facturas--reporteador#guardarInforme', 'data-facturas--reporteador-target' : 'formNuevoInforme'}})}}
+<div class="container-fluid animate__animated animate__fadeIn listado" style="margin-top: 10px; overflow-y:auto; max-height:719px">
+    <div class="list-group-item" style="border:none; padding-top:0px; padding-left:0px; padding-right:0px; padding-bottom:0px">
+        <div class="row">
+            <div class="col-6 pr-0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formNuevoInforme.nombre,formNuevoInforme.nombre, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
+                    </div>
+                    {{ form_widget(formNuevoInforme.nombre, {'attr' : {'class' : 'form-control'}})}}
+                </div>
+            </div>
+            <div class="col-3 pr-0">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formNuevoInforme.modulo,formNuevoInforme.modulo, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
+                    </div>
+                    {{ form_widget(formNuevoInforme.modulo, {'attr' : {'class' : 'form-control custom-select'}})}}
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        {{ form_label(formNuevoInforme.tipo,formNuevoInforme.tipo, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
+                    </div>
+                    {{ form_widget(formNuevoInforme.tipo, {'attr' : {'class' : 'form-control', 'onkeypress' : 'return event.charCode >= 48 && event.charCode <= 57' }})}}
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="animate__animated animate__flipInX" id="divConfigurarSql" style="background:#17A2B8; transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; border-radius:12px 0px; gap:5px; padding:5px 10px; width:125px;">
+            <i class="fas fa-code" style="font-size:10px; color:white"></i>
+            <span class="montserrat" style="font-size:9px; color:white">Configurar SQL</span>
+        </div> 
+        <div class="row" style="margin-top:2px">
+            <div class="col-12" style="position:relative; overflow:hidden">
+                <div id="errorValidarSql" class="animate__animated animate__fadeInDown" style=
+                "
+                    gap:5px; 
+                    z-index:1; 
+                    width:98%; 
+                    left:12px;
+                    color:white; 
+                    height:120px; 
+                    display:none; 
+                    cursor:pointer;
+                    padding:15px 20px;
+                    position:absolute; 
+                    border-radius:5px; 
+                    background:#dc3545eb;
+                    flex-direction:column; 
+                    justify-content:center; 
+                    transition:all 0.5s ease;
+                ">
+                    <div style="display:flex; align-items:center; gap:5px; position:relative">
+                        <div class="btnCerrarError" data-action="click->facturas--reporteador#hideMensajeError" style=
+                        "
+                            top:-13px;
+                            width:17px; 
+                            right:-9px;
+                            padding:6px; 
+                            height:17px; 
+                            display:flex; 
+                            border-radius:50%; 
+                            position:absolute; 
+                            background:#DC3545; 
+                            align-items:center;
+                            border:2px solid white; 
+                            justify-content:center; 
+                            transition:all 0.5s ease;
+                        ">
+                            <i class="fas fa-times" style="color:white; font-size:7px"></i>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; background:white; width:20px; height:20px; padding:10px">
+                            <i class="fas fa-code" style="color:#DC3545; font-size:9px"></i>
+                        </div>
+                        <span style="font-size:12px; font-weight:bold">Error al validar el SQL</span>
+                    </div>
+                    <hr style="width: 100%; color: white; border-color: white; opacity: 0.4; margin-top: 5px; margin-bottom: 5px;">
+                    <div style="display:flex; align-items:center; gap:3px; padding-left:10px">
+                        <span style="font-size:12px;" id="msgError"></span>
+                    </div>
+                </div>
+                {{ form_widget(formNuevoInforme.sql, {'attr' : {'class' : 'form-control' }})}}
+            </div>
+        </div>
+    </div>
+    <div class="list-group-item p-0 animate__animated animate__fadeIn" style="border:none; display:none" id="divConfiguracionJson">
+        <hr>
+        <div class="animate__animated animate__flipInX" style="background:#17A2B8; transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; border-radius:12px 0px; gap:5px; padding:5px 10px; width:125px;">
+            <i class="fas fa-code" style="font-size:10px; color:white"></i>
+            <span class="montserrat" style="font-size:9px; color:white">Configurar JSON</span>
+        </div> 
+        <div style="margin-top:2px; display:flex; gap:10px; width:100%">
+            <div id="frameCamposJson" style="border: 1px solid #d0d4da; border-radius:5px; flex:1; padding:5px 0px"></div>
+            <div style="border: 1px solid #d0d4da; border-radius:5px; width:400px; padding:15px">
+                <div id="jsonContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container-fluid" style="margin-top:20px;">
+    <hr>
+    <button type="submit" class="btn btn-success" id="btnGuardarInforme" data-facturas--reporteador-target="btnGuardarInforme"><i class="fas fa-save"></i> Guardar</button>
+    <button type="button" class="btn btn-danger" onclick="$('#nuevoInforme').modal('hide')"><i class="fas fa-ban"></i> Cancelar</button>
+</div>
+{{ form_end(formNuevoInforme) }}

@@ -68,3 +68,15 @@ facturas_configuracion_informes:
 facturas_guardar_informe:
     path:      /Facturas/guardarInforme
     defaults:   {_controller: App\Controller\Facturas\FacturasController::guardarInforme}
+
+facturas_obtener_informe:
+    path:      /Facturas/frameNuevoInforme
+    defaults:   {_controller: App\Controller\Facturas\FacturasController::obtenerInforme}
+
+facturas_frame_lista_informes:
+    path:      /Facturas/frameListaInformes
+    defaults:   {_controller: App\Controller\Facturas\FacturasController::frameListaInformes}
+
+facturas_eliminar_informe:
+    path:      /Facturas/eliminarInforme
+    defaults:   {_controller: App\Controller\Facturas\FacturasController::eliminarInforme}

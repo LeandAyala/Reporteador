@@ -2,8 +2,10 @@
 {% block body %}
     {{ parent() }}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/json-formatter-js@2.5.9/dist/json-formatter.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/sql/sql.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/json-formatter-js@2.5.9/dist/json-formatter.umd.min.js"></script>
     <style>
         * {
             font-size: 13px;
@@ -169,20 +171,273 @@
         .divAgregarConfiguracion:hover * {
             color:#17A2B8 !important;
         }
+
+        .optionConfiguraciones {
+            font-size: 12px;
+        }
+
+        .card-info {
+            width: 350px;
+            border-radius: 15px;
+            background: #007BFF;
+            padding: 7px;
+            overflow: hidden;
+            box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 20px 0px;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .card-info .top-section {
+            height: 201px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            position: relative;
+        }
+
+        .card-info .top-section .border {
+            border-bottom-right-radius: 12px;
+            height: 30px;
+            width: 257px;
+            background: white;
+            background: #007BFF;
+            position: relative;
+            transform: skew(-40deg);
+            box-shadow: -10px -10px 0 0 #007BFF;
+        }
+
+        .card-info .top-section .border::before {
+            content: "";
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            top: 0;
+            right: -15px;
+            background: rgba(255, 255, 255, 0);
+            border-top-left-radius: 10px;
+            box-shadow: -5px -5px 0 2px #007BFF;
+        }
+
+        .card-info .top-section::before {
+            content: "";
+            position: absolute;
+            top: 30px;
+            left: 0;
+            background: rgba(255, 255, 255, 0);
+            height: 15px;
+            width: 15px;
+            border-top-left-radius: 15px;
+            box-shadow: -5px -5px 0 2px #007BFF;
+        }
+
+        .card-info .top-section .icons {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 30px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .card-info .top-section .icons .logoPopover {
+            height: 100%;
+            aspect-ratio: 1;
+            padding: 7px 0 7px 15px;
+        }
+
+        .card-info .top-section .icons .logoPopover .top-section {
+            height: 100%;
+        }
+
+        .card-info .top-section .icons .social-media {
+            height: 100%;
+            padding: 8px 15px;
+            display: flex;
+            gap: 7px;
+        }
+
+        .card-info .top-section .icons .social-media .svg {
+            height: 100%;
+            fill: #007BFF;
+        }
+
+        .card-info .top-section .icons .social-media .svg:hover {
+            fill: white;
+        }
+
+        .card-info .bottom-section {
+            margin-top: 10px;
+        }
+
+        .card-info .bottom-section .title {
+            display: block;
+            font-size: 14px;
+            font-weight: bolder;
+            color: white;
+            text-align: center;
+        }
+
+        .card-info .bottom-section .row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .card-info .bottom-section .row .item {
+            flex: 30%;
+            text-align: center;
+            padding: 5px;
+            color: rgba(170, 222, 243, 0.721);
+        }
+
+        .card-info .bottom-section .row .item .big-text {
+            font-size: 12px;
+            display: block;
+        }
+
+        .card .bottom-section .row .item .regular-text {
+            font-size: 9px;
+        }
+
+        .card-info .bottom-section .row .item:nth-child(2) {
+            border-left: 1px solid rgba(255, 255, 255, 0.126);
+            border-right: 1px solid rgba(255, 255, 255, 0.126);
+        }
+
+        .border {
+            border:none !important;
+        }
+
+        .opciones:hover svg {
+            border-radius:50%;
+            box-shadow: 0px 0px 4px 0px;
+        }
+
+        .btnTooltip {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            width: 25px;
+            height: 25px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition-duration: .3s;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.199);
+            background-color: rgb(163, 142, 255);
+        }
+
+        .sign {
+            width: 100%;
+            transition-duration: .3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sign svg {
+            width: 17px;
+        }
+
+        .sign svg path {
+            fill: white;
+        }
+
+        .textBtn {
+            position: absolute;
+            top: 4px;
+            right: 0%;
+            opacity: 0;
+            width: 200px;
+            color: white;
+            font-size: 12px;
+            transition-duration: .3s;
+        }
+
+        .btnTooltip:hover {
+            width: 100px;
+            border-radius: 40px;
+            transition-duration: .3s;
+        }
+
+        .btnTooltip:hover .sign {
+            width: 30%;
+            transition-duration: .3s;
+            padding-left: 0px;
+        }
+
+        .btnTooltip:hover .textBtn {
+            opacity: 1;
+            width: 70%;
+            transition-duration: .3s;
+            padding-right: 18px;
+        }
+
+        .textBtn:active {
+            transform: translate(2px ,2px);
+        }
     </style>
     <div class="container-fluid pt-4" data-turbo="true" {{ stimulus_controller('facturas--reporteador',
         {
-            'urlGuardarInforme' : path('facturas_guardar_informe')
+            'urlObtenerInforme' : path('facturas_obtener_informe'),
+            'urlGuardarInforme' : path('facturas_guardar_informe'),
+            'urlEliminarInforme' : path('facturas_eliminar_informe'),
+            'urlFrameListaInformes' : path('facturas_frame_lista_informes')
         }
     )}}>
         <div class="col-12 animate__animated animate__fadeIn" style="display:flex; align-items:center; justify-content:center">
             <div class="card shadow-lg p-0 mb-5 bg-white rounded" style="width:100%">
                 <div class="card-body" style="overflow:hidden">
-                    <div class="list-group-item active font-weight-bold" style="border-radius:5px 5px 0px 0px">Configuración de informes</div>
-                    <div class="list-group-item">
+                    <div class="list-group-item active font-weight-bold" style="border-radius:5px 5px 0px 0px; display:flex; align-items:center; justify-content:space-between">
+                        <span>Configuración de informes</span>
+                        <span id="totalRegistros"></span>
                     </div>
                     <div class="list-group-item">
-                        <button type="button" id="btnNuevoInforme" class="btn btn-primary" data-action="facturas--reporteador#showModalNuevoInforme"><i class="fas fa-external-link-alt"></i> Nuevo</button>
+                        {{ form_start(formFiltrosInforme, {'attr' : {'class' : 'mb-0', 'data-action' : 'facturas--reporteador#enviarFiltrosInforme', 'data-facturas--reporteador-target' : 'formFiltrosInforme'}})}}
+                            <div class="row">
+                                <div class="col-6 pr-0">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            {{ form_label(formFiltrosInforme.modulo,formFiltrosInforme.modulo, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
+                                        </div>
+                                        {{ form_widget(formFiltrosInforme.modulo, {'attr' : {'class' : 'form-control custom-select'}})}}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            {{ form_label(formFiltrosInforme.tipo,formFiltrosInforme.tipo, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
+                                        </div>
+                                        {{ form_widget(formFiltrosInforme.tipo, {'attr' : {'class' : 'form-control', 'onkeypress' : 'return event.charCode >= 48 && event.charCode <= 57' }})}}
+                                        <button type="submit" class="btn btn-success" id="btnBuscarInformes" style="margin-left:10px"><i class="fas fa-search"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        {{ form_end(formFiltrosInforme) }}
+                    </div>
+                    <div class="list-group-item">
+                        <div style="display:none" data-facturas--reporteador-target="cargandoListaInformes" id="cargandoListaInformes">
+                            <div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; left:0; top:0; opacity:0.6"></div>
+                            <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; left:0; top:0; display:flex; align-items:center; justify-content:center">
+                                <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+                                    <div style="position:relative;">
+                                        <div class="loader"></div>
+                                        <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                                    </div>
+                                    <b style="font-size:13px">Cargando información...</b>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group-item p-0" style="border:none" id="frameListaInformes">
+                            <div class="text-danger" style="display:flex; align-items:center; justify-content:center; font-weight:bold; height:50px">
+                                ¡No se encontraron registros para listar!
+                            </div>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <button type="button" id="btnNuevoInforme" class="btn btn-primary" data-id="0" data-action="facturas--reporteador#showModalNuevoInforme"><i class="fas fa-external-link-alt"></i> Nuevo</button>
                         <button type="button" id="btnRegresar" class="btn btn-danger"><i class="fas fa-caret-left"></i> Regresar</button>
                     </div>
                 </div>
@@ -192,136 +447,217 @@
         {# Modal para visualizar crear/editar informes #}
         {# ------------------------------------------- #}
 
-        <div id="nuevoInforme" class="modal fade">
+        <div id="modalNuevoInforme" class="modal fade">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header btn-primary font-weight-bold" style="display:flex; align-items:center">
-                        <i class="fas fa-external-link-alt" style="font-size:12px"></i>
-                        <span style="margin-left:5px">Nuevo informe</span>
-                        <button type="button" class="close" onclick="$('#nuevoInforme').modal('hide')">&times;</button>
+                        <div id="divTituloNuevoInforme" style="display:flex; align-items:center">
+                            <i class="fas fa-external-link-alt" style="font-size:12px" id="iconoNuevoInforme"></i>
+                            <span style="margin-left:5px" id="tituloNuevoInforme">Nuevo informe</span>
+                        </div>
+                        <button type="button" class="close" onclick="$('#modalNuevoInforme').modal('hide')">&times;</button>
                     </div>
                     <div class="modal-body">
-                        {{ form_start(formNuevoInforme, {'attr' : {'class' : 'mb-0', 'data-action' : 'facturas--reporteador#guardarInforme', 'data-facturas--reporteador-target' : 'formNuevoInforme'}})}}
-                            <div class="container-fluid animate__animated animate__fadeIn" style="margin-top: 10px;">
-                                <div class="list-group-item" style="border:none; padding-top:0px; padding-left:0px; padding-right:0px; padding-bottom:0px">
-                                    <div style="display:none" data-facturas--reporteador-target="guardandoInforme" id="guardandoInforme">
-                                        <div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; left:0; top:0; opacity:0.6"></div>
-                                        <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; left:0; top:0; display:flex; align-items:center; justify-content:center">
-                                            <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
-                                                <div style="position:relative;">
-                                                    <div class="loader"></div>
-                                                    <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                        <div class="list-group-item p-0" style="border:none">
+                            <div style="display:none" data-facturas--reporteador-target="cargandoInforme" id="cargandoInforme">
+                                <div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; left:0; top:0; opacity:0.6"></div>
+                                <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; left:0; top:0; display:flex; align-items:center; justify-content:center">
+                                    <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+                                        <div style="position:relative;">
+                                            <div class="loader"></div>
+                                            <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                                        </div>
+                                        <b style="font-size:13px">Cargando información...</b>
+                                    </div>
+                                </div>
+                            </div>
+                            {{ form_start(formNuevoInforme, {'attr' : {'class' : 'mb-0', 'data-action' : 'facturas--reporteador#guardarInforme', 'data-facturas--reporteador-target' : 'formNuevoInforme'}})}}
+                                <div class="container-fluid animate__animated animate__fadeIn listado" style="margin-top: 10px; overflow-y:auto; max-height:719px">
+                                    <div class="list-group-item" style="border:none; padding-top:0px; padding-left:0px; padding-right:0px; padding-bottom:0px">
+                                        <div class="row">
+                                            <div class="col-6 pr-0">
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        {{ form_label(formNuevoInforme.nombre,formNuevoInforme.nombre, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
+                                                    </div>
+                                                    {{ form_widget(formNuevoInforme.nombre, {'attr' : {'class' : 'form-control'}})}}
                                                 </div>
-                                                <b style="font-size:13px">Guardando información...</b>
+                                            </div>
+                                            <div class="col-3 pr-0">
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        {{ form_label(formNuevoInforme.modulo,formNuevoInforme.modulo, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
+                                                    </div>
+                                                    {{ form_widget(formNuevoInforme.modulo, {'attr' : {'class' : 'form-control custom-select'}})}}
+                                                </div>
+                                            </div>
+                                            <div class="col-3">
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        {{ form_label(formNuevoInforme.tipo,formNuevoInforme.tipo, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
+                                                    </div>
+                                                    {{ form_widget(formNuevoInforme.tipo, {'attr' : {'class' : 'form-control', 'onkeypress' : 'return event.charCode >= 48 && event.charCode <= 57' }})}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <hr>
+                                        <div class="animate__animated animate__flipInX" id="divConfigurarSql" style="background:#17A2B8; transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; border-radius:12px 0px; gap:5px; padding:5px 10px; width:125px;">
+                                            <i class="fas fa-code" style="font-size:10px; color:white"></i>
+                                            <span class="montserrat" style="font-size:9px; color:white">Configurar SQL</span>
+                                        </div> 
+                                        <div class="row" style="margin-top:2px">
+                                            <div class="col-12" style="position:relative; overflow:hidden">
+                                                <div id="errorValidarSql" class="animate__animated animate__fadeInDown" style=
+                                                "
+                                                    gap:5px; 
+                                                    z-index:1; 
+                                                    width:98%; 
+                                                    left:12px;
+                                                    color:white; 
+                                                    height:120px; 
+                                                    display:none; 
+                                                    cursor:pointer;
+                                                    padding:15px 20px;
+                                                    position:absolute; 
+                                                    border-radius:5px; 
+                                                    background:#dc3545eb;
+                                                    flex-direction:column; 
+                                                    justify-content:center; 
+                                                    transition:all 0.5s ease;
+                                                ">
+                                                    <div style="display:flex; align-items:center; gap:5px; position:relative">
+                                                        <div class="btnCerrarError" data-action="click->facturas--reporteador#hideMensajeError" style=
+                                                        "
+                                                            top:-13px;
+                                                            width:17px; 
+                                                            right:-9px;
+                                                            padding:6px; 
+                                                            height:17px; 
+                                                            display:flex; 
+                                                            border-radius:50%; 
+                                                            position:absolute; 
+                                                            background:#DC3545; 
+                                                            align-items:center;
+                                                            border:2px solid white; 
+                                                            justify-content:center; 
+                                                            transition:all 0.5s ease;
+                                                        ">
+                                                            <i class="fas fa-times" style="color:white; font-size:7px"></i>
+                                                        </div>
+                                                        <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; background:white; width:20px; height:20px; padding:10px">
+                                                            <i class="fas fa-code" style="color:#DC3545; font-size:9px"></i>
+                                                        </div>
+                                                        <span style="font-size:12px; font-weight:bold">Error al validar el SQL</span>
+                                                    </div>
+                                                    <hr style="width: 100%; color: white; border-color: white; opacity: 0.4; margin-top: 5px; margin-bottom: 5px;">
+                                                    <div style="display:flex; align-items:center; gap:3px; padding-left:10px">
+                                                        <span style="font-size:12px;" id="msgError"></span>
+                                                    </div>
+                                                </div>
+                                                {{ form_widget(formNuevoInforme.sql, {'attr' : {'class' : 'form-control' }})}}
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-6 pr-0">
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    {{ form_label(formNuevoInforme.nombre,formNuevoInforme.nombre, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
-                                                </div>
-                                                {{ form_widget(formNuevoInforme.nombre, {'attr' : {'class' : 'form-control'}})}}
-                                            </div>
-                                        </div>
-                                        <div class="col-3 pr-0">
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    {{ form_label(formNuevoInforme.modulo,formNuevoInforme.modulo, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
-                                                </div>
-                                                {{ form_widget(formNuevoInforme.modulo, {'attr' : {'class' : 'form-control custom-select'}})}}
-                                            </div>
-                                        </div>
-                                        <div class="col-3">
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    {{ form_label(formNuevoInforme.tipo,formNuevoInforme.tipo, {'label_attr' : {'class' : 'input-group-text font-weight-bold'}}) }}
-                                                </div>
-                                                {{ form_widget(formNuevoInforme.tipo, {'attr' : {'class' : 'form-control', 'onkeypress' : 'return event.charCode >= 48 && event.charCode <= 57' }})}}
+                                    <div class="list-group-item p-0 animate__animated animate__fadeIn" style="border:none; display:none" id="divConfiguracionJson">
+                                        <hr>
+                                        <div class="animate__animated animate__flipInX" style="background:#17A2B8; transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; border-radius:12px 0px; gap:5px; padding:5px 10px; width:125px;">
+                                            <i class="fas fa-code" style="font-size:10px; color:white"></i>
+                                            <span class="montserrat" style="font-size:9px; color:white">Configurar JSON</span>
+                                        </div> 
+                                        <div style="margin-top:2px; display:flex; gap:10px; width:100%">
+                                            <div id="frameCamposJson" style="border: 1px solid #d0d4da; border-radius:5px; flex:1; padding:5px 0px"></div>
+                                            <div style="border: 1px solid #d0d4da; border-radius:5px; width:400px; padding:15px">
+                                                <div id="jsonContainer"></div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="container-fluid" style="margin-top:20px;">
                                     <hr>
-                                    <div class="animate__animated animate__flipInX" id="divConfigurarSql" style="background:#17A2B8; transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; border-radius:12px 0px; gap:5px; padding:5px 10px; width:125px;">
-                                        <i class="fas fa-code" style="font-size:10px; color:white"></i>
-                                        <span class="montserrat" style="font-size:9px; color:white">Configurar SQL</span>
-                                    </div> 
-                                    <div class="row" style="margin-top:2px">
-                                        <div class="col-12" style="position:relative; overflow:hidden">
-                                            <div id="errorValidarSql" class="animate__animated animate__fadeInDown" style=
-                                            "
-                                                gap:5px; 
-                                                z-index:1; 
-                                                width:98%; 
-                                                left:12px;
-                                                color:white; 
-                                                height:120px; 
-                                                display:none; 
-                                                cursor:pointer;
-                                                padding:15px 20px;
-                                                position:absolute; 
-                                                border-radius:5px; 
-                                                background:#dc3545eb;
-                                                flex-direction:column; 
-                                                justify-content:center; 
-                                                transition:all 0.5s ease;
-                                            ">
-                                                <div style="display:flex; align-items:center; gap:5px; position:relative">
-                                                    <div class="btnCerrarError" data-action="click->facturas--reporteador#hideMensajeError" style=
+                                    <div style="display:flex; gap:4px; width:100%">
+                                        <div class="animate__animated animate__flipInX" style="display:flex; gap:4px;" id="botonesInforme">
+                                            <button type="submit" class="btn btn-success" id="btnGuardarInforme" data-facturas--reporteador-target="btnGuardarInforme"><i class="fas fa-save"></i> Guardar</button>
+                                            <button type="button" class="btn btn-danger" id="btnEliminarInforme" style="display:none" data-action="facturas--reporteador#showPopoverEliminarInforme"><i class="fas fa-trash"></i> Eliminar</button>
+                                            
+                                            {# Popover para eliminar informe #}
+                                            {# ----------------------------- #}
+
+                                            <div style="position:relative; width:0px; margin:-2px">
+                                                <div 
+                                                    role="tooltip" 
+                                                    x-placement="right" 
+                                                    id="popoverEliminarInforme" 
+                                                    class="popover fade show bs-popover animate__animated animate__fadeIn" 
+                                                    style=
                                                     "
-                                                        top:-13px;
-                                                        width:17px; 
-                                                        right:-9px;
-                                                        padding:6px; 
-                                                        height:17px; 
-                                                        display:flex; 
-                                                        border-radius:50%; 
-                                                        position:absolute; 
-                                                        background:#DC3545; 
-                                                        align-items:center;
-                                                        border:2px solid white; 
-                                                        justify-content:center; 
-                                                        transition:all 0.5s ease;
-                                                    ">
-                                                        <i class="fas fa-times" style="color:white; font-size:7px"></i>
+                                                        left:-2px; 
+                                                        top:-151px; 
+                                                        width:auto; 
+                                                        width:530px;
+                                                        height:auto; 
+                                                        border:none; 
+                                                        padding:3px; 
+                                                        display:none; 
+                                                        max-width:530px; 
+                                                        position: absolute; 
+                                                        border-radius:20px; 
+                                                        background:transparent; 
+                                                        will-change: transform; 
+                                                    "
+                                                >
+                                                    <div class="card-info" style="height:188px; width:357px">
+                                                        <div class="top-section" style="height:175px">
+                                                            <div class="border" style="width:274px"></div>
+                                                            <div class="icons">
+                                                                <div style="display:flex; align-items:center">
+                                                                    <div class="logoPopover" style="display:flex">
+                                                                        <i class="fas fa-info-circle text-light" style="font-size:12px"></i>
+                                                                    </div>
+                                                                    <b style="font-size:12px; color:white; margin-left:3px; margin-top:-6px">
+                                                                        Eliminar informe
+                                                                    </b>
+                                                                </div>
+                                                                <div class="social-media">
+                                                                    <a href="#" class="opciones" data-action="facturas--reporteador#hidePopoverEliminarInforme"><i class="fas fa-times-circle text-danger" style="transition:all 0.5s ease"></i></a>
+                                                                </div>
+                                                            </div>
+                                                            <div style="padding:15px">
+                                                                <div style="font-size:12px; display:flex; flex-direction:column; gap:3px">
+                                                                    <span style="font-size:12px">Se eliminará el informe:</span>
+                                                                    <div style="display:flex; align-items:center; gap:5px; padding-left:5px;">
+                                                                        <i class="fas fa-angle-double-right text-info" style="font-size:8px"></i>
+                                                                        <small 
+                                                                            class="font-italic text-info" 
+                                                                            style="font-size:10px; padding:2px 12px 2px 10px; border-radius:15px; border:1px solid #17A2B8"
+                                                                        >
+                                                                            <i class="fas fa-info-circle mr-1" style="font-size:10px"></i>
+                                                                            <b style="font-size:10px" id="nombreInforme"></b>
+                                                                        </small>
+                                                                    </div>
+                                                                    <b style="font-size:12px">¿Está seguro de continuar?</b>
+                                                                </div>
+                                                                <hr>
+                                                                <div style="display:flex; align-items:center; position:relative">
+                                                                    <button type="button" class="btnTooltip bg-success" style="margin-right:3px" data-action="facturas--reporteador#confirmarEliminarInforme">
+                                                                        <div class="sign"><i class="fas fa-check" style="font-size:11px; color:white"></i></div>
+                                                                        <div class="textBtn" style="margin-right:3px; margin-top:-1px">Aceptar</div>
+                                                                    </button>
+                                                                    <button type="button" class="btnTooltip bg-danger" style="margin-right:3px" data-action="facturas--reporteador#hidePopoverEliminarInforme">
+                                                                        <div class="sign"><i class="fas fa-times" style="font-size:11px; color:white"></i></div>
+                                                                        <div class="textBtn" style="margin-right:3px; margin-top:-1px">Regresar</div>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; background:white; width:20px; height:20px; padding:10px">
-                                                        <i class="fas fa-code" style="color:#DC3545; font-size:9px"></i>
-                                                    </div>
-                                                    <span style="font-size:12px; font-weight:bold">Error al validar el SQL</span>
-                                                </div>
-                                                <hr style="width: 100%; color: white; border-color: white; opacity: 0.4; margin-top: 5px; margin-bottom: 5px;">
-                                                <div style="display:flex; align-items:center; gap:3px; padding-left:10px">
-                                                    <span style="font-size:12px;" id="msgError"></span>
                                                 </div>
                                             </div>
-                                            {{ form_widget(formNuevoInforme.sql, {'attr' : {'class' : 'form-control' }})}}
+                                            <button type="button" class="btn btn-danger" onclick="$('#modalNuevoInforme').modal('hide')"><i class="fas fa-ban"></i> Cancelar</button>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="list-group-item p-0" style="border:none">
-                                    <hr>
-                                    <div class="animate__animated animate__flipInX" style="background:#17A2B8; transition:all 0.5s ease; display:flex; align-items:center; justify-content:center; border-radius:12px 0px; gap:5px; padding:5px 10px; width:125px;">
-                                        <i class="fas fa-code" style="font-size:10px; color:white"></i>
-                                        <span class="montserrat" style="font-size:9px; color:white">Configurar JSON</span>
-                                    </div> 
-                                    <div style="margin-top:2px; display:flex; gap:10px; width:100%">
-                                        <div id="frameCamposJson" style="border: 1px solid #d0d4da; border-radius:5px; flex:1; padding:5px 0px">
-                                            
-                                        </div>
-                                        <div style="border: 1px solid #d0d4da; border-radius:5px; width:400px">
-                                            
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="container-fluid" style="margin-top:20px;">
-                                <hr>
-                                <button type="submit" class="btn btn-success" id="btnGuardarInforme" data-facturas--reporteador-target="btnGuardarInforme"><i class="fas fa-save"></i> Guardar</button>
-                                <button type="button" class="btn btn-danger" onclick="$('#nuevoInforme').modal('hide')"><i class="fas fa-ban"></i> Cancelar</button>
-                            </div>
-                        {{ form_end(formNuevoInforme) }}
+                            {{ form_end(formNuevoInforme) }}
+                        </div>
                     </div>
                 </div>
             </div>

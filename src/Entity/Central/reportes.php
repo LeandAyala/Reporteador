@@ -43,6 +43,11 @@ class reportes
      */
     private $json = [];
 
+    /**
+     * @ORM\Column(type="integer", nullable=true)
+     */
+    private $estado;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -104,6 +109,18 @@ class reportes
     public function setJson(?array $json): self
     {
         $this->json = $json;
+
+        return $this;
+    }
+
+    public function getEstado(): ?int
+    {
+        return $this->estado;
+    }
+
+    public function setEstado(?int $estado): self
+    {
+        $this->estado = $estado;
 
         return $this;
     }

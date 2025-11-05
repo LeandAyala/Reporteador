@@ -6,7 +6,11 @@ export default class extends Controller
     campos = [];
     editor = null;
     lineaError = -1;
+    keyAgrupacion = 0;
+    keyTotalizacion = 0;
+    camposTotalizacion = [];
     mensaje = new mensajes();
+    keyTotalizacionAgrupacion = 0;
 
     static values = 
     {
@@ -50,8 +54,8 @@ export default class extends Controller
         let btnShowModal = event.currentTarget;
         let formInforme = this.formNuevoInformeTarget;
         let idRegistro = event.currentTarget.dataset.id;
-        let nombreInforme = event.currentTarget.dataset.nombre;
         let idActual = $('#nuevo_informe_idRegistro').val();
+        let nombreInforme = event.currentTarget.dataset.nombre;
         setTimeout(() =>
         {
             this.editor.refresh();
@@ -77,6 +81,7 @@ export default class extends Controller
             /** Se actualiza el modal con los campos del informe */
             /** ------------------------------------------------ */
 
+            this.campos = result.campos;
             $('#jsonContainer').html('');
             this.editor.setValue(result.sql);
             $('#nuevo_informe_tipo').val(result.tipo);
@@ -87,6 +92,7 @@ export default class extends Controller
             $('#frameCamposJson').html(result.camposJson);
             setTimeout(() =>{this.editor.refresh()}, 200);
             $('#nuevo_informe_idRegistro').val(idRegistro);
+            this.camposTotalizacion = result.camposTotalizacion;
             btnShowModal.innerHTML = '<i class="fas fa-cog"></i>';
             let formatter = new JSONFormatter(result.json, 1, { theme: 'light' });
             document.getElementById("jsonContainer").appendChild(formatter.render());
@@ -102,7 +108,7 @@ export default class extends Controller
             $('#iconoNuevoInforme').removeClass('fa-edit').addClass('fa-external-link-alt');
             $('#divConfiguracionJson').css('display', 'none');
             $('#tituloNuevoInforme').text(`Nuevo informe`);
-            if(idActual > 0)
+            if(Number(idActual) > 0)
             {
                 formInforme.reset();
                 $('#botonesInforme').removeClass('animate__flipInX').addClass('animate__flipOutX');
@@ -112,6 +118,7 @@ export default class extends Controller
                     $('#botonesInforme').removeClass('animate__flipOutX').addClass('animate__flipInX');               
                 }, 800);
             }
+            $('#nuevo_informe_modulo').val($('#filtros_busqueda_informes_modulo').val());
             this.editor.setValue('');
         }
         $('#modalNuevoInforme').modal('show');
@@ -198,8 +205,8 @@ export default class extends Controller
             let html = $('#inputHtmlCampo'+key).val();
             let nombre = $('#inputNombreCampo'+key).val();
             let titulo = $('#inputTituloCampo'+key).val();
+            let nombreRuta = $('#inputRutaCampo'+key).val();
             let tipoDato = $('#selectTipoDatoCampo'+key).val();
-            let nombreRuta = $('#selectAlineacionTitulo'+key).val();
             let alineacionCampo = $('#selectAlineacionCampo'+key).val();
             let alineacionTitulo = $('#selectAlineacionTitulo'+key).val();
 
@@ -210,10 +217,10 @@ export default class extends Controller
             {
                 let key = $(this).data('key');
                 let valor = $(`#inputValorParametrosRutaCampo${nombre}${key}`).val();
-                let nombreRuta = $(`#inputNombreParametrosRutaCampo${nombre}${key}`).val();
-                if(nombreRuta != '' && valor != '')
+                let nombreRutaCampo = $(`#inputNombreParametrosRutaCampo${nombre}${key}`).val();
+                if(nombreRutaCampo != '' && valor != '')
                 {
-                    parametros[`${nombreRuta}`] = valor;
+                    parametros[`${nombreRutaCampo}`] = valor;
                 }
             });
             if(nombreRuta != '')
@@ -356,9 +363,11 @@ export default class extends Controller
 
         if(result.status == 'success')
         {
+            this.hideMensajeError();
             this.campos = result.campos;
             $('#jsonContainer').html('');
             $('#divConfiguracionJson').css('display', '');
+            this.camposTotalizacion = result.camposTotalizacion;
             if(Number($('#nuevo_informe_idRegistro').val()) == 0)
             {
                 $('#divTituloNuevoInforme').addClass('animate__animated animate__flipOutX');
@@ -512,17 +521,61 @@ export default class extends Controller
         /** ------------------------------------------------- */
 
         let key = 0;
+        let index = 1;
         let campos = '';
-        $('.agrupamiento').each(function(){key ++});
-        this.campos.forEach((item) => {campos += `<option class="optionConfiguraciones" value="${item}">${item}</option>`});
+        let seleccion = '';
+        let camposUtilizados = [];
+        let camposAgrupamiento = [];
+        $('.agrupamiento').each(function()
+        {
+            key ++;
+            let keyCampo = $(this).data('key');
+            camposUtilizados.push($('#selectAgrupamiento'+keyCampo).val());
+        });
+        if(key == 3)
+        {
+            this.mensaje.mostrarMensaje('¡Solo es posible agregar 3 campos de agrupación!', 3);
+            return;
+        }
+        if(this.campos.length == 0)
+        {
+            this.mensaje.mostrarMensaje('¡No se han configurado campos con el tipo de dato texto!', 2);
+            return;
+        }
+        if(this.keyAgrupacion === 0)
+        {
+            this.keyAgrupacion = key + 1;
+            key = this.keyAgrupacion;
+        }
+        else
+        {
+            this.keyAgrupacion ++;
+            key = this.keyAgrupacion;
+        }
+
+        /** Se valida que existan campos disponibles para seleccionar */
+        /** --------------------------------------------------------- */
+
+        camposAgrupamiento = this.campos.filter((item) => !camposUtilizados.includes(item));
+        if(camposAgrupamiento.length == 0)
+        {
+            this.mensaje.mostrarMensaje('¡No existen campos de agrupación disponibles!', 2);
+            return;
+        }
+        camposAgrupamiento.forEach((item) => 
+        {
+            campos += `<option class="optionConfiguraciones" value="${item}">${item}</option>`;
+            if(index === 1){seleccion = item;}
+            index ++;
+        });
         $('#listAgrupamiento').append(
         `
-            <div class="agrupamiento animate__animated animate__fadeIn" data-key="${key + 1}" id="agrupamiento${key + 1}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
+            <div class="agrupamiento animate__animated animate__fadeIn" data-key="${key}" id="agrupamiento${key}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
                 <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
                     <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                         <i class="fas fa-tag" style="font-size:12px"></i>
                     </div>
-                    <select class="form-control custom-select" id="selectAgrupamiento${key + 1}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
+                    <select class="form-control custom-select selectAgrupamiento" data-clase="selectAgrupamiento" data-seleccion="${seleccion}" id="selectAgrupamiento${key}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" data-action="facturas--reporteador#seleccionarOpcion">
                         ${campos}
                     </select>
                 </div>
@@ -530,10 +583,10 @@ export default class extends Controller
                     <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
                         <i class="fas fa-check" style="font-size:12px"></i>
                     </div>
-                    <input id="inputAgrupamiento${key + 1}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Título agrupamiento">
+                    <input id="inputAgrupamiento${key}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Título agrupamiento">
                 </div>
                 <div style="display:flex; position:relative; width:14px; justify-content:end">
-                    <i class="fas fa-trash text-danger" data-key="agrupamiento${key + 1}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarAgrupamiento"></i>
+                    <i class="fas fa-trash text-danger" data-key="agrupamiento${key}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarAgrupamiento"></i>
                 </div>
             </div>
         `);
@@ -544,9 +597,12 @@ export default class extends Controller
         /** En esta función se eliminan campos de agrupamiento */
         /** -------------------------------------------------- */
 
+        let keys = 0;
         let key = event.currentTarget.dataset.key;
+        $('.agrupamiento').each(function(){keys ++});
         setTimeout(() =>{$('#'+key).remove()}, 1000);
         setTimeout(() =>{$('#'+key).hide(400)}, 600);
+        if(this.keyAgrupacion === 0){this.keyAgrupacion = keys;}
         $('#'+key).removeClass('animate__animated animate__fadeIn').addClass('animate__animated animate__fadeOut');
     } 
 
@@ -556,25 +612,81 @@ export default class extends Controller
         /** ------------------------------------------------- */
 
         let key = 0;
+        let index = 1;
         let campos = '';
+        let seleccion = '';
+        let camposUtilizados = [];
+        let camposTotalizacion = [];
         let clase = event.currentTarget.dataset.clase;
         let lista = event.currentTarget.dataset.lista;
-        $('.'+clase).each(function(){key ++});
-        let nombreSelect = clase[0].toUpperCase() + clase.substring(1) + (key + 1);
-        this.campos.forEach((item) => {campos += `<option class="optionConfiguraciones" value="${item}">${item}</option>`});
+        let claseSelect = event.currentTarget.dataset.claseselect;
+        if(this.camposTotalizacion.length == 0)
+        {
+            this.mensaje.mostrarMensaje('¡No se han configurado campos con los tipos de dato: numero o moneda!', 2);
+            return;
+        }
+
+        /** Se valida que existan campos disponibles para seleccionar */
+        /** --------------------------------------------------------- */
+        
+        $('.'+clase).each(function()
+        {
+            key ++;
+            let keyCampo = $(this).data('key');
+            camposUtilizados.push($('#select'+clase[0].toUpperCase() + clase.substring(1) + keyCampo).val());
+        });
+        if(claseSelect === 'selectTotalizacionAgrupamiento')
+        {
+            if(this.keyTotalizacionAgrupacion > 0)
+            {
+                this.keyTotalizacionAgrupacion ++;
+                key = this.keyTotalizacionAgrupacion;
+            }
+            else
+            {
+                this.keyTotalizacionAgrupacion = key + 1;
+                key = this.keyTotalizacionAgrupacion;
+            }
+        }
+        else
+        {
+            if(this.keyTotalizacion > 0)
+            {
+                this.keyTotalizacion ++;
+                key = this.keyTotalizacion;
+            }
+            else
+            {
+                this.keyTotalizacion = key + 1;
+                key = this.keyTotalizacion;
+            }
+        }
+        camposTotalizacion = this.camposTotalizacion.filter((item) => !camposUtilizados.includes(item));
+        if(camposTotalizacion.length == 0)
+        {
+            this.mensaje.mostrarMensaje('¡No existen campos de totalización disponibles!', 2);
+            return;
+        }
+        let nombreSelect = clase[0].toUpperCase() + clase.substring(1) + key;
+        camposTotalizacion.forEach((item) => 
+        {
+            campos += `<option class="optionConfiguraciones" value="${item}">${item}</option>`;
+            if(index === 1){seleccion = item}
+            index ++;
+        });
         $('#'+lista).append(
         `
-            <div class="${clase} animate__animated animate__fadeIn" data-key="${key + 1}" id="${clase + (key + 1)}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
+            <div class="${clase} animate__animated animate__fadeIn" data-key="${key}" id="${clase + key}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
                 <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
                     <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                         <i class="fas fa-tag" style="font-size:12px"></i>
                     </div>
-                    <select class="form-control custom-select" id="select${nombreSelect}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
+                    <select class="form-control custom-select ${claseSelect}" data-clase="${claseSelect}" data-seleccion="${seleccion}" id="select${nombreSelect}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" data-action="facturas--reporteador#seleccionarOpcion">
                         ${campos}
                     </select>
                 </div>
                 <div style="display:flex; position:relative; width:14px; justify-content:end">
-                    <i class="fas fa-trash text-danger" data-key="${clase + (key + 1)}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarTotalizacion"></i>
+                    <i class="fas fa-trash text-danger" data-key="${clase + key}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarTotalizacion"></i>
                 </div>
             </div>
         `);
@@ -584,8 +696,20 @@ export default class extends Controller
     {
         /** En esta función se eliminan campos de totalización */
         /** -------------------------------------------------- */
-
+        
+        let keys = 0;
+        let opc = event.currentTarget.dataset.opc;
         let key = event.currentTarget.dataset.key;
+        if(opc === 'totalizacionAgrupacion')
+        {
+            $('.totalizacionAgrupamiento').each(function(){keys ++});
+            if(this.keyTotalizacionAgrupacion === 0){this.keyTotalizacionAgrupacion = keys;}
+        }
+        else
+        {
+            $('.totalizacionInforme').each(function(){keys ++});
+            if(this.keyTotalizacion === 0){this.keyTotalizacion = keys;}
+        }
         setTimeout(() =>{$('#'+key).remove()}, 1000);
         setTimeout(() =>{$('#'+key).hide(400)}, 600);
         $('#'+key).removeClass('animate__animated animate__fadeIn').addClass('animate__animated animate__fadeOut');
@@ -656,5 +780,21 @@ export default class extends Controller
         $('#btnEliminarInforme').html('<i class="fas fa-trash"></i> Eliminar');
         $('#modalNuevoInforme').modal('hide');
         await this.actualizarListaInforme();
+    }
+
+    seleccionarOpcion(event)
+    {
+        /** En esta función se valida si un campo de agrupación o totalización (General - Agrupación) ya se encuentra seleccionado */
+        /** ---------------------------------------------------------------------------------------------------------------------- */
+
+        let opcionesSeleccionadas = [];
+        let clase = event.currentTarget.dataset.clase;
+        let opcionSeleccionada = event.currentTarget.dataset.seleccion;
+        opcionesSeleccionadas = $('.'+clase).filter(function(){return $(this).val() === event.currentTarget.value});
+        if(opcionesSeleccionadas.length > 1)
+        {
+            this.mensaje.mostrarMensaje(`¡El campo ${event.currentTarget.value} ya se encuentra seleccionado!`);
+            event.currentTarget.value = opcionSeleccionada;
+        }
     }
 }   

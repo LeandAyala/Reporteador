@@ -53,7 +53,7 @@ class FiltrosReporteadorType extends AbstractType
                     'placeholder' => 'Seleccione',
                     'query_builder' => function(reportesRepository $repository) use ($tipo, $modulo)
                     {
-                        return $repository->createQueryBuilder('r')->where("r.tipo = $tipo")->andWhere("r.modulo = '$modulo'");
+                        return $repository->createQueryBuilder('r')->where("r.tipo = $tipo")->andWhere("r.modulo = '$modulo'")->andWhere('r.estado = 1');
                     },
                     'choice_attr' => function($item)
                     {   

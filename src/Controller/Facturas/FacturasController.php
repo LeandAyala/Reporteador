@@ -582,7 +582,11 @@ class FacturasController extends AbstractController
         $status = 'success';
         $configuraciones = [];
         $valoresConsulta = [];
+        $camposAgrupacion = [];
+        $nombreCamposTotalizacion = [];
+        $camposTotalizacionGeneral = [];
         $conexion = $bd->getConnection();
+        $camposTotalizacionAgrupacion = [];
         $form = $request->request->get('nuevo_informe');
         $configuracionesInforme = json_decode($request->request->get('configuraciones'), true);
         $reporte = ($form['idRegistro'] > 0)?$bd->getRepository(reportes::class)->findOneBy(['id' => $form['idRegistro']]):new reportes();
@@ -667,15 +671,53 @@ class FacturasController extends AbstractController
                 {
                     if(!empty($campos))
                     {
+                        $nombreCampos = [];
                         foreach($campos as $campo)
                         {
                             $campoExistente = array_filter($configuracionesInforme['campos'], fn($item) => $item['nombre'] === $campo['nombre']);
-                            if(empty($campoExistente)){$configuracionesInforme['campos'][] = $campo;}
+                            if(empty($campoExistente))
+                            {
+                                $configuracionesInforme['campos'][] = $campo;
+                            }
+                            else
+                            {
+                                sort($campoExistente);
+                                if($campoExistente[0]['tipoDato'] == 'texto'){$nombreCampos[] = $campoExistente[0]['nombre'];}
+                                if(in_array($campoExistente[0]['tipoDato'], ['numero', 'moneda'])){$nombreCamposTotalizacion[] = $campoExistente[0]['nombre'];}
+
+                                /** Se obtienen los campos de agrupación */
+                                /** ------------------------------------ */
+
+                                foreach($configuracionesInforme['agrupamiento'][0]['campos'] as $campo)
+                                {
+                                    $camposAgrupacion[] = $campo['nombre'];
+                                }
+
+                                /** Se obtienen los campos de totalización definidos en la agrupación */
+                                /** ----------------------------------------------------------------- */
+
+                                foreach($configuracionesInforme['agrupamiento'][0]['totalizacion'] as $totalizacion)
+                                {
+                                    $camposTotalizacionAgrupacion[] = $totalizacion['campo'];
+                                }
+
+                                /** Se obtienen los campos de totalización general */
+                                /** ---------------------------------------------- */
+
+                                foreach($configuracionesInforme['totalizacion'] as $totalizacion)
+                                {
+                                    $camposTotalizacionGeneral[] = $totalizacion['campo'];
+                                }
+                            }
                         }
+                    }
+                    else
+                    {
+                        $configuracionesInforme['campos'] = [];
                     }
                     $configuraciones = $configuracionesInforme;
                 }
-                
+
                 /** Se efectúa el registro/edición del informe */
                 /** ------------------------------------------ */
     
@@ -692,7 +734,15 @@ class FacturasController extends AbstractController
                 /** ------------------------------------------------------ */
     
                 $idInforme = $reporte->getId();
-                $camposJson = $this->renderView('Facturas\Reporteador\frameCamposJson.html.twig', ['configuraciones' => $configuraciones, 'campos' => $nombreCampos]);
+                $camposJson = $this->renderView('Facturas\Reporteador\frameCamposJson.html.twig', 
+                [
+                    'campos' => $nombreCampos,
+                    'configuraciones' => $configuraciones, 
+                    'camposAgrupacion' => $camposAgrupacion,
+                    'camposTotalizacion' => $nombreCamposTotalizacion,
+                    'camposTotalizacionGeneral' => $camposTotalizacionGeneral,
+                    'camposTotalizacionAgrupacion' => $camposTotalizacionAgrupacion
+                ]);
             }
             catch(\Exception $e)
             {
@@ -714,7 +764,8 @@ class FacturasController extends AbstractController
             'idInforme' => $idInforme,
             'campos' => $nombreCampos, 
             'camposJson' => $camposJson, 
-            'configuraciones' => $configuraciones
+            'configuraciones' => $configuraciones,
+            'camposTotalizacion' => $nombreCamposTotalizacion
         ]));
     }
 
@@ -728,21 +779,71 @@ class FacturasController extends AbstractController
 
         $bd = $this->em;
         $nombreCampos = [];
+        $camposAgrupacion = [];
+        $nombreCamposTotalizacion = [];
+        $camposTotalizacionGeneral = [];
+        $camposTotalizacionAgrupacion = [];
         $id = $request->request->get('idRegistro');
         $informe = $bd->getRepository(reportes::class)->findOneBy(['id' => $id]);
+
+        /** Se obtienen los campos generales, campos de agrupación y totalización */
+        /** --------------------------------------------------------------------- */
+
         if(array_key_exists('campos', $informe->getJson()))
         {
-            foreach($informe->getJson()['campos'] as $campo){$nombreCampos[] = $campo['nombre'];}
+            foreach($informe->getJson()['campos'] as $campo)
+            {
+                if($campo['tipoDato'] == 'texto'){$nombreCampos[] = $campo['nombre'];}
+                if(in_array($campo['tipoDato'], ['numero', 'moneda'])){$nombreCamposTotalizacion[] = $campo['nombre'];}
+            }
         }
-        $camposJson = $this->renderView('Facturas\Reporteador\frameCamposJson.html.twig', ['configuraciones' => $informe->getJson(), 'campos' => $nombreCampos]);
+        if(array_key_exists('agrupamiento', $informe->getJson()))
+        {
+            /** Se obtienen los campos de agrupación */
+            /** ------------------------------------ */
+
+            foreach($informe->getJson()['agrupamiento'][0]['campos'] as $campo)
+            {
+                $camposAgrupacion[] = $campo['nombre'];
+            }
+
+            /** Se obtienen los campos de totalización definidos en la agrupación */
+            /** ----------------------------------------------------------------- */
+
+            foreach($informe->getJson()['agrupamiento'][0]['totalizacion'] as $totalizacion)
+            {
+                $camposTotalizacionAgrupacion[] = $totalizacion['campo'];
+            }
+        }
+        if(array_key_exists('totalizacion', $informe->getJson()))
+        {
+            /** Se obtienen los campos de totalización general */
+            /** ---------------------------------------------- */
+
+            foreach($informe->getJson()['totalizacion'] as $totalizacion)
+            {
+                $camposTotalizacionGeneral[] = $totalizacion['campo'];
+            }
+        }
+        $camposJson = $this->renderView('Facturas\Reporteador\frameCamposJson.html.twig', 
+        [
+            'campos' => $nombreCampos,
+            'camposAgrupacion' => $camposAgrupacion,
+            'configuraciones' => $informe->getJson(), 
+            'camposTotalizacion' => $nombreCamposTotalizacion,
+            'camposTotalizacionGeneral' => $camposTotalizacionGeneral,
+            'camposTotalizacionAgrupacion' => $camposTotalizacionAgrupacion
+        ]);
         return new Response(json_encode(
         [
+            'campos' => $nombreCampos,
             'sql' => $informe->getSql(),
             'camposJson' => $camposJson,
             'json' => $informe->getJson(),
             'tipo' => $informe->getTipo(),
             'nombre' => $informe->getNombre(),
             'modulo' => $informe->getModulo(),
+            'camposTotalizacion' => $nombreCamposTotalizacion,
         ]));
     }
 

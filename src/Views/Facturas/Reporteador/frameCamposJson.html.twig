@@ -40,13 +40,13 @@
                                             <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
                                                 <i class="fas fa-check" style="font-size:12px"></i>
                                             </div>
-                                            <input id="inputNombreParametrosRutaFrameInforme{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" value="{{ key }}" placeholder="Nombre parámetro">
+                                            <input id="inputNombreParametrosRutaFrame{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" value="{{ key }}" placeholder="Nombre parámetro">
                                         </div>
                                         <div style="display:flex; position:relative; width:150px">
                                             <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
                                                 <i class="fas fa-tag" style="font-size:12px"></i>
                                             </div>
-                                            <input id="inputValorParametrosRutaFrameInforme{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" value="{{ parametro }}" placeholder="Valor parámetro">
+                                            <input id="inputValorParametrosRutaFrame{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" value="{{ parametro }}" placeholder="Valor parámetro">
                                         </div>
                                         <div style="display:flex; position:relative; width:14px; justify-content:end">
                                             <i class="fas fa-trash text-danger" data-key="parametrosRutaFrame{{ key }}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarParametro"></i>
@@ -224,10 +224,10 @@
                                                 <i class="fas fa-tag" style="font-size:12px"></i>
                                             </div>
                                             <select class="form-control custom-select" id="selectTipoDatoCampo{{ key }}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
-                                                <option class="optionConfiguraciones" value="texto" {{ (campo.tipoDato is defined and campo.tipoDato == 'texto') ? 'selectd' : '' }}>texto</option>
-                                                <option class="optionConfiguraciones" value="numero" {{ (campo.tipoDato is defined and campo.tipoDato == 'numero') ? 'selectd' : '' }}>numero</option>
-                                                <option class="optionConfiguraciones" value="moneda" {{ (campo.tipoDato is defined and campo.tipoDato == 'moneda') ? 'selectd' : '' }}>moneda</option>
-                                                <option class="optionConfiguraciones" value="fecha" {{ (campo.tipoDato is defined and campo.tipoDato == 'fecha') ? 'selectd' : '' }}>fecha</option>
+                                                <option class="optionConfiguraciones" value="texto" {{ (campo.tipoDato is defined and campo.tipoDato == 'texto') ? 'selected' : '' }}>texto</option>
+                                                <option class="optionConfiguraciones" value="numero" {{ (campo.tipoDato is defined and campo.tipoDato == 'numero') ? 'selected' : '' }}>numero</option>
+                                                <option class="optionConfiguraciones" value="moneda" {{ (campo.tipoDato is defined and campo.tipoDato == 'moneda') ? 'selected' : '' }}>moneda</option>
+                                                <option class="optionConfiguraciones" value="fecha" {{ (campo.tipoDato is defined and campo.tipoDato == 'fecha') ? 'selected' : '' }}>fecha</option>
                                             </select>
                                         </div>
                                     </div>
@@ -238,9 +238,9 @@
                                             </div>
                                             <select class="form-control custom-select" id="selectAlineacionTitulo{{ key }}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
                                                 <option class="optionConfiguraciones" value="">Alineación título</option>
-                                                <option class="optionConfiguraciones" value="izquierda" {{ (campo.alineacionTitulo is defined and campo.alineacionTitulo == 'izquierda') ? 'selectd' : '' }}>izquierda</option>
-                                                <option class="optionConfiguraciones" value="derecha" {{ (campo.alineacionTitulo is defined and campo.alineacionTitulo == 'derecha') ? 'selectd' : '' }}>derecha</option>
-                                                <option class="optionConfiguraciones" value="centro" {{ (campo.alineacionTitulo is defined and campo.alineacionTitulo == 'centro') ? 'selectd' : '' }}>centro</option>
+                                                <option class="optionConfiguraciones" value="izquierda" {{ (campo.alineacionTitulo is defined and campo.alineacionTitulo == 'izquierda') ? 'selected' : '' }}>izquierda</option>
+                                                <option class="optionConfiguraciones" value="derecha" {{ (campo.alineacionTitulo is defined and campo.alineacionTitulo == 'derecha') ? 'selected' : '' }}>derecha</option>
+                                                <option class="optionConfiguraciones" value="centro" {{ (campo.alineacionTitulo is defined and campo.alineacionTitulo == 'centro') ? 'selected' : '' }}>centro</option>
                                             </select>
                                         </div>
                                         <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
@@ -249,9 +249,9 @@
                                             </div>
                                             <select class="form-control custom-select" id="selectAlineacionCampo{{ key }}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
                                                 <option class="optionConfiguraciones" value="">Alineación campo</option>
-                                                <option class="optionConfiguraciones" value="izquierda" {{ (campo.alineacionCampo is defined and campo.alineacionCampo == 'izquierda') ? 'selectd' : '' }}>izquierda</option>
-                                                <option class="optionConfiguraciones" value="derecha" {{ (campo.alineacionCampo is defined and campo.alineacionCampo == 'derecha') ? 'selectd' : '' }}>derecha</option>
-                                                <option class="optionConfiguraciones" value="centro" {{ (campo.alineacionCampo is defined and campo.alineacionCampo == 'centro') ? 'selectd' : '' }}>centro</option>
+                                                <option class="optionConfiguraciones" value="izquierda" {{ (campo.alineacionCampo is defined and campo.alineacionCampo == 'izquierda') ? 'selected' : '' }}>izquierda</option>
+                                                <option class="optionConfiguraciones" value="derecha" {{ (campo.alineacionCampo is defined and campo.alineacionCampo == 'derecha') ? 'selected' : '' }}>derecha</option>
+                                                <option class="optionConfiguraciones" value="centro" {{ (campo.alineacionCampo is defined and campo.alineacionCampo == 'centro') ? 'selected' : '' }}>centro</option>
                                             </select>
                                         </div>
                                         <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
@@ -312,7 +312,7 @@
                                             <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                                                 <i class="fab fa-html5" style="font-size:13px"></i>
                                             </div>
-                                            <textarea id="inputHtmlCampo{{ key }}" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px; min-height:70px" placeholder="html" value=""></textarea>
+                                            <textarea id="inputHtmlCampo{{ key }}" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px; min-height:70px" placeholder="html">{{ campo.html }}</textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -341,16 +341,18 @@
                 </div>
                 <div id="agrupamiento" style="border-radius:0px 0px 5px 5px; padding:15px; border:1px solid #d0d4da; display:none; margin-top:-4px; margin-left:2px; margin-right:2px">
                     <div id="listAgrupamiento" style="display:flex; width:100%; gap:3px; flex-direction:column; margin-top:2px">
-                        {% if configuraciones.agrupamiento is defined and configuraciones.agrupamiento|length > 0 and configuraciones.agrupamiento.campos is defined %}
-                            {% for key, agrupamiento in configuraciones.agrupamiento.campos %}
+                        {% if configuraciones.agrupamiento is defined and configuraciones.agrupamiento|length > 0 and configuraciones.agrupamiento[0].campos is defined %}
+                            {% for key, agrupamiento in configuraciones.agrupamiento[0].campos %}
                                 <div class="agrupamiento" data-key="{{ key }}" id="agrupamiento{{ key }}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
                                     <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
                                         <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                                             <i class="fas fa-tag" style="font-size:12px"></i>
                                         </div>
-                                        <select class="form-control custom-select" id="selectAgrupamiento{{ key }}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
+                                        <select class="form-control custom-select selectAgrupamiento" data-seleccion="{{ agrupamiento.nombre }}" data-clase="selectAgrupamiento" id="selectAgrupamiento{{ key }}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" data-action="facturas--reporteador#seleccionarOpcion">
                                             {% for campo in campos %}
-                                                <option class="optionConfiguraciones" value="{{ campo }}" {{ (agrupamiento.nombre is defined and agrupamiento.nombre == campo) ? 'selected' : '' }}>{{ campo }}</option>
+                                                {% if campo not in camposAgrupacion or campo == agrupamiento.nombre %}
+                                                    <option class="optionConfiguraciones" value="{{ campo }}" {{ (agrupamiento.nombre is defined and agrupamiento.nombre == campo) ? 'selected' : '' }}>{{ campo }}</option>
+                                                {% endif %}
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -390,27 +392,29 @@
                             <span class="montserrat" style="font-size:9px">Totalización</span>
                         </div>
                         <div id="listTotalizacionAgrupamiento" style="display:flex; width:100%; gap:3px; flex-direction:column; margin-top:2px">
-                            {% if configuraciones.agrupamiento is defined and configuraciones.agrupamiento|length > 0 and configuraciones.agrupamiento.totalizacion is defined %}
-                                {% for key, totalizacion in configuraciones.agrupamiento.totalizacion %}
+                            {% if configuraciones.agrupamiento is defined and configuraciones.agrupamiento|length > 0 and configuraciones.agrupamiento[0].totalizacion is defined %}
+                                {% for key, totalizacion in configuraciones.agrupamiento[0].totalizacion %}
                                     <div class="totalizacionAgrupamiento" data-key="{{ key }}" id="totalizacionAgrupamiento{{ key }}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
                                         <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
                                             <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                                                 <i class="fas fa-tag" style="font-size:12px"></i>
                                             </div>
-                                            <select class="form-control custom-select" id="selectTotalizacionAgrupamiento{{ key }}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
-                                                {% for campo in campos %}
-                                                    <option class="optionConfiguraciones" value="{{ campo }}" {{ (totalizacion.campo is defined and totalizacion.campo == campo) ? totalizacion.campo : '' }}>{{ campo }}</option>
+                                            <select class="form-control custom-select selectTotalizacionAgrupamiento" data-seleccion="{{ totalizacion.campo }}" data-clase="selectTotalizacionAgrupamiento" id="selectTotalizacionAgrupamiento{{ key }}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" data-action="facturas--reporteador#seleccionarOpcion">
+                                                {% for campo in camposTotalizacion %}
+                                                    {% if campo not in camposTotalizacionAgrupacion or campo == totalizacion.campo %}
+                                                        <option class="optionConfiguraciones" value="{{ campo }}" {{ (totalizacion.campo is defined and totalizacion.campo == campo) ? totalizacion.campo : '' }}>{{ campo }}</option>
+                                                    {% endif %}
                                                 {% endfor %}
                                             </select>
                                         </div>
                                         <div style="display:flex; position:relative; width:14px; justify-content:end">
-                                            <i class="fas fa-trash text-danger" data-key="totalizacionAgrupamiento{{ key }}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarTotalizacion"></i>
+                                            <i class="fas fa-trash text-danger" data-opc="totalizacionAgrupacion" data-key="totalizacionAgrupamiento{{ key }}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarTotalizacion"></i>
                                         </div>
                                     </div>
                                 {% endfor %}
                             {% endif %}
                         </div>
-                        <div class="divAgregarConfiguracion" data-clase="totalizacionAgrupamiento" data-lista="listTotalizacionAgrupamiento" data-action="click->facturas--reporteador#agregarTotalizacion" style=
+                        <div class="divAgregarConfiguracion" data-opc="totalizacionAgrupacion" data-claseselect="selectTotalizacionAgrupamiento" data-clase="totalizacionAgrupamiento" data-lista="listTotalizacionAgrupamiento" data-action="click->facturas--reporteador#agregarTotalizacion" style=
                         "   
                             display:flex; 
                             padding:10px; 
@@ -479,20 +483,22 @@
                                         <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                                             <i class="fas fa-tag" style="font-size:12px"></i>
                                         </div>
-                                        <select class="form-control custom-select" id="selectTotalizacionInforme{{ key }}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
-                                            {% for campo in campos %}
-                                                <option class="optionConfiguraciones" value="{{ campo }}" {{ (totalizacion.campo is defined and totalizacion.campo == campo) ? 'selected' : '' }}>{{ campo }}</option>
+                                        <select class="form-control custom-select selectTotalizacion" data-seleccion="{{ totalizacion.campo }}" data-clase="selectTotalizacion" id="selectTotalizacionInforme{{ key }}" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" data-action="facturas--reporteador#seleccionarOpcion">
+                                            {% for campo in camposTotalizacion %}
+                                                    {% if campo not in camposTotalizacionGeneral or campo == totalizacion.campo %}
+                                                        <option class="optionConfiguraciones" value="{{ campo }}" {{ (totalizacion.campo is defined and totalizacion.campo == campo) ? 'selected' : '' }}>{{ campo }}</option>
+                                                    {% endif %}
                                             {% endfor %}
                                         </select>
                                     </div>
                                     <div style="display:flex; position:relative; width:14px; justify-content:end">
-                                        <i class="fas fa-trash text-danger" data-key="totalizacionInforme{{ key }}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarTotalizacion"></i>
+                                        <i class="fas fa-trash text-danger" data-opc="totalizacion" data-key="totalizacionInforme{{ key }}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarTotalizacion"></i>
                                     </div>
                                 </div>
                             {% endfor %}
                         {% endif %}
                     </div>
-                    <div class="divAgregarConfiguracion" data-clase="totalizacionInforme" data-lista="listTotalizacionInforme" data-action="click->facturas--reporteador#agregarTotalizacion" style=
+                    <div class="divAgregarConfiguracion" data-opc="totalizacion" data-claseselect="selectTotalizacion" data-clase="totalizacionInforme" data-lista="listTotalizacionInforme" data-action="click->facturas--reporteador#agregarTotalizacion" style=
                     "   
                         display:flex; 
                         padding:10px; 
@@ -533,7 +539,7 @@
                                 <i class="fas fa-file" style="font-size:12px"></i>
                             </div>
                             <select class="form-control custom-select" id="tipoHoja" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
-                                <option class="optionConfiguraciones" value="texto">Tipo hoja</option>
+                                <option class="optionConfiguraciones" value="">Tipo hoja</option>
                                 <option class="optionConfiguraciones" value="letter" {{ (configuraciones.pdf is defined and configuraciones.pdf.tipoHoja is defined and configuraciones.pdf.tipoHoja == 'letter') ? 'selected' : '' }}>Carta</option>
                                 <option class="optionConfiguraciones" value="legal" {{ (configuraciones.pdf is defined and configuraciones.pdf.tipoHoja is defined and configuraciones.pdf.tipoHoja == 'legal') ? 'selected' : '' }}>Oficio</option>
                             </select>
@@ -543,7 +549,7 @@
                                 <i class="fas fa-align-center" style="font-size:12px"></i>
                             </div>
                             <select class="form-control custom-select" id="orientacion" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
-                                <option class="optionConfiguraciones" value="texto">Orientación</option>
+                                <option class="optionConfiguraciones" value="">Orientación</option>
                                 <option class="optionConfiguraciones" value="portrait" {{ (configuraciones.pdf is defined and configuraciones.pdf.orientacion is defined and configuraciones.pdf.orientacion == 'portrait') ? 'selected' : '' }}>Vertical</option>
                                 <option class="optionConfiguraciones" value="landscape" {{ (configuraciones.pdf is defined and configuraciones.pdf.orientacion is defined and configuraciones.pdf.orientacion == 'landscape') ? 'selected' : '' }}>Horizontal</option>
                             </select>
@@ -562,7 +568,7 @@
                             <span class="montserrat" style="font-size:9px">Parámetros</span>
                         </div>
                         <div id="listParametrosRutaPdf" style="display:flex; width:100%; gap:3px; flex-direction:column; margin-top:2px">
-                            {% if configuraciones.pdf is defined and configuraciones.pdf.ruta is defined and configuraciones.pdf.parametros is defined and configuraciones.pdf.parametros|length > 0 %}
+                            {% if configuraciones.pdf is defined and configuraciones.pdf.ruta is defined and configuraciones.pdf.ruta.parametros is defined and configuraciones.pdf.ruta.parametros|length > 0 %}
                                 {% for key, parametro in configuraciones.pdf.ruta.parametros %}
                                     <div class="parametrosRutaPdf" data-key="{{ key }}" id="parametrosRutaPdf{{ key }}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
                                         <div style="display:flex; position:relative; flex:1">
@@ -575,7 +581,7 @@
                                             <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
                                                 <i class="fas fa-tag" style="font-size:12px"></i>
                                             </div>
-                                            <input id="inputValorParametrosRutaPdf{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="{{ parametro }}">
+                                            <input id="inputValorParametrosRutaPdf{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Valor parámetro" value="{{ parametro }}">
                                         </div>
                                         <div style="display:flex; position:relative; width:14px; justify-content:end">
                                             <i class="fas fa-trash text-danger" data-key="parametrosRutaPdf{{ key }}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarParametro"></i>
@@ -695,7 +701,7 @@
                         <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                             <i class="fas fa-link" style="font-size:10px"></i>
                         </div>
-                        <input type="text" id="inputRutaFrameResumen" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta frame informe" value="{{ (configuraciones.rutaFrameResumen is defined and configuraciones.rutaFrame.nombre is defined) ? configuraciones.rutaFrameResumen.nombre : '' }}">
+                        <input type="text" id="inputRutaFrameResumen" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta frame resumen" value="{{ (configuraciones.rutaFrameResumen is defined and configuraciones.rutaFrameResumen.nombre is defined) ? configuraciones.rutaFrameResumen.nombre : '' }}">
                     </div>
                     <div style="width:100%; position:relative; margin-top:30px; padding:0px 15px">
                         <hr>

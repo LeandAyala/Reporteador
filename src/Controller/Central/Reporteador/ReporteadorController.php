@@ -32,13 +32,17 @@ class ReporteadorController extends AbstractController
     private $filaGeneral;
     private $estilosExcel;
     private $ultimaColumna;
+    private $keysAgrupadas;
+    private $camposResumen;
     private $camposTotalizados;
-    private $camposTotalizacionAgrupamiento;
+    private $camposTotalizacionAgrupamiento;        
     public function __construct(EntityManagerInterface $em, Pdf $pdf)
     {
         $this->em = $em;
         $this->pdf = $pdf;
+        $this->keysAgrupadas;
         $this->filaGeneral = 6;
+        $this->camposResumen = [];
         $this->ultimaColumna = '';
         $this->camposTotalizados = [];
         $this->camposConfigurados = [];
@@ -76,6 +80,7 @@ class ReporteadorController extends AbstractController
         $status = 'success';
         $totalRegistros = 0;
         $indexPaginacion = 1;
+        $seccionResumen = '';
         $contenidoInforme = '';
         $indexTotalPaginas = 1;
         $camposAgrupacion = [];
@@ -93,6 +98,7 @@ class ReporteadorController extends AbstractController
         $cabeceraConfiguradaVista = '';
         $conexion = $bd->getConnection();
         $listRegistrosBusquedaRapida = [];
+        $displayResumen = 'display:none;';
         $listRegistrosBusquedaDinamica = [];
         $accionBloqueo = 'pointer-events:none;';
         $camposAgrupacionConfiguradosVista = '';
@@ -107,6 +113,7 @@ class ReporteadorController extends AbstractController
         $informe = $bd->getRepository(reportes::class)->findOneBy(['id' => $form['informe']]);
         $fondo = base64_encode(file_get_contents($this->getParameter('imgs_directory').'fondo.jpg'));
         $logoError = base64_encode(file_get_contents($this->getParameter('imgs_directory').'logoActualizado.png'));
+        $camposBusquedaAgrupacion = !empty($request->request->get('busquedaAgrupacion'))?json_decode($request->request->get('busquedaAgrupacion'), true):[];
         $this->configuracionesGuardadas = !empty($request->request->get('configuracionesGuardadas'))?json_decode($request->request->get('configuracionesGuardadas'), true):[];
 
         /** Se obtienen los filtros de búsqueda seleccionados */
@@ -183,11 +190,34 @@ class ReporteadorController extends AbstractController
         {
             $listRegistros = $conexion->prepare($sqlInforme)->executeQuery()->fetchAll();
             if(count($listRegistros) > 0){$bloqueoMenu = '';}
+
+            /** Se filtran los registros de acuerdo a los campos de agrupación */
+            /** -------------------------------------------------------------- */
+
+            $listRegistrosBusquedaAgrupacion = [];
+            $condicionesValidasBusquedaAgrupacion = 0;
+            if(!empty($camposBusquedaAgrupacion))
+            {
+                foreach($listRegistros as $registro)
+                {
+                    foreach($camposBusquedaAgrupacion as $campo)
+                    {
+                        if($registro[$campo['campo']] === $campo['valor']){$condicionesValidasBusquedaAgrupacion ++;}
+                    }
+                    if($condicionesValidasBusquedaAgrupacion === count($camposBusquedaAgrupacion))
+                    {
+                        $listRegistrosBusquedaAgrupacion[] = $registro;
+                    }
+                    $condicionesValidasBusquedaAgrupacion = 0;
+                }
+                $listRegistros = $listRegistrosBusquedaAgrupacion;
+            }
+
+            /** Se filtran los registros de acuerdo a la búsqueda rápida */
+            /** -------------------------------------------------------- */
+
             if($busquedaRapida != '')
             {
-                /** Se filtran los registros de acuerdo a la búsqueda rápida */
-                /** -------------------------------------------------------- */
-
                 foreach($listRegistros as $registro)
                 {
                     foreach($registro as $campo)
@@ -372,27 +402,383 @@ class ReporteadorController extends AbstractController
             $iconoBotonSiguiente = ($pagina == count($listRegistrosPaginacion))?$iconoBloqueo:'';
             $accionBotonSiguiente = ($pagina == count($listRegistrosPaginacion))?$accionBloqueo:'';
 
-            if(!empty($listRegistrosPaginacion))
+            /** Se valida si existen campos de agrupación configurados */
+            /** ------------------------------------------------------ */
+
+            if(array_key_exists('campos', $agrupamiento[0]) && is_array($agrupamiento[0]['campos']) && !empty($agrupamiento[0]['campos']))
             {
-                $listRegistros = $listRegistrosPaginacion[$pagina - 1];
-
-                /** Se valida si existen campos de agrupación configurados */
-                /** ------------------------------------------------------ */
-
-                if(array_key_exists('campos', $agrupamiento[0]) && is_array($agrupamiento[0]['campos']) && !empty($agrupamiento[0]['campos']))
+                $keyCampos = array_keys($listRegistros[0]);
+                foreach($keyCampos as $campo)
                 {
-                    $displayConfiguracionAgrupacion = '';
-                    $keyCampos = array_keys($listRegistros[0]);
-                    foreach($keyCampos as $campo)
+                    foreach($agrupamiento[0]['campos'] as $a)
                     {
-                        foreach($agrupamiento[0]['campos'] as $a)
+                        if($a['nombre'] == $campo){$camposAgrupacion[] = $campo;}
+                    }
+                }
+            }
+            if(!empty($this->configuracionesGuardadas)){$camposAgrupacion = $this->configuracionesGuardadas['agrupacion'];}
+
+            /** Se obtiene la información de resumen */
+            /** ------------------------------------ */
+
+            $divResumen = '';
+            $keyAgrupacion = [];
+            $camposResumen = [];
+            $titulosResumen = [];
+            $listAgrupadaResumen = [];
+            $estilosCampoAgrupacion = [];
+            $camposTotalAgrupamiento = [];
+            $camposAgrupacionResumen = [];
+            if(!empty($camposAgrupacion))
+            {
+                /** Se obtienen los campos de totalización configurados en la agrupación */
+                /** -------------------------------------------------------------------- */
+
+                $displayResumen = 'display:flex;';
+                $displayConfiguracionAgrupacion = '';
+                if(array_key_exists('totalizacion', $agrupamiento[0]) && is_array($agrupamiento[0]['totalizacion']) && !empty($agrupamiento[0]['totalizacion']))
+                {   
+                    foreach($agrupamiento[0]['totalizacion'] as $totalizacion)
+                    {
+                        $tipoDato = 'numero';
+                        if(array_key_exists('campo', $totalizacion) && !empty($totalizacion['campo']))
                         {
-                            if($a['nombre'] == $campo){$camposAgrupacion[] = $campo;}
+                            if(!empty($this->configuracionesGuardadas) && !in_array($totalizacion['campo'], $this->configuracionesGuardadas['campos'])){continue;}
+                            $titulo = ucfirst(str_replace('_', ' ', $totalizacion['campo']));
+                            $campoConfigurado = array_filter($configuracionCampos, fn($item) => $item['nombre'] === $totalizacion['campo']);
+                            sort($campoConfigurado);
+                            if(!empty($campoConfigurado))
+                            {
+                                $titulo = $campoConfigurado[0]['titulo'];
+                                $tipoDato = $campoConfigurado[0]['tipoDato'];
+                            }
+                            $camposTotalAgrupamiento[] = $totalizacion['campo'];
+                            $estilosCampoAgrupacion[$totalizacion['campo']] = ['titulo' => $titulo, 'tipoDato' => $tipoDato];
                         }
                     }
                 }
+                $titulosResumen = $camposAgrupacion;
+                foreach($camposTotalAgrupamiento as $ct){$titulosResumen[] = $ct;}
+                foreach($listRegistros as $indexRegistro => $registro)
+                {
+                    foreach($camposAgrupacion as $agrupacion)
+                    {
+                        $tipoDato = 'numero';
+                        $keyAgrupacion[] = $registro[$agrupacion];
+                        $camposAgrupacionResumen[$agrupacion] = $registro[$agrupacion];
+                        if(!empty($configuracionCampos))
+                        {
+                            $titulo = ucfirst(str_replace('_', ' ', $agrupacion));
+                            if($indexRegistro == 0)
+                            {
+                                $campoConfigurado = array_filter($configuracionCampos, fn($item) => $item['nombre'] === $agrupacion);
+                                sort($campoConfigurado);
+                                if(!empty($campoConfigurado))
+                                {
+                                    $titulo = array_key_exists('titulo', $campoConfigurado[0]) && !empty($campoConfigurado[0]['titulo'])?$campoConfigurado[0]['titulo']:$titulo;
+                                    $tipoDato = array_key_exists('tipoDato', $campoConfigurado[0]) && !empty($campoConfigurado[0]['tipoDato'])?$campoConfigurado[0]['tipoDato']:$tipoDato;
+                                }
+                                $estilosCampoAgrupacion[$agrupacion] = ['titulo' => $titulo, 'tipoDato' => $tipoDato];
+                            }
+                        }
+                    }
 
-                if(!empty($this->configuracionesGuardadas)){$camposAgrupacion = $this->configuracionesGuardadas['agrupacion'];}
+                    /** Se genera la agrupación de los campos */
+                    /** ------------------------------------- */
+
+                    $keyAgrupacion = implode('_', $keyAgrupacion);
+                    if(array_key_exists($keyAgrupacion, $camposResumen))
+                    {
+                        $camposResumen[$keyAgrupacion]['totalRegistros'] = $camposResumen[$keyAgrupacion]['totalRegistros'] + 1;
+                    }
+                    else
+                    {
+                        $camposResumen[$keyAgrupacion]['totalRegistros'] = 1;
+                    }
+
+                    /** Se obtiene la sumatoria de los campos de totalización configurados en la agrupación */
+                    /** ----------------------------------------------------------------------------------- */
+
+                    if(!empty($camposTotalAgrupamiento))
+                    {
+                        foreach($camposTotalAgrupamiento as $ct)
+                        {
+                            if(array_key_exists('totalizacion', $camposResumen[$keyAgrupacion]))
+                            {
+                                if(array_key_exists($ct, $camposResumen[$keyAgrupacion]['totalizacion']))
+                                {
+                                    $camposResumen[$keyAgrupacion]['totalizacion'][$ct] = $camposResumen[$keyAgrupacion]['totalizacion'][$ct] + $registro[$ct];
+                                }
+                                else
+                                {
+                                    $camposResumen[$keyAgrupacion]['totalizacion'][$ct] = $registro[$ct];
+                                }
+                            }
+                            else
+                            {
+                                $camposResumen[$keyAgrupacion]['totalizacion'][$ct] = $registro[$ct];
+                            }
+                        }
+                    }
+                    $camposResumen[$keyAgrupacion]['agrupacion'] = $camposAgrupacionResumen;
+                    $camposAgrupacionResumen = [];
+                    $keyAgrupacion = [];
+                }
+                $listAgrupadaResumen = ['titulos' => $titulosResumen, 'campos' => $camposResumen];
+                $this->camposResumen[] = $camposResumen;
+                
+                /** Se crean los títulos de la tabla del resumen */
+                /** -------------------------------------------- */
+
+                $tdTituloResumen = '';
+                foreach($listAgrupadaResumen['titulos'] as $index => $titulo)
+                {
+                    $estiloBorde = 'border-right:none;';
+                    $divGraficas = in_array($titulo, $camposAgrupacion)?'':
+                    <<<TWIG
+                        <div class="btnGraficas" data-action="click->central--reporteador#showGraficas" data-grafica="$titulo" style=
+                        "
+                            width: 22px;
+                            right: 10px;
+                            height: 22px;
+                            padding: 0px;
+                            display: flex;
+                            cursor: pointer;
+                            background: white;
+                            position: absolute;
+                            border-radius: 50%;
+                            align-items: center;
+                            justify-content: center;
+                            transition:all 0.5s ease;
+                            border: 1px solid #007BFF;
+                        ">
+                            <i class="fas fa-chart-simple" style="font-size: 11px; transition:all 0.5s ease; color:#007BFF"></i>
+                        </div>
+                    TWIG;
+                    $titulo = $estilosCampoAgrupacion[$titulo]['titulo']; 
+                    if($index == 0){$estiloBorde = 'border-radius:10px 0px 0px 0px; border-right:none';}
+                    $tdTituloResumen .=
+                    <<<TWIG
+                    <th>
+                        <div style="text-align:center; font-size:12px; display:flex; align-items:center; justify-content:center; height:35px; border: 1px solid #d0d4da; position:relative; $estiloBorde">
+                            $divGraficas
+                            $titulo
+                        </div>
+                    </th>
+                    TWIG;
+                }
+                $tdTituloResumen .=
+                <<<TWIG
+                <th>
+                    <div style="text-align:center; font-size:12px; display:flex; align-items:center; justify-content:center; height:35px; border-radius:0px 10px 0px 0px; border: 1px solid #d0d4da;">
+                        Registros
+                        <div class="btnGraficas" data-action="click->central--reporteador#showGraficas" data-grafica="registros" style=
+                        "
+                            width: 22px;
+                            right: 10px;
+                            height: 22px;
+                            padding: 0px;
+                            display: flex;
+                            cursor: pointer;
+                            background: white;
+                            position: absolute;
+                            border-radius: 50%;
+                            align-items: center;
+                            justify-content: center;
+                            transition:all 0.5s ease;
+                            border: 1px solid #007BFF;
+                        ">
+                            <i class="fas fa-chart-simple" style="font-size: 11px; transition:all 0.5s ease; color:#007BFF"></i>
+                        </div>
+                    </div>
+                </th>
+                TWIG;
+                $trTitulosResumen = 
+                <<<TWIG
+                <tr class="bg-light text-primary">
+                    $tdTituloResumen
+                </tr>
+                TWIG;
+
+                /** Se crean los campos de totalización en la tabla del resumen */
+                /** ----------------------------------------------------------- */
+
+                $indexCampos = 0;
+                $tdTotalResumen = '';
+                $tdCamposResumen = '';
+                $trCamposResumen = '';
+                $totalCamposResumen = [];
+                $totalGeneralResumen = 0;
+                $indexCampoAgrupacion = 0;
+                $colspanTotalResumen = count($listAgrupadaResumen['campos'][array_key_first($listAgrupadaResumen['campos'])]['agrupacion']);
+                foreach($listAgrupadaResumen['campos'] as $campos)
+                {
+                    foreach($campos['agrupacion'] as $index => $agrupacion)
+                    {
+                        $nombreAgrupacion = $agrupacion;
+                        $claseTiutloResumen = ($indexCampoAgrupacion == 0)?'tituloResumen':'';
+                        $agrupacion = explode('-', $agrupacion)[1];
+                        $tdCamposResumen .=
+                        <<<TWIG
+                        <td>
+                            <div class="$claseTiutloResumen tituloResumen$indexCampos" data-campo="$index" data-nombre="$nombreAgrupacion" data-opc="$indexCampos" style="background:white; font-size:12px; display:flex; align-items:center; justify-content:center; height:30px; border: 1px solid #d0d4da; border-right:none; border-top:none">
+                                $agrupacion
+                            </div>
+                        </td>
+                        TWIG;
+                        $indexCampoAgrupacion ++;
+                    }
+                    if(array_key_exists('totalizacion', $campos))
+                    {
+                        foreach($campos['totalizacion'] as $key => $totalizacion)
+                        {
+                            if(array_key_exists($key, $totalCamposResumen))
+                            {
+                                $totalCamposResumen[$key] = $totalCamposResumen[$key] + $totalizacion;
+                            }
+                            else
+                            {
+                                $totalCamposResumen[$key] = $totalizacion;
+                            }
+                            if($estilosCampoAgrupacion[$key]['tipoDato'] == 'moneda')
+                            {
+                                $totalizacion = number_format($totalizacion, 2, ',', '.');
+                            }
+                            $tdCamposResumen .=
+                            <<<TWIG
+                            <td>
+                                <div class="campoTotalizacion$key" style="background:white; font-size:12px; display:flex; align-items:center; justify-content:end; padding-right:7px; height:30px; border: 1px solid #d0d4da; border-right:none; border-top:none">
+                                    $totalizacion
+                                </div>
+                            </td>
+                            TWIG;
+                        }
+                    }
+                    $totalRegistrosResumen = $campos['totalRegistros'];
+                    $totalGeneralResumen += $totalRegistrosResumen;
+                    $tdCamposResumen .=
+                    <<<TWIG
+                    <td>
+                        <div class="campoTotalizacionregistros" style="background:white; font-size:12px; display:flex; align-items:center; justify-content:end; padding-right:7px; height:30px; border: 1px solid #d0d4da; border-top:none">
+                            $totalRegistrosResumen
+                        </div>
+                    </td>
+                    TWIG;
+                    $trCamposResumen .= 
+                    <<<TWIG
+                    <tr>$tdCamposResumen</tr>
+                    TWIG;
+                    $indexCampoAgrupacion = 0;
+                    $tdCamposResumen = '';
+                    $indexCampos ++;
+                }
+
+                /** Se crean los totales del resumen */
+                /** -------------------------------- */
+
+                $tdTotalResumen .=
+                <<<TWIG
+                <td colspan="$colspanTotalResumen">
+                    <div style="text-align:center; font-size:12px; display:flex; align-items:center; justify-content:end; height:35px; border-radius:0px 0px 0px 10px; border: 1px solid #d0d4da; border-right:none; border-top:none">
+                        <div>
+                            <div class="ripple" style="position:relative">
+                                <i 
+                                    style="position: absolute; top:1px; left:1px; font-size:12px" 
+                                    class="fas fa-info-circle text-primary" 
+                                ></i>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:center; gap:7px">
+                            <span class="montserrat text-primary" style="margin-left:8px; font-size:11px; margin-top:1px">Totales</span>
+                            <i class="fas fa-angle-double-right text-primary" style="font-size:9px; margin-top:1px"></i>
+                        </div>
+                    </div>
+                </td>
+                TWIG;
+                foreach($totalCamposResumen as $key => $total)
+                {
+                    if($estilosCampoAgrupacion[$key]['tipoDato'] == 'moneda')
+                    {
+                        $total = number_format($total, 2, ',', '.');
+                    }
+                    $tdTotalResumen .=
+                    <<<TWIG
+                    <th>
+                        <div style="text-align:center; font-size:12px; display:flex; align-items:center; justify-content:end; height:35px; border: 1px solid #d0d4da; border-right:none; border-top:none; padding-right:7px; border-left:none">
+                            $total
+                        </div>
+                    </th>
+                    TWIG;
+                }
+                $tdTotalResumen .=
+                <<<TWIG
+                <th>
+                    <div style="text-align:center; font-size:12px; display:flex; align-items:center; justify-content:end; padding-right:7px; height:35px; border-radius:0px 0px 10px 0px; border: 1px solid #d0d4da; border-top:none; border-left:none">
+                        $totalGeneralResumen
+                    </div>
+                </th>
+                TWIG;
+                $trTotalesResumen = 
+                <<<TWIG
+                <tr class="bg-light">
+                    $tdTotalResumen
+                </tr>
+                TWIG;
+
+                /** Se crea la sección de resumen */
+                /** ----------------------------- */
+
+                $seccionResumen =
+                <<<TWIG
+                <div class="animate__animated animate__fadeIn" style="display:flex; align-items:center; justify-content:center; height:100%;">
+                    <div class="containerResumen" style="filter:drop-shadow(0px 0px 6px gray); border-radius:15px; padding:42px 25px 30px 25px; background:white; overflow:hidden; position:relative">
+                        <i 
+                            data-opc="2"
+                            data-action="click->central--reporteador#hideResumen"
+                            class="fas fa-times-circle cerrarError text-danger animate__animated animate__fadeInRight animate__delay-1s" 
+                            style="position:absolute; right:18px; top:15px; font-size:15px; cursor:pointer; z-index:2; transition:all 0.5s ease; border-radius:50%"
+                        ></i>
+                        <i class="fas fa-cog fa-spin text-secondary" style="opacity:0.2; position:absolute; top:-105px; left:-131px; font-size:205px; --fa-animation-duration: 15s;"></i>
+                        <img src="data:image;base64,$fondo" style="width:100%; height:100%; object-fit:cover; position:absolute; opacity:0.1; z-index:0; top:0px; left:0px">
+                        <div class="animate__animated animate__fadeInDown" style="display:flex; align-items:center; gap:5px; border-radius:16px 0px; padding:10px 20px; background:#17A; color:white; position:relative; z-index:-1">
+                            <i class="fas fa-layer-group" style="color:white; font-size:12px"></i>
+                            <span class="montserrat">Resumen</span>
+                        </div>
+                        <hr style="margin-bottom:30px">
+                        <div class="listadoTablaResumen" style="width:100%">
+                            <div class="animate__animated animate__fadeIn animate__delay-1s" style="position:relative;">
+                                <table border="0" cellspacing="0" cellpadding="0" style="width:100%">
+                                    $trTitulosResumen
+                                    $trCamposResumen
+                                    $trTotalesResumen
+                                </table>
+                            </div>
+                            <div id="divGraficas" style="display:none; margin-top:30px; opacity:0; width:100%">
+                                <div class="animate__animated animate__fadeIn animate__delay-1s" style="display:flex; align-items:center; justify-content:center; gap:10px; width:100%">
+                                    <div class="divTitulosResumen" style="flex:1; display:flex; border:1px solid #d0d4da; padding:20px; border-radius:10px; position:relative; background:white; flex-direction:column">
+                                        <div class="montserrat" style="display:flex; align-items:center; justify-content:center; background:#17A; border-radius:10px 2px; gap:5px; padding:4px 15px; width:fit-content; height:fit-content">
+                                            <i class="fas fa-chart-simple" style="font-size:10px; color:white"></i>
+                                            <span id="tituloResumen" style="font-size:10px; color:white"></span>
+                                        </div>
+                                        <div class="listadoTabla" id="divTitulosResumen" style="display:flex; gap:3px; width:100%; margin-top:20px; flex-direction:column; overflow-y:auto; padding-right:2px; max-height:246px;"></div>
+                                    </div>
+                                    <div class="divGraficaPastel" style="display:flex; align-items:center; justify-content:center; border:1px solid #d0d4da; padding:25px; border-radius:10px; position:relative; background:white">
+                                        <canvas id="graficaPastel"></canvas>
+                                    </div>
+                                    <div class="divGraficaBarras" style="display:flex; align-items:center; justify-content:center; border:1px solid #d0d4da; padding:25px; border-radius:10px; position:relative; background:white">
+                                        <canvas id="graficaBarras"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                TWIG;
+            }
+
+            if(!empty($listRegistrosPaginacion))
+            {
+                $listRegistros = $listRegistrosPaginacion[$pagina - 1];
                 if(!empty($camposAgrupacion))
                 {
                     /** Se genera el informe con campos de agrupación */
@@ -400,6 +786,8 @@ class ReporteadorController extends AbstractController
                     
                     $listAgrupada = [];
                     $campoControl = '';
+                    $keysAgrupadas = [];
+                    $keyAgrupacion = [];
                     $campoAnterior = '';
                     $camposReferencia = [];
                     $divTotalesGenerales = '';
@@ -415,6 +803,9 @@ class ReporteadorController extends AbstractController
                             foreach($listRegistros as $registro)
                             {
                                 $listAgrupada[$campo][$registro[$campo]] = $registro[$campo];
+                                foreach($camposAgrupacion as $ca){$keyAgrupacion[] = $registro[$ca];}
+                                $keysAgrupadas[implode('_', $keyAgrupacion)] = implode('_', $keyAgrupacion);
+                                $keyAgrupacion = [];
                             }
                         }
                         else
@@ -506,6 +897,7 @@ class ReporteadorController extends AbstractController
                     $registrosAgrupados = [];
                     $divAgrupacionGeneral = '';
                     $divRegistrosAgrupacion = '';
+                    foreach($keysAgrupadas as $ka){$this->keysAgrupadas[] = $ka;}
                     foreach($listAgrupada as $key => $lista)
                     {
                         if($key == 'registros'){break;}
@@ -1167,6 +1559,7 @@ class ReporteadorController extends AbstractController
             }
         }
 
+        $displayBtnEliminarAgrupacion = !empty($camposBusquedaAgrupacion)?'display:flex;':'display:none;';
         $altoSeccion = ($cantidadCampos > 10)?380:($cantidadCampos * 35) + 30;
         $seccionConfiguraciones =
         <<<TWIG
@@ -1506,6 +1899,14 @@ class ReporteadorController extends AbstractController
                                     <i class="fas fa-angle-double-right flecha text-success" style="opacity:0; font-size:9px; transition:all 0.5s ease"></i>
                                     <span class="montserrat-text" style="font-size:12px; margin-left:-19px; transition:all 0.5s ease">Descargar EXCEL</span>
                                 </div>
+                                <hr style="width:95%; margin-top:10px; margin-bottom:9px; $displayConfiguracionAgrupacion">
+                                <div class="itemMenu" style="cursor:pointer; border-radius:3px; $displayResumen align-items:center; gap:10px; padding:5px 15px; width:100%;" data-action="click->central--reporteador#showResumen" id="opcionConfiguraciones">
+                                    <div style="width:16px">
+                                        <i class="fas fa-layer-group text-info" style="font-size:15px"></i>
+                                    </div>
+                                    <i class="fas fa-angle-double-right flecha text-info" style="opacity:0; font-size:9px; transition:all 0.5s ease"></i>
+                                    <span class="montserrat-text" style="font-size:12px; margin-left:-19px; transition:all 0.5s ease">Resumen</span>
+                                </div>
                                 <hr style="width:95%; margin-top:10px; margin-bottom:9px">
                                 <div class="itemMenu" style="cursor:pointer; border-radius:3px; display:flex; align-items:center; gap:10px; padding:5px 15px; width:100%;" data-action="click->central--reporteador#showConfiguraciones" id="opcionConfiguraciones">
                                     <div style="width:16px">
@@ -1545,7 +1946,7 @@ class ReporteadorController extends AbstractController
                             </div>
                         </div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:30px; margin-top:50px;">
+                    <div style="display:flex; align-items:center; gap:30px; margin-top:50px; justify-content:space-between; padding-right:15px">
                         <div class="animate__animated animate__fadeInLeft" style="position:relative; margin-left:15px; width:fit-content; display:flex; align-items:center; $bloqueoMenu">
                             <button id="btnBusquedaRapida" style="transition:all 0.5s ease; position:absolute; border-radius:50%; right:6px; background:#17A; color:white" class="btn btn-sm" data-action="central--reporteador#busquedaRapida" data-opc="1"><i class="fas fa-search" style="font-size:12px"></i></button>
                             <input id="busquedaRapida" class="form-control buscar montserrat-text" type="text" placeholder="Búsqueda rápida" data-central--reporteador-target="busquedaRapida" style=
@@ -1557,6 +1958,23 @@ class ReporteadorController extends AbstractController
                                 padding:0px 53px 0px 19px;
                                 border-radius:20px 20px 20px 5px; 
                             " data-action="keypress->central--reporteador#busquedaRapida" data-opc="2" value="$busquedaRapida">
+                        </div>
+                        <div class="btnEliminarAgrupacion" data-action="click->central--reporteador#eliminarBusquedaAgrupacion" style=
+                            "
+                                gap:5px; 
+                                cursor:pointer; 
+                                overflow:hidden;
+                                padding:7px 15px; 
+                                position:relative; 
+                                align-items:center; 
+                                border-radius:15px; 
+                                justify-content:center; 
+                                border:1px solid #DC3545; 
+                                $displayBtnEliminarAgrupacion 
+                            " 
+                        >
+                            <i class="fas fa-chart-simple" style="font-size:10px; color:#DC3545; transition:all 0.5s ease; position:relative"></i>
+                            <span class="montserrat" style="font-size:10px; color:#DC3545; transition:all 0.5s ease; position:relative">Eliminar agrupación</span>
                         </div>
                     </div>
                     <hr style="margin-left:15px; margin-right:15px">
@@ -1574,7 +1992,14 @@ class ReporteadorController extends AbstractController
         <input type="hidden" id="totalRegistrosHidden" value="$totalRegistros" data-central--reporteador-target="totalRegistrosHidden">
         <input type="hidden" id="busquedaRapidaHidden" value="$busquedaRapida" data-central--reporteador-target="busquedaRapidaHidden">
         TWIG;
-        return new Response(json_encode(['status' => $status, 'message' => $message, 'plantilla' => $plantilla, 'seccionConfiguraciones' => $seccionConfiguraciones]));
+        return new Response(json_encode(
+        [
+            'status' => $status, 
+            'message' => $message, 
+            'plantilla' => $plantilla, 
+            'seccionResumen' => $seccionResumen,
+            'seccionConfiguraciones' => $seccionConfiguraciones
+        ]));
     }
 
     public function crearTablaRegistros(Request $request, $configuraciones, $listRegistros, $agrupacion = false)
@@ -1671,6 +2096,17 @@ class ReporteadorController extends AbstractController
                     }
                 }
             }
+        }
+
+        /** Se obtienen los totales de todos los registros agrupados antes de aplicar la paginación */
+        /** --------------------------------------------------------------------------------------- */
+
+        $totalesAgrupados = [];
+        if($agrupacion && !empty($this->camposResumen) && !empty($this->keysAgrupadas))
+        {
+            $totalesAgrupados = $this->camposResumen[0][$this->keysAgrupadas[0]]['totalizacion'];
+            unset($this->keysAgrupadas[0]);
+            sort($this->keysAgrupadas);
         }
 
         /** Se genera la tabla de registros */
@@ -1788,7 +2224,6 @@ class ReporteadorController extends AbstractController
                             {
                                 $html = $campo;
                             }
-                            
                         }
                         $campo = $html;
                     }
@@ -1843,7 +2278,7 @@ class ReporteadorController extends AbstractController
                     if(array_key_exists($key, $camposTotalizados))
                     {
                         $finColspan = true;
-                        $total = $camposTotalizados[$key];
+                        $total = !empty($totalesAgrupados)?$totalesAgrupados[$key]:$camposTotalizados[$key];
                         if(!empty($configuracionCampo))
                         {
                             if(array_key_exists('tipoDato', $configuracionCampo[0]) && $configuracionCampo[0]['tipoDato'] == 'moneda')
@@ -2088,6 +2523,7 @@ class ReporteadorController extends AbstractController
         $informe = $bd->getRepository(reportes::class)->findOneBy(['id' => $form['informe']]);
         $pdfOptions->set('defaultFont', 'Helvetica')->set('sizeFont', '9')->setIsRemoteEnabled(true);
         $fechaActual = (new \DateTime('now', new \DateTimeZone('America/Bogota')))->format('Y-m-d H:i:s');
+        $camposBusquedaAgrupacion = !empty($request->request->get('busquedaAgrupacion'))?json_decode($request->request->get('busquedaAgrupacion'), true):[];
         $this->configuracionesGuardadas = !empty($request->request->get('configuracionesGuardadas'))?json_decode($request->request->get('configuracionesGuardadas'), true):[];
 
         try 
@@ -2116,6 +2552,7 @@ class ReporteadorController extends AbstractController
                 }
             }
             $sqlInforme = strtr($sqlInforme, $filtros);
+            $listRegistros = $conexion->prepare($sqlInforme)->executeQuery()->fetchAll();
 
             /** Se obtiene el json que contiene las configuraciones del informe */
             /** --------------------------------------------------------------- */
@@ -2150,15 +2587,33 @@ class ReporteadorController extends AbstractController
                 }
             }
 
-            /** Se realiza la consulta de los registros */
-            /** --------------------------------------- */
+            /** Se filtran los registros de acuerdo a los campos de agrupación */
+            /** -------------------------------------------------------------- */
 
-            $listRegistros = $conexion->prepare($sqlInforme)->executeQuery()->fetchAll();
+            $listRegistrosBusquedaAgrupacion = [];
+            $condicionesValidasBusquedaAgrupacion = 0;
+            if(!empty($camposBusquedaAgrupacion))
+            {
+                foreach($listRegistros as $registro)
+                {
+                    foreach($camposBusquedaAgrupacion as $campo)
+                    {
+                        if($registro[$campo['campo']] === $campo['valor']){$condicionesValidasBusquedaAgrupacion ++;}
+                    }
+                    if($condicionesValidasBusquedaAgrupacion === count($camposBusquedaAgrupacion))
+                    {
+                        $listRegistrosBusquedaAgrupacion[] = $registro;
+                    }
+                    $condicionesValidasBusquedaAgrupacion = 0;
+                }
+                $listRegistros = $listRegistrosBusquedaAgrupacion;
+            }
+
+            /** Se filtran los registros de acuerdo a la búsqueda rápida */
+            /** -------------------------------------------------------- */
+
             if($busquedaRapida != '')
             {
-                /** Se filtran los registros de acuerdo a la búsqueda rápida */
-                /** -------------------------------------------------------- */
-
                 foreach($listRegistros as $registro)
                 {
                     foreach($registro as $campo)
@@ -2922,10 +3377,8 @@ class ReporteadorController extends AbstractController
         $contenidoPaginacion = '';
         $configuracionCampos = [];
         $fsObject = new Filesystem();
-        $fechaCabecera = new RichText();
         $spreadsheet = new Spreadsheet();
         $conexion = $bd->getConnection();
-        $periodoCabecera = new RichText();
         $listRegistrosBusquedaRapida = [];
         $session = $request->getSession();
         $listRegistrosBusquedaDinamica = [];
@@ -2939,8 +3392,9 @@ class ReporteadorController extends AbstractController
         $alineaciones = ['centro' => 'center', 'derecha' => 'right', 'izquierda' => 'left'];
         $informe = $bd->getRepository(reportes::class)->findOneBy(['id' => $form['informe']]);
         $fechaActual = (new \DateTime('now', new \DateTimeZone('America/Bogota')))->format('Y-m-d H:i:s');
+        $camposBusquedaAgrupacion = !empty($request->request->get('busquedaAgrupacion'))?json_decode($request->request->get('busquedaAgrupacion'), true):[];
         $this->configuracionesGuardadas = !empty($request->request->get('configuracionesGuardadas'))?json_decode($request->request->get('configuracionesGuardadas'), true):[];
-
+        
         try 
         {
             /** Se obtienen los filtros de búsqueda seleccionados */
@@ -2969,6 +3423,7 @@ class ReporteadorController extends AbstractController
                 }
             }
             $sqlInforme = strtr($sqlInforme, $filtros);
+            $listRegistros = $conexion->prepare($sqlInforme)->executeQuery()->fetchAll();
 
             /** Se obtiene el json que contiene las configuraciones del informe */
             /** --------------------------------------------------------------- */
@@ -3005,15 +3460,33 @@ class ReporteadorController extends AbstractController
                 }
             }
 
-            /** Se realiza la consulta de los registros */
-            /** --------------------------------------- */
+            /** Se filtran los registros de acuerdo a los campos de agrupación */
+            /** -------------------------------------------------------------- */
 
-            $listRegistros = $conexion->prepare($sqlInforme)->executeQuery()->fetchAll();
+            $listRegistrosBusquedaAgrupacion = [];
+            $condicionesValidasBusquedaAgrupacion = 0;
+            if(!empty($camposBusquedaAgrupacion))
+            {
+                foreach($listRegistros as $registro)
+                {
+                    foreach($camposBusquedaAgrupacion as $campo)
+                    {
+                        if($registro[$campo['campo']] === $campo['valor']){$condicionesValidasBusquedaAgrupacion ++;}
+                    }
+                    if($condicionesValidasBusquedaAgrupacion === count($camposBusquedaAgrupacion))
+                    {
+                        $listRegistrosBusquedaAgrupacion[] = $registro;
+                    }
+                    $condicionesValidasBusquedaAgrupacion = 0;
+                }
+                $listRegistros = $listRegistrosBusquedaAgrupacion;
+            }
+
+            /** Se filtran los registros de acuerdo a la búsqueda rápida */
+            /** -------------------------------------------------------- */
+
             if($busquedaRapida != '')
             {
-                /** Se filtran los registros de acuerdo a la búsqueda rápida */
-                /** -------------------------------------------------------- */
-
                 foreach($listRegistros as $registro)
                 {
                     foreach($registro as $campo)
@@ -3111,6 +3584,7 @@ class ReporteadorController extends AbstractController
             $titulosAgrupacion = [];
             $keyTituloAgrupacion = [];
             $camposTotalAgrupamiento = [];
+            $camposAgrupacionResumen = [];
             $configuracionesCampoInforme = [];
             $totalRegistros = count($listRegistros);
             $camposGuardadosConfiguracion = !empty($this->configuracionesGuardadas)?$this->configuracionesGuardadas['campos']:[];
@@ -3220,16 +3694,23 @@ class ReporteadorController extends AbstractController
                     /** Se obtiene los totales de agrupación */
                     /** ------------------------------------ */
 
+                    $titulosResumen = [];
                     if(!empty($camposAgrupacion))
                     {
+                        foreach($camposAgrupacion as $campo)
+                        {
+                            $titulosResumen[$configuracionesCampoInforme[$campo]['titulo']] = 'string';
+                        }
                         if(!empty($agrupamiento) && array_key_exists('totalizacion', $agrupamiento[0]) && !empty($agrupamiento[0]['totalizacion']) && is_array($agrupamiento[0]['totalizacion']))
                         {
                             foreach($agrupamiento[0]['totalizacion'] as $index => $totalizacion)
                             {
                                 if(!empty($camposGuardadosConfiguracion) && !in_array($totalizacion['campo'], $camposGuardadosConfiguracion)){continue;}
-                                $this->camposTotalizacionAgrupamiento = $totalizacion;
+                                $titulosResumen[$configuracionesCampoInforme[$totalizacion['campo']]['titulo']] = 'string';
+                                $this->camposTotalizacionAgrupamiento[] = $totalizacion;
                             }
                         }
+                        $titulosResumen['Registros'] = 'string';
                     }
                 }
 
@@ -3262,6 +3743,7 @@ class ReporteadorController extends AbstractController
                 /** Se obtiene la lista agrupada */
                 /** ---------------------------- */
                 
+                $keyCamposAgrupacion = [];
                 if(!empty($camposAgrupacion))
                 {
                     foreach($camposAgrupacion as $campo)
@@ -3272,10 +3754,46 @@ class ReporteadorController extends AbstractController
                         $keyTituloAgrupacion[] = strip_tags($tituloAgrupacion[0]['titulo']).' » '.explode('-', $registro[$campo])[1];
                         unset($registro[$campo]);
                     }
+                    $keyCamposAgrupacion = $keyAgrupacion;
                     $keyAgrupacion = implode('_', $keyAgrupacion);
                     $titulosAgrupacion[$keyAgrupacion] = implode('   |   ', $keyTituloAgrupacion);
                     foreach($camposAgrupacion as $campo){unset($registro[$campo]);}
                     $listAgrupada[$keyAgrupacion][] = $registro;
+
+                    /** Se registra la información del resumen */
+                    /** -------------------------------------- */
+
+                    if(array_key_exists($keyAgrupacion, $camposAgrupacionResumen))
+                    {
+                        $camposAgrupacionResumen[$keyAgrupacion]['totalRegistros'] = $camposAgrupacionResumen[$keyAgrupacion]['totalRegistros'] + 1;
+                    }
+                    else
+                    {
+                        $camposAgrupacionResumen[$keyAgrupacion]['totalRegistros'] = 1;
+                        $camposAgrupacionResumen[$keyAgrupacion]['agrupacion'] = $keyCamposAgrupacion;
+                    }
+
+                    /** Se obtiene la sumatoria de los campos de totalización configurados en el agrupamiento */
+                    /** ------------------------------------------------------------------------------------- */
+
+                    foreach($this->camposTotalizacionAgrupamiento as $totalizacion)
+                    {
+                        if(array_key_exists('totalizacion', $camposAgrupacionResumen[$keyAgrupacion]))
+                        {
+                            if(array_key_exists($totalizacion['campo'], $camposAgrupacionResumen[$keyAgrupacion]['totalizacion']))
+                            {
+                                $camposAgrupacionResumen[$keyAgrupacion]['totalizacion'][$totalizacion['campo']] = $camposAgrupacionResumen[$keyAgrupacion]['totalizacion'][$totalizacion['campo']] + floatval(str_replace(['.', ','], ['', '.'], $registro[$totalizacion['campo']]));
+                            }
+                            else
+                            {
+                                $camposAgrupacionResumen[$keyAgrupacion]['totalizacion'][$totalizacion['campo']] = floatval(str_replace(['.', ','], ['', '.'], $registro[$totalizacion['campo']]));
+                            }
+                        }
+                        else
+                        {
+                            $camposAgrupacionResumen[$keyAgrupacion]['totalizacion'][$totalizacion['campo']] = floatval(str_replace(['.', ','], ['', '.'], $registro[$totalizacion['campo']]));
+                        }
+                    }
                     $keyTituloAgrupacion = [];
                     $keyAgrupacion = [];
                 }
@@ -3311,6 +3829,64 @@ class ReporteadorController extends AbstractController
                     $this->crearTablaRegistrosExcel($writer, $titulosInforme, $cabeceras, $nombreInforme, $registros, $ultimaColumna, $configuracionesCampoInforme, true, $tituloAgrupacion, $index);
                     $index ++;
                 }
+
+                /** Se crea la hoja del resumen */
+                /** --------------------------- */
+
+                $writer->writeSheetRow('Resumen', []);
+                $writer->writeSheetRow('Resumen', []);
+                $writer->writeSheetRow('Resumen', []);
+                $writer->writeSheetRow('Resumen', []);
+                $writer->writeSheetRow('Resumen', []);
+                $writer->writeSheetHeader('Resumen', $titulosResumen, []);
+
+                /** Se crean los campos del resumen */
+                /** ------------------------------- */
+
+                $totalesResumen = [];
+                $registroResumen = [];
+                foreach($camposAgrupacionResumen as $campos)
+                {
+                    /** Se obtienen los campos agrupados */
+                    /** -------------------------------- */
+
+                    foreach($campos['agrupacion'] as $campo)
+                    {
+                        $campo = explode('-', $campo)[1];
+                        $registroResumen[] = $campo;
+                    }
+
+                    /** Se obtiene el total de los campos */
+                    /** --------------------------------- */
+
+                    if(array_key_exists('totalizacion', $campos))
+                    {
+                        foreach($campos['totalizacion'] as $key => $campo)
+                        {
+                            if(array_key_exists($key, $totalesResumen))
+                            {
+                                $totalesResumen[$key] = $totalesResumen[$key] + $campo;
+                            }
+                            else
+                            {
+                                $totalesResumen[$key] = $campo;
+                            }
+                            $campo = ($configuracionesCampoInforme[$key]['tipoDato'] === 'moneda')?number_format($campo, 2, ',', '.'):$campo;
+                            $registroResumen[] = $campo;
+                        }
+                    }
+                    $registroResumen[] = $campos['totalRegistros'];
+                    if(array_key_exists('registros', $totalesResumen))
+                    {
+                        $totalesResumen['registros'] = $totalesResumen['registros'] + $campos['totalRegistros'];
+                    }
+                    else
+                    {
+                        $totalesResumen['registros'] = $campos['totalRegistros'];
+                    }
+                    $writer->writeSheetRow('Resumen', $registroResumen);
+                    $registroResumen = [];
+                }
                 $writer->writeToFile($informeTemporal);
             }
             else
@@ -3318,9 +3894,6 @@ class ReporteadorController extends AbstractController
                 /** Se genera el informe sin campos de agrupacion */
                 /** --------------------------------------------- */
                 
-                $listRegistros10Mil = array_merge($listRegistros,$listRegistros,$listRegistros,$listRegistros,$listRegistros);
-                $listRegistros50Mil = array_merge($listRegistros10Mil,$listRegistros10Mil,$listRegistros10Mil,$listRegistros10Mil,$listRegistros10Mil);
-                $listRegistros = $listRegistros50Mil;
                 $this->crearTablaRegistrosExcel($writer, $titulosInforme, $cabeceras, $nombreInforme, $listRegistros, $ultimaColumna, $configuracionesCampoInforme, false, '', 1);
                 $writer->writeToFile($informeTemporal);
             }
@@ -3340,241 +3913,376 @@ class ReporteadorController extends AbstractController
         /** ----------------------------------------- */
 
         $spreadsheet = IOFactory::load($informeTemporal);
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->mergeCells('A1:A4');
-        $sheet->mergeCells('A5:'.$ultimaColumna.'5');
-        $sheet->mergeCells('B1:'.$ultimaColumna.'1');
-        $sheet->mergeCells('B2:'.$ultimaColumna.'2');
-        $sheet->mergeCells('B3:'.$ultimaColumna.'3');
-        $sheet->mergeCells('B4:'.$ultimaColumna.'4');
-        $sheet->mergeCells('B5:'.$ultimaColumna.'5');
-        $sheet->getRowDimension('1')->setRowHeight(35);
-        $sheet->getRowDimension('2')->setRowHeight(20);
-        $sheet->getRowDimension('3')->setRowHeight(20);
-        $sheet->getRowDimension('4')->setRowHeight(20);
-        $sheet->getRowDimension('5')->setRowHeight(20);
-        $sheet->getRowDimension('6')->setRowHeight(25);
-        $sheet->getStyle('B2:B4')->getFont()->setSize(15);
-        $sheet->getStyle('B1')->getFont()->setBold(true)->setSize(13);
-        $sheet->getStyle('B2:B4')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+        $sheets = $spreadsheet->getAllSheets();
 
-        //dd($this->estilosExcel);
-
-        /** Se crean los títulos de agrupación */
-        /** ---------------------------------- */
-
-        if(array_key_exists('titulosAgrupacion', $this->estilosExcel))
+        foreach($sheets as $index => $sheet)
         {
-            foreach($this->estilosExcel['titulosAgrupacion'] as $estiloTitulo)
+            $fechaCabecera = new RichText();
+            $periodoCabecera = new RichText();    
+            if($index == 0)
             {
-                $sheet->getRowDimension($estiloTitulo[0])->setRowHeight(25);
-                $sheet->setCellValue('A'.$estiloTitulo[0], '      '.$estiloTitulo[1]);
-                $sheet->getStyle('A'.$estiloTitulo[0])->getFont()->setBold(true)->setSize(9);
-                $sheet->mergeCells('A'.$estiloTitulo[0].':'.$ultimaColumna.$estiloTitulo[0]);
-                $sheet->getStyle('A'.$estiloTitulo[0].':'.$ultimaColumna.$estiloTitulo[0])->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-
-                /** Se aplican estilos a la cabecera del informe */
-                /** -------------------------------------------- */
-    
-                $sheet->getStyle('A'.$estiloTitulo[0].':'.$ultimaColumna.$estiloTitulo[0])->getFill()
-                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                    ->getStartColor()->setARGB('f2f2f2')
-                ;
-                $styles = 
-                [
-                    'borders' => 
-                    [
-                        'allBorders' => 
-                        [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                            'color' => ['argb' => 'FFB0B0B0'],
-                        ],
-                    ],
-                ];
-                $sheet->getStyle('A'.$estiloTitulo[0].':'.$ultimaColumna.$estiloTitulo[0])->applyFromArray($styles);
-            }
-        }
-
-        /** Se crea la sección de la cabecera */
-        /** --------------------------------- */
-
-        if(array_key_exists('cabeceras', $this->estilosExcel))
-        {
-            foreach($this->estilosExcel['cabeceras'] as $estiloCabecera)
-            {
-                $columnaInicio = 1;
-                $sheet->getRowDimension($estiloCabecera)->setRowHeight(25);
-                if(count($titulosInforme) == 1){$sheet->mergeCells('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera);}
-                $sheet->getStyle('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-                $sheet->getStyle('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-    
-                foreach($cabeceras as $c)
-                {
-                    $colSpanCabecera = $c['colspan'];
-                    $tituloCabecera = strip_tags($c['nombre']);
-                    $columnaFinal = Coordinate::stringFromColumnIndex(($columnaInicio + $colSpanCabecera) - 1);
-                    $columnaInicial = Coordinate::stringFromColumnIndex($columnaInicio);
-                    $sheet->setCellValue($columnaInicial.$estiloCabecera, $tituloCabecera);
-                    $sheet->mergeCells($columnaInicial.$estiloCabecera.':'.$columnaFinal.$estiloCabecera);
-                    $columnaInicio += $colSpanCabecera;
-                }
-    
-                /** Se aplican estilos a la cabecera del informe */
-                /** -------------------------------------------- */
-    
-                $sheet->getStyle('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera)->getFill()
-                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                    ->getStartColor()->setARGB('f2f2f2')
-                ;
-                $styles = 
-                [
-                    'borders' => 
-                    [
-                        'allBorders' => 
-                        [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                            'color' => ['argb' => 'FFB0B0B0'],
-                        ],
-                    ],
-                ];
-                $sheet->getStyle('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera)->getFont()->setBold(true)->setSize(9);
-                $sheet->getStyle('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera)->applyFromArray($styles);
-            }
-        }
+                /** Se crean los títulos de agrupación */
+                /** ---------------------------------- */
         
-        /** Se asignan estilos a los títulos del informe */
-        /** -------------------------------------------- */
-
-        if(count($titulosInforme) == 1){$sheet->getColumnDimension('B')->setWidth(90);}
-        foreach($this->estilosExcel['titulos'] as $indexTitulo => $estiloTitulo)
-        {
-            $index = 1;
-            foreach($titulosInforme as $titulo)
-            {
-                $columna = Coordinate::stringFromColumnIndex($index);
-                $sheet->getRowDimension($estiloTitulo)->setRowHeight(20);
-                if($indexTitulo == 0){$anchoCampo = ($index == 1)?20:30;}
-                if(count($titulosInforme) == 2 && $index == count($titulosInforme)){$anchoCampo = 90;}
-                if(count($titulosInforme) == 3 && $index == count($titulosInforme)){$anchoCampo = 60;}
-                if(count($titulosInforme) == 1)
+                if(array_key_exists('titulosAgrupacion', $this->estilosExcel))
                 {
-                    $sheet->getColumnDimension('B')->setWidth(90);
-                    {$sheet->mergeCells('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo);}
-                }
-                $sheet->getStyle('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-                $sheet->getStyle('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-                $sheet->getStyle('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo)->getFont()->setBold(true)->setSize(9);
-                $sheet->getColumnDimension($columna)->setWidth($anchoCampo);
-                $sheet->getStyle('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo)->getFill()
-                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                    ->getStartColor()->setARGB('f2f2f2')
-                ;
-                $styles = 
-                [
-                    'borders' => 
-                    [
-                        'allBorders' => 
-                        [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                            'color' => ['argb' => 'FFB0B0B0'],
-                        ],
-                    ],
-                ];
-                $sheet->getStyle('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo)->applyFromArray($styles);
-                $index ++;
-            }
-        }
-
-        /** Se asignan estilos a cada campo de los registros */
-        /** ------------------------------------------------ */
-
-        foreach($this->estilosExcel['registros'] as $estiloRegistro)
-        {
-            $styles = 
-            [
-                'borders' => 
-                [
-                    'right' => 
-                    [
-                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                        'color' => ['argb' => 'FFB0B0B0'],
-                    ]
-                ],
-            ];
-            $sheet->getStyle('A'.$estiloRegistro[0].':'.$ultimaColumna.$estiloRegistro[1])->applyFromArray($styles, false);
-            $sheet->getStyle('A'.$estiloRegistro[0].':'.$ultimaColumna.$estiloRegistro[1])->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-
-            /** Se establece la alineación de cada campo */
-            /** ---------------------------------------- */
-
-            $index = 1;
-            foreach($configuracionesCampoInforme as $campo)
-            {
-                $columna = Coordinate::stringFromColumnIndex($index);
-                if($campo['alineacionCampo'] == 'center')
-                {
-                    $sheet->getStyle($columna.$estiloRegistro[0].':'.$columna.$estiloRegistro[1])->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-                }
-                if($campo['alineacionCampo'] == 'right')
-                {
-                    $sheet->getStyle($columna.$estiloRegistro[0].':'.$columna.$estiloRegistro[1])->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
-                }
-                if($campo['alineacionCampo'] == 'left')
-                {
-                    $sheet->getStyle($columna.$estiloRegistro[0].':'.$columna.$estiloRegistro[1])->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
-                }
-                $index ++;
-            }
-            for($i = $estiloRegistro[0]; $i <= $estiloRegistro[1]; $i ++)
-            {
-                $sheet->getRowDimension($i)->setRowHeight(18);
-                if(count($titulosInforme) == 1){$sheet->mergeCells('A'.$i.':'.$ultimaColumna.$i);}
-            }
-        }
-
-        /** Se crea la sección de totales */
-        /** ----------------------------- */
-
-        if(array_key_exists('totales', $this->estilosExcel))
-        {
-            foreach($this->estilosExcel['totales'] as $estiloTotal)
-            {
-                $columnaInicioTotal = 1;
-                $columnaInicialTotal = '';
-                $sheet->getRowDimension($estiloTotal[0])->setRowHeight(25);
-                if(count($titulosInforme) == 1){$sheet->mergeCells('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0]);}
-                $sheet->getStyle('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0])->getFont()->setBold(true)->setSize(9);
-                $sheet->getStyle('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0])->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-                $sheet->getStyle('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0])->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
-                foreach($estiloTotal['tabla'] as $key => $campoTotal)
-                {
-                    $columnaInicialTotal = Coordinate::stringFromColumnIndex($columnaInicioTotal);
-                    if($key == 'colspan')
+                    foreach($this->estilosExcel['titulosAgrupacion'] as $estiloTitulo)
                     {
-                        if($campoTotal > 0)
+                        $sheet->getRowDimension($estiloTitulo[0])->setRowHeight(25);
+                        $sheet->setCellValue('A'.$estiloTitulo[0], '      '.$estiloTitulo[1]);
+                        $sheet->getStyle('A'.$estiloTitulo[0])->getFont()->setBold(true)->setSize(9);
+                        $sheet->mergeCells('A'.$estiloTitulo[0].':'.$ultimaColumna.$estiloTitulo[0]);
+                        $sheet->getStyle('A'.$estiloTitulo[0].':'.$ultimaColumna.$estiloTitulo[0])->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+        
+                        /** Se aplican estilos a la cabecera del informe */
+                        /** -------------------------------------------- */
+            
+                        $sheet->getStyle('A'.$estiloTitulo[0].':'.$ultimaColumna.$estiloTitulo[0])->getFill()
+                            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                            ->getStartColor()->setARGB('f2f2f2')
+                        ;
+                        $styles = 
+                        [
+                            'borders' => 
+                            [
+                                'allBorders' => 
+                                [
+                                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                                    'color' => ['argb' => 'FFB0B0B0'],
+                                ],
+                            ],
+                        ];
+                        $sheet->getStyle('A'.$estiloTitulo[0].':'.$ultimaColumna.$estiloTitulo[0])->applyFromArray($styles);
+                    }
+                }
+        
+                /** Se crea la sección de la cabecera */
+                /** --------------------------------- */
+        
+                if(array_key_exists('cabeceras', $this->estilosExcel))
+                {
+                    foreach($this->estilosExcel['cabeceras'] as $estiloCabecera)
+                    {
+                        $columnaInicio = 1;
+                        $sheet->getRowDimension($estiloCabecera)->setRowHeight(25);
+                        if(count($titulosInforme) == 1){$sheet->mergeCells('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera);}
+                        $sheet->getStyle('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        $sheet->getStyle('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            
+                        foreach($cabeceras as $c)
                         {
-                            $columnaInicioTotal = $campoTotal + 1;
-                            $sheet->setCellValue('A'.$estiloTotal[0], 'Total');
-                            $columnaFinTotal = Coordinate::stringFromColumnIndex($campoTotal);
-                            $sheet->mergeCells('A'.$estiloTotal[0].':'.$columnaFinTotal.$estiloTotal[0]);
+                            $colSpanCabecera = $c['colspan'];
+                            $tituloCabecera = strip_tags($c['nombre']);
+                            $columnaFinal = Coordinate::stringFromColumnIndex(($columnaInicio + $colSpanCabecera) - 1);
+                            $columnaInicial = Coordinate::stringFromColumnIndex($columnaInicio);
+                            $sheet->setCellValue($columnaInicial.$estiloCabecera, $tituloCabecera);
+                            $sheet->mergeCells($columnaInicial.$estiloCabecera.':'.$columnaFinal.$estiloCabecera);
+                            $columnaInicio += $colSpanCabecera;
+                        }
+            
+                        /** Se aplican estilos a la cabecera del informe */
+                        /** -------------------------------------------- */
+            
+                        $sheet->getStyle('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera)->getFill()
+                            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                            ->getStartColor()->setARGB('f2f2f2')
+                        ;
+                        $styles = 
+                        [
+                            'borders' => 
+                            [
+                                'allBorders' => 
+                                [
+                                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                                    'color' => ['argb' => 'FFB0B0B0'],
+                                ],
+                            ],
+                        ];
+                        $sheet->getStyle('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera)->getFont()->setBold(true)->setSize(9);
+                        $sheet->getStyle('A'.$estiloCabecera.':'.$ultimaColumna.$estiloCabecera)->applyFromArray($styles);
+                    }
+                }
+                
+                /** Se asignan estilos a los títulos del informe */
+                /** -------------------------------------------- */
+        
+                if(count($titulosInforme) == 1){$sheet->getColumnDimension('B')->setWidth(90);}
+                foreach($this->estilosExcel['titulos'] as $indexTitulo => $estiloTitulo)
+                {
+                    $index = 1;
+                    foreach($titulosInforme as $titulo)
+                    {
+                        $columna = Coordinate::stringFromColumnIndex($index);
+                        $sheet->getRowDimension($estiloTitulo)->setRowHeight(20);
+                        if($indexTitulo == 0){$anchoCampo = ($index == 1)?20:30;}
+                        if(count($titulosInforme) == 2 && $index == count($titulosInforme)){$anchoCampo = 90;}
+                        if(count($titulosInforme) == 3 && $index == count($titulosInforme)){$anchoCampo = 60;}
+                        if(count($titulosInforme) == 1)
+                        {
+                            $sheet->getColumnDimension('B')->setWidth(90);
+                            {$sheet->mergeCells('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo);}
+                        }
+                        $sheet->getStyle('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                        $sheet->getStyle('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        $sheet->getStyle('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo)->getFont()->setBold(true)->setSize(9);
+                        $sheet->getColumnDimension($columna)->setWidth($anchoCampo);
+                        $sheet->getStyle('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo)->getFill()
+                            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                            ->getStartColor()->setARGB('f2f2f2')
+                        ;
+                        $styles = 
+                        [
+                            'borders' => 
+                            [
+                                'allBorders' => 
+                                [
+                                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                                    'color' => ['argb' => 'FFB0B0B0'],
+                                ],
+                            ],
+                        ];
+                        $sheet->getStyle('A'.$estiloTitulo.':'.$ultimaColumna.$estiloTitulo)->applyFromArray($styles);
+                        $index ++;
+                    }
+                }
+        
+                /** Se asignan estilos a cada campo de los registros */
+                /** ------------------------------------------------ */
+        
+                foreach($this->estilosExcel['registros'] as $estiloRegistro)
+                {
+                    $styles = 
+                    [
+                        'borders' => 
+                        [
+                            'right' => 
+                            [
+                                'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                                'color' => ['argb' => 'FFB0B0B0'],
+                            ]
+                        ],
+                    ];
+                    $sheet->getStyle('A'.$estiloRegistro[0].':'.$ultimaColumna.$estiloRegistro[1])->applyFromArray($styles, false);
+                    $sheet->getStyle('A'.$estiloRegistro[0].':'.$ultimaColumna.$estiloRegistro[1])->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+        
+                    /** Se establece la alineación de cada campo */
+                    /** ---------------------------------------- */
+        
+                    $index = 1;
+                    foreach($configuracionesCampoInforme as $campo)
+                    {
+                        $columna = Coordinate::stringFromColumnIndex($index);
+                        if($campo['alineacionCampo'] == 'center')
+                        {
+                            $sheet->getStyle($columna.$estiloRegistro[0].':'.$columna.$estiloRegistro[1])->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                        }
+                        if($campo['alineacionCampo'] == 'right')
+                        {
+                            $sheet->getStyle($columna.$estiloRegistro[0].':'.$columna.$estiloRegistro[1])->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+                        }
+                        if($campo['alineacionCampo'] == 'left')
+                        {
+                            $sheet->getStyle($columna.$estiloRegistro[0].':'.$columna.$estiloRegistro[1])->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+                        }
+                        $index ++;
+                    }
+                    for($i = $estiloRegistro[0]; $i <= $estiloRegistro[1]; $i ++)
+                    {
+                        $sheet->getRowDimension($i)->setRowHeight(18);
+                        if(count($titulosInforme) == 1){$sheet->mergeCells('A'.$i.':'.$ultimaColumna.$i);}
+                    }
+                }
+        
+                /** Se crea la sección de totales */
+                /** ----------------------------- */
+        
+                if(array_key_exists('totales', $this->estilosExcel))
+                {
+                    foreach($this->estilosExcel['totales'] as $estiloTotal)
+                    {
+                        $columnaInicioTotal = 1;
+                        $columnaInicialTotal = '';
+                        $sheet->getRowDimension($estiloTotal[0])->setRowHeight(25);
+                        if(count($titulosInforme) == 1){$sheet->mergeCells('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0]);}
+                        $sheet->getStyle('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0])->getFont()->setBold(true)->setSize(9);
+                        $sheet->getStyle('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0])->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        $sheet->getStyle('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0])->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+                        foreach($estiloTotal['tabla'] as $key => $campoTotal)
+                        {
+                            $columnaInicialTotal = Coordinate::stringFromColumnIndex($columnaInicioTotal);
+                            if($key == 'colspan')
+                            {
+                                if($campoTotal > 0)
+                                {
+                                    $columnaInicioTotal = $campoTotal + 1;
+                                    $sheet->setCellValue('A'.$estiloTotal[0], 'Total');
+                                    $columnaFinTotal = Coordinate::stringFromColumnIndex($campoTotal);
+                                    $sheet->mergeCells('A'.$estiloTotal[0].':'.$columnaFinTotal.$estiloTotal[0]);
+                                }
+                            }
+                            else
+                            {
+                                if(is_array($campoTotal)){$campoTotal = $campoTotal[0];}
+                                $sheet->setCellValue($columnaInicialTotal.$estiloTotal[0], $campoTotal);
+                                $columnaInicioTotal ++;
+                            }
+                        }
+            
+                        /** Se aplican estilos a la seccion de totales */
+                        /** ------------------------------------------ */
+            
+                        $sheet->getStyle('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0])->getFill()
+                            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                            ->getStartColor()->setARGB('f2f2f2')
+                        ;
+            
+                        $styles = 
+                        [
+                            'borders' => 
+                            [
+                                'outline' => 
+                                [
+                                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                                    'color' => ['argb' => 'FFB0B0B0'],
+                                ]
+                            ],
+                        ];
+                        $sheet->getStyle('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0])->applyFromArray($styles);
+                    }
+                }
+        
+                /** Se crean los separados de las tablas */
+                /** ------------------------------------ */
+        
+                if(array_key_exists('separador', $this->estilosExcel))
+                {
+                    foreach($this->estilosExcel['separador'] as $estiloSeparador)
+                    {
+                        $sheet->getRowDimension($estiloSeparador)->setRowHeight(20);
+                        $sheet->mergeCells('A'.$estiloSeparador.':'.$ultimaColumna.$estiloSeparador);
+                    }
+                }
+                $sheet->getSheetView()->setZoomScale(80);
+            }
+            else
+            {
+                $sheet->getSheetView()->setZoomScale(80);
+                $ultimaColumna = Coordinate::stringFromColumnIndex(count($titulosResumen));
+
+                /** Se asignan estilos a los títulos del informe */
+                /** -------------------------------------------- */
+
+                $index = 1;
+                foreach($titulosResumen as $titulo)
+                {
+                    $anchoCampo = ($index == 1)?20:30;
+                    $columna = Coordinate::stringFromColumnIndex($index);
+                    $sheet->getStyle('A6:'.$ultimaColumna.'6')->getFont()->setBold(true)->setSize(9);
+                    if(count($titulosResumen) == 2 && $index == count($titulosResumen)){$anchoCampo = 90;}
+                    if(count($titulosResumen) == 3 && $index == count($titulosResumen)){$anchoCampo = 60;}
+                    $sheet->getStyle('A6:'.$ultimaColumna.'6')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                    $sheet->getStyle('A6:'.$ultimaColumna.'6')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                    $sheet->getColumnDimension($columna)->setWidth($anchoCampo);
+                    $sheet->getStyle('A6:'.$ultimaColumna.'6')->getFill()
+                        ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                        ->getStartColor()->setARGB('f2f2f2')
+                    ;
+                    $styles = 
+                    [
+                        'borders' => 
+                        [
+                            'allBorders' => 
+                            [
+                                'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                                'color' => ['argb' => 'FFB0B0B0'],
+                            ],
+                        ],
+                    ];
+                    $sheet->getStyle('A6:'.$ultimaColumna.'6')->applyFromArray($styles);
+                    $index ++;
+                }
+
+                /** Se asignan estilos a cada campo de los registros */
+                /** ------------------------------------------------ */
+                
+                $indexResumen = 0;
+                $ultimaFila = 7 + count($camposAgrupacionResumen) - 1;
+                foreach($camposAgrupacionResumen as $campos)
+                {
+                    $styles = 
+                    [
+                        'borders' => 
+                        [
+                            'right' => 
+                            [
+                                'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                                'color' => ['argb' => 'FFB0B0B0'],
+                            ]
+                        ],
+                    ];
+                    $sheet->getStyle('A7:'.$ultimaColumna.$ultimaFila)->applyFromArray($styles, false);
+                    $sheet->getStyle('A7:'.$ultimaColumna.$ultimaFila)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                    
+                    /** Se establece la alineación de cada campo */
+                    /** ---------------------------------------- */
+                    
+                    if($indexResumen == 0)
+                    {
+                        $index = 1;
+                        foreach($campos['agrupacion'] as $campo)
+                        {
+                            $columna = Coordinate::stringFromColumnIndex($index);
+                            $sheet->getStyle($columna.'7:'.$columna.$ultimaFila)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                            $index ++;
+                        }
+                        if(array_key_exists('totalizacion', $campos))
+                        {
+                            foreach($campos['totalizacion'] as $campo)
+                            {
+                                $columna = Coordinate::stringFromColumnIndex($index);
+                                $sheet->getStyle($columna.'7:'.$columna.$ultimaFila)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+                                $index ++;
+                            }
+                        }
+                        $columna = Coordinate::stringFromColumnIndex($index);
+                        $sheet->getStyle($columna.'7:'.$columna.$ultimaFila)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+                        for($i = 7; $i <= $ultimaFila; $i ++)
+                        {
+                            $sheet->getRowDimension($i)->setRowHeight(18);
                         }
                     }
-                    else
-                    {
-                        if(is_array($campoTotal)){$campoTotal = $campoTotal[0];}
-                        $sheet->setCellValue($columnaInicialTotal.$estiloTotal[0], $campoTotal);
-                        $columnaInicioTotal ++;
-                    }
+                    $indexResumen ++;
                 }
-    
-                /** Se aplican estilos a la seccion e totales */
-                /** ----------------------------------------- */
-    
-                $sheet->getStyle('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0])->getFill()
+                $ultimaFila ++;
+
+                /** Se crea la sección de totales */
+                /** ----------------------------- */
+
+                $index = count($camposAgrupacion) + 1;
+                $sheet->setCellValue('A'.$ultimaFila, 'Total');
+                if(count($camposAgrupacion) > 1)
+                {
+                    $ultimaColumnaAgrupacion = Coordinate::stringFromColumnIndex(count($camposAgrupacion));
+                    $sheet->mergeCells('A'.$ultimaFila.':'.$ultimaColumnaAgrupacion.$ultimaFila);
+                }
+                foreach($totalesResumen as $key => $total)
+                {
+                    $total = ($key !== 'registros' && $configuracionesCampoInforme[$key]['tipoDato'] === 'moneda')?number_format($total, 2, ',', '.'):$total;
+                    $columnaInicialTotal = Coordinate::stringFromColumnIndex($index);
+                    $sheet->setCellValue($columnaInicialTotal.$ultimaFila, $total);
+                    $index ++;
+                }
+
+                /** Se asignan estilos a los totales del informe */
+                /** -------------------------------------------- */
+
+                $sheet->getStyle('A'.$ultimaFila.':'.$ultimaColumna.$ultimaFila)->getFont()->setBold(true)->setSize(9);
+                $sheet->getStyle('A'.$ultimaFila.':'.$ultimaColumna.$ultimaFila)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                $sheet->getStyle('A'.$ultimaFila.':'.$ultimaColumna.$ultimaFila)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle('A'.$ultimaFila.':'.$ultimaColumna.$ultimaFila)->getFill()
                     ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
                     ->getStartColor()->setARGB('f2f2f2')
                 ;
-    
                 $styles = 
                 [
                     'borders' => 
@@ -3583,92 +4291,96 @@ class ReporteadorController extends AbstractController
                         [
                             'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
                             'color' => ['argb' => 'FFB0B0B0'],
-                        ]
+                        ],
                     ],
                 ];
-                $sheet->getStyle('A'.$estiloTotal[0].':'.$ultimaColumna.$estiloTotal[0])->applyFromArray($styles);
+                $sheet->getStyle('A'.$ultimaFila.':'.$ultimaColumna.$ultimaFila)->applyFromArray($styles);
+                $sheet->getRowDimension($ultimaFila)->setRowHeight(25);
             }
+
+            /** Información cabecera */
+            /** -------------------- */
+            
+            $sheet->mergeCells('A1:A4');
+            $sheet->mergeCells('A5:'.$ultimaColumna.'5');
+            $sheet->mergeCells('B1:'.$ultimaColumna.'1');
+            $sheet->mergeCells('B2:'.$ultimaColumna.'2');
+            $sheet->mergeCells('B3:'.$ultimaColumna.'3');
+            $sheet->mergeCells('B4:'.$ultimaColumna.'4');
+            $sheet->mergeCells('B5:'.$ultimaColumna.'5');
+            $sheet->getRowDimension('1')->setRowHeight(35);
+            $sheet->getRowDimension('2')->setRowHeight(20);
+            $sheet->getRowDimension('3')->setRowHeight(20);
+            $sheet->getRowDimension('4')->setRowHeight(20);
+            $sheet->getRowDimension('5')->setRowHeight(20);
+            $sheet->getRowDimension('6')->setRowHeight(25);
+            $sheet->getStyle('B2:B4')->getFont()->setSize(15);
+            $sheet->getStyle('B1')->getFont()->setBold(true)->setSize(13);
+            $sheet->getStyle('B2:B4')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            $periodoText = $periodoCabecera->createTextRun('  » Periodo: ');
+            $periodoText->getFont()->setBold(true);
+            $periodoCabecera->createText($periodo);
+
+            $cabeceraText = $fechaCabecera->createTextRun('  » Fecha imprime: ');
+            $cabeceraText->getFont()->setBold(true);
+            $fechaCabecera->createText($fechaActual);
+
+            $sheet->setCellValue('B1', '  '.strtoupper($nombreInforme));
+            $sheet->setCellValue('B2', $periodoCabecera);
+            $sheet->setCellValue('B3', $fechaCabecera);
+
+            /* Estilo de Bordes */
+            /* ---------------- */
+
+            $styles = [
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['argb' => 'FFB0B0B0'],
+                    ],
+                ],
+            ];
+
+            $stylesCabecera = [
+                'borders' => [
+                    'outline' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['argb' => 'FFB0B0B0'],
+                    ],
+                ],
+            ];
+
+            $stylesCabeceraInterior = [
+                'borders' => [
+                    'inside' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['argb' => 'FFFFFF'],
+                    ],
+                ],
+            ];
+
+            $sheet->getStyle('A1:'.$ultimaColumna.'4')->applyFromArray($stylesCabecera);
+            $sheet->getStyle('A1:'.$ultimaColumna.'4')->applyFromArray($stylesCabeceraInterior);
+
+            /* Configuración del logo */
+            /* ---------------------- */
+            
+            $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+            $drawing->setName('Informe');
+            $drawing->setDescription('Informe');
+            $drawing->setPath($logoTmp);
+            $drawing->setCoordinates('A1');
+            $drawing->setWidthAndHeight(130, 44);
+            $drawing->setResizeProportional(true);
+            $drawing->setOffsetX(8);
+            $drawing->setOffsetY(65);
+            $drawing->setWorksheet($spreadsheet->getActiveSheet());
         }
-
-        /** Se crean los separados de las tablas */
-        /** ------------------------------------ */
-
-        if(array_key_exists('separador', $this->estilosExcel))
-        {
-            foreach($this->estilosExcel['separador'] as $estiloSeparador)
-            {
-                $sheet->getRowDimension($estiloSeparador)->setRowHeight(20);
-                $sheet->mergeCells('A'.$estiloSeparador.':'.$ultimaColumna.$estiloSeparador);
-            }
-        }
-
-        /** Información cabecera */
-        /** -------------------- */
-
-        $periodoText = $periodoCabecera->createTextRun('  » Periodo: ');
-        $periodoText->getFont()->setBold(true);
-        $periodoCabecera->createText($periodo);
-
-        $cabeceraText = $fechaCabecera->createTextRun('  » Fecha imprime: ');
-        $cabeceraText->getFont()->setBold(true);
-        $fechaCabecera->createText($fechaActual);
-
-        $sheet->setCellValue('B1', '  '.strtoupper($nombreInforme));
-        $sheet->setCellValue('B2', $periodoCabecera);
-        $sheet->setCellValue('B3', $fechaCabecera);
-
-        /* Estilo de Bordes */
-        /* ---------------- */
-
-        $styles = [
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                    'color' => ['argb' => 'FFB0B0B0'],
-                ],
-            ],
-        ];
-
-        $stylesCabecera = [
-            'borders' => [
-                'outline' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                    'color' => ['argb' => 'FFB0B0B0'],
-                ],
-            ],
-        ];
-
-        $stylesCabeceraInterior = [
-            'borders' => [
-                'inside' => [
-                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                    'color' => ['argb' => 'FFFFFF'],
-                ],
-            ],
-        ];
-
-        $sheet->getStyle('A1:'.$ultimaColumna.'4')->applyFromArray($stylesCabecera);
-        $sheet->getStyle('A1:'.$ultimaColumna.'4')->applyFromArray($stylesCabeceraInterior);
-        $sheet->getSheetView()->setZoomScale(80);
-        $sheet->setTitle($nombreInforme);
-
-        /* Configuración del logo */
-        /* ---------------------- */
-        
-        $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
-        $drawing->setName('Informe');
-        $drawing->setDescription('Informe');
-        $drawing->setPath($logoTmp);
-        $drawing->setCoordinates('A1');
-        $drawing->setWidthAndHeight(130, 44);
-        $drawing->setResizeProportional(true);
-        $drawing->setOffsetX(8);
-        $drawing->setOffsetY(65);
-        $drawing->setWorksheet($spreadsheet->getActiveSheet());
 
         /* Crear y guardar archivo */
         /* ----------------------- */
 
+        $spreadsheet->setActiveSheetIndex(0);
         $writer = new Xlsx($spreadsheet);
         $temp_file = tempnam(sys_get_temp_dir(), 'informe.xls');
         $writer->save($temp_file);
@@ -3733,15 +4445,15 @@ class ReporteadorController extends AbstractController
 
             foreach($this->camposTotalizacionAgrupamiento as $ct)
             {
-                if(array_key_exists($ct, $registros))
+                if(array_key_exists($ct['campo'], $registros))
                 {
-                    if(array_key_exists($ct, $camposTotalizacionAgrupamiento))
+                    if(array_key_exists($ct['campo'], $camposTotalizacionAgrupamiento))
                     {
-                        $camposTotalizacionAgrupamiento[$ct] = $camposTotalizacionAgrupamiento[$ct] + str_replace(['.', ','], ['', '.'], $registros[$ct]);
+                        $camposTotalizacionAgrupamiento[$ct['campo']] = $camposTotalizacionAgrupamiento[$ct['campo']] + str_replace(['.', ','], ['', '.'], $registros[$ct['campo']]);
                     }
                     else
                     {
-                        $camposTotalizacionAgrupamiento[$ct] = str_replace(['.', ','], ['', '.'], $registros[$ct]);
+                        $camposTotalizacionAgrupamiento[$ct['campo']] = str_replace(['.', ','], ['', '.'], $registros[$ct['campo']]);
                     }
                 }
             }

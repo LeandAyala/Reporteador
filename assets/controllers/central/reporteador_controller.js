@@ -5,14 +5,30 @@ export default class extends Controller
 {
     indexCabecera = -1;
     estadoDescarga = 0;
+    graficaPastel = null;
+    graficaBarras = null;
     configuraciones = '';
     form = new FormData();
     mensaje = new mensajes();
     estadoSeccionFiltros = 1;
     estadoBusquedaRapida = 0;
     estadoPaginaSeleccionada = 0;
+    camposBusquedaAgrupacion = [];
     configuracionesGuardadas = {};
     aplicarConfiguraciones = false;
+    colores = 
+    [
+        "#FF9F40", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF6384", "#C9CBCF", "#8DD17E", "#F77EB9", "#F49FBC", 
+        "#6FB1FC", "#FFB6C1", "#D4A5A5", "#A7C7E7", "#F5B7B1", "#82E0AA", "#F7DC6F", "#85C1E9", "#BB8FCE", "#F0B27A", 
+        "#73C6B6", "#AAB7B8", "#E59866", "#AF7AC5", "#48C9B0", "#F5CBA7", "#85929E", "#D7BDE2", "#AED6F1", "#A9DFBF",
+        "#FAD7A0", "#F1948A", "#E6B0AA", "#ABB2B9", "#D5DBDB", "#F0F3F4", "#FDEBD0", "#D6EAF8", "#D1F2EB", "#FCF3CF", 
+        "#FADBD8", "#E8DAEF", "#A3E4D7", "#AED6F1", "#F5B041", "#DC7633", "#BA4A00", "#117864", "#1F618D", "#6C3483", 
+        "#922B21", "#D98880", "#F4D03F", "#7DCEA0", "#5DADE2", "#AF7AC5", "#85929E", "#45B39D", "#E59866", "#BFC9CA",
+        "#EDBB99", "#C39BD3", "#73C6B6", "#7FB3D5", "#82E0AA", "#F8C471", "#E74C3C", "#8E44AD", "#2980B9", "#27AE60", 
+        "#F39C12", "#D35400", "#2ECC71", "#3498DB", "#9B59B6", "#1ABC9C", "#E67E22", "#E74C3C", "#F1C40F", "#16A085", 
+        "#2980B9", "#8E44AD", "#2C3E50", "#95A5A6", "#D35400", "#7F8C8D", "#BDC3C7", "#C0392B", "#E67E22", "#F39C12",
+        "#1ABC9C", "#2ECC71", "#3498DB", "#9B59B6", "#34495E", "#16A085", "#27AE60", "#2980B9", "#8E44AD", "#2C3E50"
+    ];
 
     static values = 
     {
@@ -51,6 +67,7 @@ export default class extends Controller
         let busquedaRapida = (this.targets.find('busquedaRapida') != undefined)?this.busquedaRapidaTarget.value.trim():'';
         let busquedaRapidaActual = (this.targets.find('busquedaRapidaHidden') != undefined)?this.busquedaRapidaHiddenTarget.value.trim():'';
         busquedaRapida = (this.estadoBusquedaRapida == 1)?busquedaRapida:busquedaRapidaActual;
+        form.append('busquedaAgrupacion', JSON.stringify(this.camposBusquedaAgrupacion));
         paginaActual = (this.estadoPaginaSeleccionada == 1)?paginaActual:1;
         form.append('busquedaRapida', busquedaRapida);
         form.append('pagina', paginaActual);
@@ -96,6 +113,7 @@ export default class extends Controller
         $('#frameInforme').html(result.plantilla);
         $('#separadorResumen').css('display', 'none');
         this.cargandoFiltrosTarget.style.display = 'none';
+        $('#frameResumenAgrupacion').html(result.seccionResumen);
         if(this.configuraciones == '')
         {
             $('#frameConfiguraciones').html(result.seccionConfiguraciones);
@@ -479,6 +497,7 @@ export default class extends Controller
         /** ------------------------------------------------------------------------------------------------------- */
 
         this.configuraciones = '';
+        this.camposBusquedaAgrupacion = [];
         $('#busquedaRapidaHidden').val('');
     }
 
@@ -672,6 +691,7 @@ export default class extends Controller
             });
             $('#busquedaRapida').val('');
             $('#busquedaRapidaHidden').val('');
+            this.camposBusquedaAgrupacion = [];
             this.configuraciones = $('#frameConfiguraciones').html();
             this.mensaje.mostrarMensaje('¡Las configuraciones se han guardado con éxito!', 1);
             this.aplicarConfiguraciones = $('#aplicarConfiguracionesDescarga').is(':checked');
@@ -957,5 +977,224 @@ export default class extends Controller
         {
             this.mensaje.mostrarMensaje('¡El colspan de las cabeceras debe ser igual a la cantidad de campos habilitados para el informe!');
         }
+    }
+
+    showResumen()
+    {
+        /** En esta función se hace visible la sección de configuraciones */
+        /** ------------------------------------------------------------- */
+        
+        $('body').css('overflow', 'hidden');
+        let icono = $('.menuReporteador').find('i');
+        $('#frameResumenAgrupacion').css('display', '');
+        let btnMenuReporteador = $('.menuReporteador');
+        btnMenuReporteador.css('pointer-events', 'none');
+        icono.removeClass('fa-times').addClass('fa-bars');
+        btnMenuReporteador.removeClass('menuReporteadorError');
+        $('#menuReporteador').attr('transition-style', 'out:custom:circle-swoop');
+        setTimeout(() => {$('#menuReporteador').hide(); btnMenuReporteador.css('pointer-events', '');}, 1100);
+        btnMenuReporteador[0].dataset.opc = 0;
+    }
+
+    hideResumen()
+    {
+        /** En esta función se cierra la sección de configuraciones */
+        /** ------------------------------------------------------- */
+
+        $('body').css('overflow', '');
+        $('#frameResumenAgrupacion').addClass('animate__animated animate__fadeOut');
+        setTimeout(() => {$('#frameResumenAgrupacion').hide().removeClass('animate__animated animate__fadeOut')}, 800);
+    }
+
+    showGraficas(event)
+    {
+        /** En esta función se hacen visibles las gráficas de acuerdo al campo de totalización seleccionado */
+        /** ----------------------------------------------------------------------------------------------- */
+
+        let index = 0;
+        let self = this;
+        let titulos = [];
+        let titulosGrafica = [];
+        let valoresGrafica = [];
+        let coloresUtilizados = [];
+        let valoresGraficaBarras = [];
+        $('#divTitulosResumen').html('');
+        let btnGrafica = event.currentTarget;
+        let icono = btnGrafica.querySelector('i');
+        let grafica = event.currentTarget.dataset.grafica;
+        $('#divGraficas').show('400').css('display', 'flex');
+        setTimeout(() => {$('#divGraficas').css('opacity', '1')}, 1000);
+        let nombreGrafica = grafica[0].toUpperCase() + grafica.substring(1);
+        let claseBtnSerach = (this.camposBusquedaAgrupacion.length > 0)?'msg':'';
+        let graficaPastel = document.getElementById('graficaPastel').getContext('2d');
+        let graficaBarras = document.getElementById('graficaBarras').getContext('2d');
+        let borderBtnBuscarAgrupacion = (this.camposBusquedaAgrupacion.length > 0)?'2':'1';
+        let iconoBtnBuscarAgrupacion = (this.camposBusquedaAgrupacion.length > 0)?'times':'search';
+        if(this.graficaPastel !== null){this.graficaPastel.destroy(); this.graficaBarras.destroy();}
+        let claseBtnBuscarAgrupacion = (this.camposBusquedaAgrupacion.length > 0)?'btnEliminarAgrupacionActiva':'btnBuscarAgrupacion';
+        let dataActionBtnBuscarAgrupacion = (this.camposBusquedaAgrupacion.length > 0)?'eliminarBusquedaAgrupacion':'buscarAgrupacion';
+
+        /** Se actualizan los estilos de los botones que muestran las gráficas */
+        /** ------------------------------------------------------------------ */
+
+        $('.btnGraficas').each(function()
+        {
+            let icono = $(this).find('i');
+            icono.css('color', '#007BFF');
+            $(this).css('background', 'white');
+        });
+        icono.style.color = 'white';
+        btnGrafica.style.background = '#007BFF';
+
+        /** Se obtienen los títulos de las agrupaciones */
+        /** ------------------------------------------- */
+
+        $('#tituloResumen').text(nombreGrafica);
+        $('.tituloResumen').each(function(index)
+        {   
+            let titulo = [];
+            let opc = $(this).data('opc');
+            coloresUtilizados.push(self.colores[index]);
+            $('.tituloResumen'+opc).each(function(){titulo.push($(this).text().trim())});
+            titulos.push({'titulo' : titulo.join(' | ', titulo), 'color' : self.colores[index]});
+        });
+        titulos.forEach((item) => 
+        {
+            titulosGrafica.push(item.titulo);
+            $('#divTitulosResumen').append(
+            `
+                <div class="${claseBtnBuscarAgrupacion}" style="display:flex; align-items:center; justify-content:space-between; border-radius:5px; border:1px solid #d0d4da; padding:10px 12px; position:relative">
+                    <div class="animate__animated animate__fadeIn montserrat" style="display:flex; align-items:center; justify-content:center; gap: 5px;">
+                        <div 
+                            class="btnSearch ${claseBtnSerach}" 
+                            data-opc="${index}"
+                            data-action="click->central--reporteador#${dataActionBtnBuscarAgrupacion}"
+                            style=
+                            "
+                                width:22px; 
+                                height:22px; 
+                                display:flex; 
+                                cursor:pointer; 
+                                background:gray; 
+                                position:relative;
+                                border-radius:50%; 
+                                align-items:center; 
+                                justify-content:center; 
+                                transition:all 0.5s ease;
+                                border:${borderBtnBuscarAgrupacion}px solid white;
+                            "
+                        >
+                            <i class="fas fa-${iconoBtnBuscarAgrupacion}" style="font-size:10px; color:white"></i>
+                            <span class="tooltip tooltipEliminar" style="background-color:#DC3545e3; left:27px;">
+                                <i class="fas fa-chart-simple" style="font-size:10px; margin-top:-1px"></i> 
+                                <span style="font-size:10px">Eliminar agrupación</span>
+                            </span>
+                        </div>
+                        <span style="font-size:11px">${item.titulo}</span>
+                    </div>
+                    <i class="fas fa-circle" style="font-size:16px; color:${item.color}; position:relative; border:2px solid white; border-radius:50%"></i>
+                </div>     
+            `);
+            index ++;
+        });
+
+        /** Se obtienen los campos de la totalización seleccionada */
+        /** ------------------------------------------------------ */
+        
+        $('.campoTotalizacion'+grafica).each(function(index)
+        {
+            valoresGrafica.push(parseFloat($(this).text().trim().replaceAll('.', '').replace(',', '.')));
+            valoresGraficaBarras.push(
+            {
+                label: titulosGrafica[index],
+                backgroundColor:[coloresUtilizados[index]],
+                data: [parseFloat($(this).text().trim().replaceAll('.', '').replace(',', '.'))]
+            });
+        });
+
+        /** Se crea la gráfica de pastel */
+        /** ---------------------------- */
+
+        this.graficaPastel = new Chart(graficaPastel, 
+        {
+            type: 'doughnut',
+            data:
+            {
+                labels: titulosGrafica,
+                datasets: 
+                [
+                    {
+                        label: nombreGrafica,
+                        data: valoresGrafica,
+                        backgroundColor: coloresUtilizados
+                    }
+                ]
+            },
+            options: 
+            {
+                responsive: true,
+                legend: {display: true},
+                plugins: 
+                {
+                    legend: 
+                    {
+                        position: 'bottom',
+                        display: false,
+                    }
+                }
+            }   
+        });
+
+        /** Se crea la gráfica de barras */
+        /** ---------------------------- */
+
+        this.graficaBarras = new Chart(graficaBarras, 
+        {
+            type: 'bar',
+            data:
+            {
+                labels: [nombreGrafica],
+                datasets: valoresGraficaBarras
+            },
+            options: {
+                responsive: true,
+                legend: {display: true},
+                plugins: 
+                {
+                    legend: 
+                    {
+                        position: 'bottom',
+                        display: false,
+                    }
+                }
+            }   
+        });
+    }
+
+    buscarAgrupacion(event)
+    {
+        /** En esta función se genera el informe a partir de los campos de agrupación seleccionados */
+        /** --------------------------------------------------------------------------------------- */
+        
+        let self = this;
+        this.hideResumen();
+        $('#busquedaRapida').val('');
+        $('#busquedaRapidaHidden').val('');
+        let opc = event.currentTarget.dataset.opc;
+        $('.tituloResumen'+opc).each(function()
+        {
+            self.camposBusquedaAgrupacion.push({'campo' : $(this).data('campo'), 'valor' : $(this).data('nombre')});
+        });
+        $('#btnGenerarInforme').click();
+    }
+
+    eliminarBusquedaAgrupacion()
+    {
+        /** En esta función se elimina la agrupación seleccionada en la búsqueda de registros */
+        /** --------------------------------------------------------------------------------- */
+
+        this.hideResumen();
+        this.camposBusquedaAgrupacion = [];
+        $('#btnGenerarInforme').click();
     }
 }   

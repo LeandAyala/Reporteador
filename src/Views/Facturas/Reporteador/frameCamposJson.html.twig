@@ -24,53 +24,7 @@
                         <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                             <i class="fas fa-link" style="font-size:10px"></i>
                         </div>
-                        <input type="text" id="inputRutaFrameInforme" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta frame informe" value="{{ (configuraciones.rutaFrameInforme is defined and configuraciones.rutaFrameInforme|length > 0) ? configuraciones.rutaFrameInforme.nombre : '' }}">
-                    </div>
-                    <div style="width:100%; position:relative; margin-top:30px; padding:0px 15px">
-                        <hr>
-                        <div class="bg-light" style="position:absolute; display:flex; align-items:center; justify-content:center; border-radius:15px; gap:5px; border:1px solid #d0d4da; padding:4px 10px; top:-13px">
-                            <i class="fas fa-cog" style="font-size:9px"></i>
-                            <span class="montserrat" style="font-size:9px">Parámetros</span>
-                        </div>
-                        <div id="listParametrosRutaFrame" style="display:flex; width:100%; gap:3px; flex-direction:column; margin-top:2px">
-                            {% if configuraciones.rutaFrameInforme is defined and configuraciones.rutaFrameInforme|length > 0 and configuraciones.rutaFrameInforme.parametros is defined %}
-                                {% for key, parametro in configuraciones.rutaFrameInforme.parametros %}
-                                    <div class="parametrosRutaFrame" data-key="{{ key }}" id="parametrosRutaFrame{{ key }}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
-                                        <div style="display:flex; position:relative; flex:1">
-                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
-                                                <i class="fas fa-check" style="font-size:12px"></i>
-                                            </div>
-                                            <input id="inputNombreParametrosRutaFrame{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" value="{{ key }}" placeholder="Nombre parámetro">
-                                        </div>
-                                        <div style="display:flex; position:relative; width:150px">
-                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
-                                                <i class="fas fa-tag" style="font-size:12px"></i>
-                                            </div>
-                                            <input id="inputValorParametrosRutaFrame{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" value="{{ parametro }}" placeholder="Valor parámetro">
-                                        </div>
-                                        <div style="display:flex; position:relative; width:14px; justify-content:end">
-                                            <i class="fas fa-trash text-danger" data-key="parametrosRutaFrame{{ key }}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarParametro"></i>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                        <div class="divAgregarConfiguracion" data-clase="parametrosRutaFrame" data-lista="listParametrosRutaFrame" data-action="click->facturas--reporteador#agregarParametro" style=
-                        "   
-                            display:flex; 
-                            padding:10px; 
-                            margin-top:5px; 
-                            cursor:pointer;
-                            border-radius:5px; 
-                            align-items:center; 
-                            justify-content:center; 
-                            transition:all 0.5s ease;
-                            border:1px solid #d1d4da; 
-                            border-style:dashed; gap:5px; 
-                        ">
-                            <i class="fas fa-plus" style="font-size:9px; color:gray; transition:all 0.5s ease;"></i>
-                            <span style="font-size:10px; color:#808080e0; font-weight:bold; transition:all 0.5s ease;">Agregar parámetro</span>
-                        </div>
+                        <input type="text" id="inputRutaFrameInforme" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta frame informe" value="{{ (configuraciones.rutaFrameInforme is defined) ? configuraciones.rutaFrameInforme : '' }}">
                     </div>
                 </div>
                 <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer" onclick="$('#periodo').toggle('400')">
@@ -219,6 +173,8 @@
                                             </div>
                                             <input type="text" id="inputTituloCampo{{ key }}" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Título" value="{{ (campo.titulo is defined) ? campo.titulo : '' }}">
                                         </div>
+                                    </div>
+                                    <div style="display:flex; width:100%; gap:7px">
                                         <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
                                             <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                                                 <i class="fas fa-tag" style="font-size:12px"></i>
@@ -230,8 +186,6 @@
                                                 <option class="optionConfiguraciones" value="fecha" {{ (campo.tipoDato is defined and campo.tipoDato == 'fecha') ? 'selected' : '' }}>fecha</option>
                                             </select>
                                         </div>
-                                    </div>
-                                    <div style="display:flex; width:100%; gap:7px">
                                         <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
                                             <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                                                 <i class="fas fa-align-left" style="font-size:12px"></i>
@@ -243,6 +197,14 @@
                                                 <option class="optionConfiguraciones" value="centro" {{ (campo.alineacionTitulo is defined and campo.alineacionTitulo == 'centro') ? 'selected' : '' }}>centro</option>
                                             </select>
                                         </div>
+                                    </div>
+                                    <div style="display:flex; width:100%; gap:7px">
+                                        <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
+                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
+                                                <i class="fas fa-link" style="font-size:10px"></i>
+                                            </div>
+                                            <input type="text" id="inputRutaCampo{{ key }}" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta campo" value="{{ (campo.ruta is defined) ? campo.ruta : '' }}">
+                                        </div>
                                         <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
                                             <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                                                 <i class="fas fa-align-right" style="font-size:12px"></i>
@@ -253,58 +215,6 @@
                                                 <option class="optionConfiguraciones" value="derecha" {{ (campo.alineacionCampo is defined and campo.alineacionCampo == 'derecha') ? 'selected' : '' }}>derecha</option>
                                                 <option class="optionConfiguraciones" value="centro" {{ (campo.alineacionCampo is defined and campo.alineacionCampo == 'centro') ? 'selected' : '' }}>centro</option>
                                             </select>
-                                        </div>
-                                        <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
-                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
-                                                <i class="fas fa-link" style="font-size:10px"></i>
-                                            </div>
-                                            <input type="text" id="inputRutaCampo{{ key }}" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta campo" value="{{ (campo.ruta is defined and campo.ruta.nombre is defined) ? campo.ruta.nombre : '' }}">
-                                        </div>
-                                    </div>
-                                    <div style="width:100%; position:relative; margin-top:10px; padding:0px 15px">
-                                        <hr>
-                                        <div class="bg-light" style="position:absolute; display:flex; align-items:center; justify-content:center; border-radius:15px; gap:5px; border:1px solid #d0d4da; padding:4px 10px; top:0px">
-                                            <i class="fas fa-cog" style="font-size:9px"></i>
-                                            <span class="montserrat" style="font-size:9px">Parámetros</span>
-                                        </div>
-                                        <div id="listParametrosRutaCampo{{ campo.nombre }}" style="display:flex; width:100%; gap:3px; flex-direction:column; margin-top:2px">
-                                            {% if campo.ruta is defined and campo.ruta.parametros is defined and campo.ruta.parametros|length > 0 %}
-                                                {% for keyParametro, parametro in campo.ruta.parametros %}
-                                                    <div class="parametrosRutaCampo{{ campo.nombre }}" data-key="{{ keyParametro }}" id="parametrosRutaCampo{{ campo.nombre }}{{ keyParametro }}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
-                                                        <div style="display:flex; position:relative; flex:1">
-                                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
-                                                                <i class="fas fa-check" style="font-size:12px"></i>
-                                                            </div>
-                                                            <input id="inputNombreParametrosRutaFrameCampo{{ campo.nombre }}{{ keyParametro }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Nombre parámetro" value="{{ keyParametro }}">
-                                                        </div>
-                                                        <div style="display:flex; position:relative; width:150px">
-                                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
-                                                                <i class="fas fa-tag" style="font-size:12px"></i>
-                                                            </div>
-                                                            <input id="inputValorParametrosRutaFrameCampo{{ campo.nombre }}{{ keyParametro }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Valor parámetro" value="{{ parametro }}">
-                                                        </div>
-                                                        <div style="display:flex; position:relative; width:14px; justify-content:end">
-                                                            <i class="fas fa-trash text-danger" data-key="parametrosRutaCampo{{ campo.nombre }}{{ keyParametro }}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarParametro"></i>
-                                                        </div>
-                                                    </div>
-                                                {% endfor %}
-                                            {% endif %}
-                                        </div>
-                                        <div class="divAgregarConfiguracion" data-clase="parametrosRutaCampo{{ campo.nombre }}" data-lista="listParametrosRutaCampo{{ campo.nombre }}" data-action="click->facturas--reporteador#agregarParametro" style=
-                                        "   
-                                            display:flex; 
-                                            padding:10px; 
-                                            margin-top:5px; 
-                                            cursor:pointer;
-                                            border-radius:5px; 
-                                            align-items:center; 
-                                            justify-content:center; 
-                                            transition:all 0.5s ease;
-                                            border:1px solid #d1d4da; 
-                                            border-style:dashed; gap:5px; 
-                                        ">
-                                            <i class="fas fa-plus" style="font-size:9px; color:gray; transition:all 0.5s ease;"></i>
-                                            <span style="font-size:10px; color:#808080e0; font-weight:bold; transition:all 0.5s ease;">Agregar parámetro</span>
                                         </div>
                                     </div>
                                     <div style="display:flex; width:100%; margin-top:10px">
@@ -532,79 +442,37 @@
                     </div>
                     <span class="montserrat" style="font-size:11px; transition:all 0.5s ease">PDF</span>
                 </div>
-                <div id="pdf" style="border-radius:0px 0px 5px 5px; padding:15px; border:1px solid #d0d4da; display:none; margin-top:-4px; margin-left:2px; margin-right:2px">
-                    <div style="display:flex; width:100%; gap:7px">
-                        <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
-                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
-                                <i class="fas fa-file" style="font-size:12px"></i>
+                <div id="pdf" style="border-radius:0px 0px 5px 5px; padding:15px; border:1px solid #d0d4da; display:none; margin-top:-4px; margin-left:2px; margin-right:2px;">
+                    <div style="display:flex; flex-direction:column; gap:5px; width:100%">
+                        <div style="display:flex; width:100%; gap:7px">
+                            <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
+                                <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
+                                    <i class="fas fa-file" style="font-size:12px"></i>
+                                </div>
+                                <select class="form-control custom-select" id="tipoHoja" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
+                                    <option class="optionConfiguraciones" value="">Tipo hoja</option>
+                                    <option class="optionConfiguraciones" value="letter" {{ (configuraciones.pdf is defined and configuraciones.pdf.tipoHoja is defined and configuraciones.pdf.tipoHoja == 'letter') ? 'selected' : '' }}>Carta</option>
+                                    <option class="optionConfiguraciones" value="legal" {{ (configuraciones.pdf is defined and configuraciones.pdf.tipoHoja is defined and configuraciones.pdf.tipoHoja == 'legal') ? 'selected' : '' }}>Oficio</option>
+                                </select>
                             </div>
-                            <select class="form-control custom-select" id="tipoHoja" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
-                                <option class="optionConfiguraciones" value="">Tipo hoja</option>
-                                <option class="optionConfiguraciones" value="letter" {{ (configuraciones.pdf is defined and configuraciones.pdf.tipoHoja is defined and configuraciones.pdf.tipoHoja == 'letter') ? 'selected' : '' }}>Carta</option>
-                                <option class="optionConfiguraciones" value="legal" {{ (configuraciones.pdf is defined and configuraciones.pdf.tipoHoja is defined and configuraciones.pdf.tipoHoja == 'legal') ? 'selected' : '' }}>Oficio</option>
-                            </select>
-                        </div>
-                        <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
-                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
-                                <i class="fas fa-align-center" style="font-size:12px"></i>
+                            <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
+                                <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
+                                    <i class="fas fa-align-center" style="font-size:12px"></i>
+                                </div>
+                                <select class="form-control custom-select" id="orientacion" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
+                                    <option class="optionConfiguraciones" value="">Orientación</option>
+                                    <option class="optionConfiguraciones" value="portrait" {{ (configuraciones.pdf is defined and configuraciones.pdf.orientacion is defined and configuraciones.pdf.orientacion == 'portrait') ? 'selected' : '' }}>Vertical</option>
+                                    <option class="optionConfiguraciones" value="landscape" {{ (configuraciones.pdf is defined and configuraciones.pdf.orientacion is defined and configuraciones.pdf.orientacion == 'landscape') ? 'selected' : '' }}>Horizontal</option>
+                                </select>
                             </div>
-                            <select class="form-control custom-select" id="orientacion" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px">
-                                <option class="optionConfiguraciones" value="">Orientación</option>
-                                <option class="optionConfiguraciones" value="portrait" {{ (configuraciones.pdf is defined and configuraciones.pdf.orientacion is defined and configuraciones.pdf.orientacion == 'portrait') ? 'selected' : '' }}>Vertical</option>
-                                <option class="optionConfiguraciones" value="landscape" {{ (configuraciones.pdf is defined and configuraciones.pdf.orientacion is defined and configuraciones.pdf.orientacion == 'landscape') ? 'selected' : '' }}>Horizontal</option>
-                            </select>
                         </div>
-                        <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
-                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
-                                <i class="fas fa-link" style="font-size:10px"></i>
+                        <div style="display:flex; width:100%; gap:7px">
+                            <div style="width:100%; display:flex; gap:10px; position:relative; flex:1">
+                                <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
+                                    <i class="fas fa-link" style="font-size:10px"></i>
+                                </div>
+                                <input type="text" id="inputRutaPdf" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta pdf" value="{{ (configuraciones.pdf is defined and configuraciones.pdf.ruta is defined) ? configuraciones.pdf.ruta : '' }}">
                             </div>
-                            <input type="text" id="inputRutaPdf" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta pdf" value="{{ (configuraciones.pdf is defined and configuraciones.pdf.ruta is defined and configuraciones.pdf.ruta.nombre is defined) ? configuraciones.pdf.ruta.nombre : '' }}">
-                        </div>
-                    </div>
-                    <div style="width:100%; position:relative; margin-top:30px; padding:0px 15px">
-                        <hr>
-                        <div class="bg-light" style="position:absolute; display:flex; align-items:center; justify-content:center; border-radius:15px; gap:5px; border:1px solid #d0d4da; padding:4px 10px; top:-11px">
-                            <i class="fas fa-cog" style="font-size:9px"></i>
-                            <span class="montserrat" style="font-size:9px">Parámetros</span>
-                        </div>
-                        <div id="listParametrosRutaPdf" style="display:flex; width:100%; gap:3px; flex-direction:column; margin-top:2px">
-                            {% if configuraciones.pdf is defined and configuraciones.pdf.ruta is defined and configuraciones.pdf.ruta.parametros is defined and configuraciones.pdf.ruta.parametros|length > 0 %}
-                                {% for key, parametro in configuraciones.pdf.ruta.parametros %}
-                                    <div class="parametrosRutaPdf" data-key="{{ key }}" id="parametrosRutaPdf{{ key }}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
-                                        <div style="display:flex; position:relative; flex:1">
-                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
-                                                <i class="fas fa-check" style="font-size:12px"></i>
-                                            </div>
-                                            <input id="inputNombreParametrosRutaPdf{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Nombre parámetro" value="{{ key }}">
-                                        </div>
-                                        <div style="display:flex; position:relative; width:150px">
-                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
-                                                <i class="fas fa-tag" style="font-size:12px"></i>
-                                            </div>
-                                            <input id="inputValorParametrosRutaPdf{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Valor parámetro" value="{{ parametro }}">
-                                        </div>
-                                        <div style="display:flex; position:relative; width:14px; justify-content:end">
-                                            <i class="fas fa-trash text-danger" data-key="parametrosRutaPdf{{ key }}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarParametro"></i>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                        <div class="divAgregarConfiguracion" data-clase="parametrosRutaPdf" data-lista="listParametrosRutaPdf" data-action="click->facturas--reporteador#agregarParametro" style=
-                        "   
-                            display:flex; 
-                            padding:10px; 
-                            margin-top:5px; 
-                            cursor:pointer;
-                            border-radius:5px; 
-                            align-items:center; 
-                            justify-content:center; 
-                            transition:all 0.5s ease;
-                            border:1px solid #d1d4da; 
-                            border-style:dashed; gap:5px; 
-                        ">
-                            <i class="fas fa-plus" style="font-size:9px; color:gray; transition:all 0.5s ease;"></i>
-                            <span style="font-size:10px; color:#808080e0; font-weight:bold; transition:all 0.5s ease;">Agregar parámetro</span>
                         </div>
                     </div>
                 </div>
@@ -630,53 +498,7 @@
                         <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                             <i class="fas fa-link" style="font-size:10px"></i>
                         </div>
-                        <input type="text" id="inputRutaExcel" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta excel" value="{{ (configuraciones.excel is defined and configuraciones.excel.ruta is defined and configuraciones.excel.ruta.nombre is defined) ? configuraciones.excel.ruta.nombre }}">
-                    </div>
-                    <div style="width:100%; position:relative; margin-top:30px; padding:0px 15px">
-                        <hr>
-                        <div class="bg-light" style="position:absolute; display:flex; align-items:center; justify-content:center; border-radius:15px; gap:5px; border:1px solid #d0d4da; padding:4px 10px; top:-13px">
-                            <i class="fas fa-cog" style="font-size:9px"></i>
-                            <span class="montserrat" style="font-size:9px">Parámetros</span>
-                        </div>
-                        <div id="listParametrosRutaExcel" style="display:flex; width:100%; gap:3px; flex-direction:column; margin-top:2px">
-                            {% if configuraciones.excel is defined and configuraciones.excel.ruta is defined and configuraciones.excel.ruta.parametros is defined and configuraciones.excel.ruta.parametros|length > 0 %}
-                                {% for key, parametro in configuraciones.excel.ruta.parametros %}
-                                    <div class="parametrosRutaExcel" data-key="{{ key }}" id="parametrosRutaExcel{{ key }}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
-                                        <div style="display:flex; position:relative; flex:1">
-                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
-                                                <i class="fas fa-check" style="font-size:12px"></i>
-                                            </div>
-                                            <input id="inputNombreParametrosRutaExcel{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Nombre parámetro" value="{{ key }}">
-                                        </div>
-                                        <div style="display:flex; position:relative; width:150px">
-                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
-                                                <i class="fas fa-tag" style="font-size:12px"></i>
-                                            </div>
-                                            <input id="inputValorParametrosRutaExcel{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Valor parámetro" value="{{ parametro }}">
-                                        </div>
-                                        <div style="display:flex; position:relative; width:14px; justify-content:end">
-                                            <i class="fas fa-trash text-danger" data-key="parametrosRutaExcel{{ key }}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarParametro"></i>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                        <div class="divAgregarConfiguracion" data-clase="parametrosRutaExcel" data-lista="listParametrosRutaExcel" data-action="click->facturas--reporteador#agregarParametro" style=
-                        "   
-                            display:flex; 
-                            padding:10px; 
-                            margin-top:5px; 
-                            cursor:pointer;
-                            border-radius:5px; 
-                            align-items:center; 
-                            justify-content:center; 
-                            transition:all 0.5s ease;
-                            border:1px solid #d1d4da; 
-                            border-style:dashed; gap:5px; 
-                        ">
-                            <i class="fas fa-plus" style="font-size:9px; color:gray; transition:all 0.5s ease;"></i>
-                            <span style="font-size:10px; color:#808080e0; font-weight:bold; transition:all 0.5s ease;">Agregar parámetro</span>
-                        </div>
+                        <input type="text" id="inputRutaExcel" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta excel" value="{{ (configuraciones.excel is defined) ? configuraciones.excel }}">
                     </div>
                 </div>
                 <div class="bg-light camposJson" style="display:flex; align-items:center; border-radius:5px; padding:10px; border:1px solid #d0d4da; gap:5px; cursor:pointer" onclick="$('#rutaFrameResumen').toggle('400')">
@@ -701,53 +523,7 @@
                         <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:14px; border: 1px solid #d0d4da;">
                             <i class="fas fa-link" style="font-size:10px"></i>
                         </div>
-                        <input type="text" id="inputRutaFrameResumen" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta frame resumen" value="{{ (configuraciones.rutaFrameResumen is defined and configuraciones.rutaFrameResumen.nombre is defined) ? configuraciones.rutaFrameResumen.nombre : '' }}">
-                    </div>
-                    <div style="width:100%; position:relative; margin-top:30px; padding:0px 15px">
-                        <hr>
-                        <div class="bg-light" style="position:absolute; display:flex; align-items:center; justify-content:center; border-radius:15px; gap:5px; border:1px solid #d0d4da; padding:4px 10px; top:-13px">
-                            <i class="fas fa-cog" style="font-size:9px"></i>
-                            <span class="montserrat" style="font-size:9px">Parámetros</span>
-                        </div>
-                        <div id="listParametrosRutaFrameResumen" style="display:flex; width:100%; gap:3px; flex-direction:column; margin-top:2px">
-                            {% if configuraciones.rutaFrameResumen is defined and configuraciones.rutaFrameResumen.parametros is defined and configuraciones.rutaFrameResumen.parametros|length > 0 %}
-                                {% for key, parametro in configuraciones.rutaFrameResumen.parametros %}
-                                    <div class="parametrosRutaFrameResumen" data-key="{{ key }}" id="parametrosRutaFrameResumen{{ key }}" style="display:flex; align-items:center; border:1px solid #d0d4da; width:100%; padding:8px 10px; border-radius:5px; gap:7px">
-                                        <div style="display:flex; position:relative; flex:1">
-                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
-                                                <i class="fas fa-check" style="font-size:12px"></i>
-                                            </div>
-                                            <input id="inputNombreParametrosRutaFrameResumen{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Nombre parámetro" value="{{ key }}">
-                                        </div>
-                                        <div style="display:flex; position:relative; width:150px">
-                                            <div style="display:flex; align-items:center; justify-content:center; border-radius:50%; width:0px; height:0px; position:absolute; background:#E9ECEF; padding:13px; border: 1px solid #d0d4da;">
-                                                <i class="fas fa-tag" style="font-size:12px"></i>
-                                            </div>
-                                            <input id="inputValorParametrosRutaFrameResumen{{ key }}" type="text" class="form-control" style="font-size:11px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Valor parámetro" value="{{ parametro }}">
-                                        </div>
-                                        <div style="display:flex; position:relative; width:14px; justify-content:end">
-                                            <i class="fas fa-trash text-danger" data-key="parametrosRutaFrameResumen{{ key }}" style="cursor:pointer" data-action="click->facturas--reporteador#eliminarParametro"></i>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                        <div class="divAgregarConfiguracion" data-clase="parametrosRutaFrameResumen" data-lista="listParametrosRutaFrameResumen" data-action="click->facturas--reporteador#agregarParametro" style=
-                        "   
-                            display:flex; 
-                            padding:10px; 
-                            margin-top:5px; 
-                            cursor:pointer;
-                            border-radius:5px; 
-                            align-items:center; 
-                            justify-content:center; 
-                            transition:all 0.5s ease;
-                            border:1px solid #d1d4da; 
-                            border-style:dashed; gap:5px; 
-                        ">
-                            <i class="fas fa-plus" style="font-size:9px; color:gray; transition:all 0.5s ease;"></i>
-                            <span style="font-size:10px; color:#808080e0; font-weight:bold; transition:all 0.5s ease;">Agregar parámetro</span>
-                        </div>
+                        <input type="text" id="inputRutaFrameResumen" class="form-control" style="font-size:12px; border-radius:15px 7px 7px 15px; padding-left:40px" placeholder="Ruta frame resumen" value="{{ (configuraciones.rutaFrameResumen is defined) ? configuraciones.rutaFrameResumen : '' }}">
                     </div>
                 </div>
             </div>

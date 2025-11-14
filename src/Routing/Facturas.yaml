@@ -80,3 +80,7 @@ facturas_frame_lista_informes:
 facturas_eliminar_informe:
     path:      /Facturas/eliminarInforme
     defaults:   {_controller: App\Controller\Facturas\FacturasController::eliminarInforme}
+
+facturas_publicar_informe:
+    path:      /Facturas/publicarInforme
+    defaults:   {_controller: App\Controller\Facturas\FacturasController::publicarInforme}

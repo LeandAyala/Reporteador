@@ -4,10 +4,13 @@ import { Controller } from "@hotwired/stimulus";
 export default class extends Controller 
 {
     campos = [];
+    modulo = '';
     editor = null;
     lineaError = -1;
     keyAgrupacion = 0;
+    totalRegistros = 0;
     keyTotalizacion = 0;
+    estadoMigracion = 0;
     camposTotalizacion = [];
     mensaje = new mensajes();
     keyTotalizacionAgrupacion = 0;
@@ -17,7 +20,8 @@ export default class extends Controller
         'urlObtenerInforme' : String,
         'urlGuardarInforme' : String,
         'urlEliminarInforme' : String,
-        'urlFrameListaInformes' : String
+        'urlPublicarInforme' : String,
+        'urlFrameListaInformes' : String,
     };
 
     static targets = 
@@ -53,9 +57,11 @@ export default class extends Controller
         event.preventDefault();
         let btnShowModal = event.currentTarget;
         let formInforme = this.formNuevoInformeTarget;
+        let modulo = event.currentTarget.dataset.modulo;
         let idRegistro = event.currentTarget.dataset.id;
         let idActual = $('#nuevo_informe_idRegistro').val();
         let nombreInforme = event.currentTarget.dataset.nombre;
+        let estadoMigracion = Number(event.currentTarget.dataset.estadomigracion);
         setTimeout(() =>
         {
             this.editor.refresh();
@@ -68,10 +74,12 @@ export default class extends Controller
         $('#nuevo_informe_idRegistro').val(0);
         if(idRegistro > 0)
         {
+            this.modulo = modulo;
             let form = new FormData();
             form.append('idRegistro', idRegistro);
             $('#nombreInforme').text(nombreInforme);
             $('#cargandoInforme').css('display', '');
+            this.estadoMigracion = Number(estadoMigracion);
             btnShowModal.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             $('#tituloNuevoInforme').text(`Actualizar informe - ${nombreInforme}`);
             $('#iconoNuevoInforme').removeClass('fa-external-link-alt').addClass('fa-edit');
@@ -100,6 +108,7 @@ export default class extends Controller
             setTimeout(() => 
             {
                 $('#btnEliminarInforme').css('display', '');
+                $('#btnPublicarInforme').css('display', '');
                 $('#botonesInforme').removeClass('animate__flipOutX').addClass('animate__flipInX');               
             }, 800);
         }
@@ -114,6 +123,7 @@ export default class extends Controller
                 $('#botonesInforme').removeClass('animate__flipInX').addClass('animate__flipOutX');
                 setTimeout(() => 
                 {
+                    $('#btnPublicarInforme').css('display', 'none');
                     $('#btnEliminarInforme').css('display', 'none');
                     $('#botonesInforme').removeClass('animate__flipOutX').addClass('animate__flipInX');               
                 }, 800);
@@ -147,38 +157,13 @@ export default class extends Controller
         /** ------------------------------------------------- */
 
         let pdf = {};
-        let excel = {};
         let campos = [];
         let cabeceras = [];
         let agrupamiento = [];
         let totalizacion = [];
-        let rutaFrameResumen = {};
-        let rutaFrameInforme = {};
-        let parametrosRutaPdf = {};
         let camposAgrupamiento = [];
-        let parametrosRutaExcel = {};
-        let parametrosRutaFrameInforme = {};
-        let parametrosRutaFrameResumen = {};
         let camposTotalizacionAgrupamiento = [];
         let form = new FormData(event.currentTarget);
-
-        /** Parámetros rutaFrameInforme */
-        /** --------------------------- */
-
-        $('.parametrosRutaFrame').each(function()
-        {
-            let key = $(this).data('key');
-            let valor = $('#inputValorParametrosRutaFrame'+key).val();
-            let nombre = $('#inputNombreParametrosRutaFrame'+key).val();
-            if(nombre != '' && valor != '')
-            {
-                parametrosRutaFrameInforme[`${nombre}`] = valor;
-            }
-        });
-        if($('#inputRutaFrameInforme').val() != '')
-        {
-            rutaFrameInforme = {'nombre' : $('#inputRutaFrameInforme').val(), 'parametros' : parametrosRutaFrameInforme};
-        }
 
         /** Cabeceras del informe */
         /** --------------------- */
@@ -199,8 +184,6 @@ export default class extends Controller
 
         $('.campos').each(function()
         {
-            let ruta = {};
-            let parametros = {};
             let key = $(this).data('key');
             let html = $('#inputHtmlCampo'+key).val();
             let nombre = $('#inputNombreCampo'+key).val();
@@ -209,24 +192,6 @@ export default class extends Controller
             let tipoDato = $('#selectTipoDatoCampo'+key).val();
             let alineacionCampo = $('#selectAlineacionCampo'+key).val();
             let alineacionTitulo = $('#selectAlineacionTitulo'+key).val();
-
-            /** Se obtienen los parámetros configurados en la ruta de cada campo */
-            /** ---------------------------------------------------------------- */
-
-            $('.parametrosRutaCampo'+nombre).each(function()
-            {
-                let key = $(this).data('key');
-                let valor = $(`#inputValorParametrosRutaCampo${nombre}${key}`).val();
-                let nombreRutaCampo = $(`#inputNombreParametrosRutaCampo${nombre}${key}`).val();
-                if(nombreRutaCampo != '' && valor != '')
-                {
-                    parametros[`${nombreRutaCampo}`] = valor;
-                }
-            });
-            if(nombreRuta != '')
-            {
-                ruta = {'nombre' : nombreRuta, 'parametros' : parametros}
-            }
             campos.push(
             {
                 'nombre' : nombre, 
@@ -234,7 +199,7 @@ export default class extends Controller
                 'tipoDato' : tipoDato, 
                 'alineacionCampo' : alineacionCampo, 
                 'alineacionTitulo' : alineacionTitulo, 
-                'ruta' : ruta,
+                'ruta' : nombreRuta,
                 'html' : html 
             });
 
@@ -278,66 +243,12 @@ export default class extends Controller
         /** PDF del informe */
         /** --------------- */
 
-        pdf = {'tipoHoja' : $('#tipoHoja').val(), 'orientacion' : $('#orientacion').val(), 'ruta' : {}};
-
-        /** Se obtienen los parámetros configurados en la ruta del PDF */
-        /** ---------------------------------------------------------- */
-
-        $('.parametrosRutaPdf').each(function()
-        {
-            let key = $(this).data('key');
-            let valor = $('#inputValorParametrosRutaPdf'+key).val();
-            let nombre = $('#inputNombreParametrosRutaPdf'+key).val();
-            if(valor !== '' && nombre !== '')
-            {
-                parametrosRutaPdf[`${nombre}`] = valor;
-            }
-        });
-        if($('#inputRutaPdf').val() !== '')
-        {
-            pdf.ruta = {'nombre' : $('#inputRutaPdf').val(), 'parametros' : parametrosRutaPdf};;
-        }
-
-        /** Se obtienen los parámetros configurados en la ruta del EXCEL */
-        /** ------------------------------------------------------------ */
-
-        $('.parametrosRutaExcel').each(function()
-        {
-            let key = $(this).data('key');
-            let valor = $('#inputValorParametrosRutaExcel'+key).val();
-            let nombre = $('#inputNombreParametrosRutaExcel'+key).val();
-            if(valor !== '' && nombre !== '')
-            {
-                parametrosRutaExcel[`${nombre}`] = valor;
-            }
-        });
-        if($('#inputRutaExcel').val() !== '')
-        {
-            excel.ruta = {'nombre' : $('#inputRutaExcel').val(), 'parametros' : parametrosRutaExcel};
-        }
-
-        /** Parámetros rutaFrameResumen */
-        /** --------------------------- */
-
-        $('.parametrosRutaFrameResumen').each(function()
-        {
-            let key = $(this).data('key');
-            let valor = $('#inputValorParametrosRutaFrameResumen'+key).val();
-            let nombre = $('#inputNombreParametrosRutaFrameResumen'+key).val();
-            if(nombre != '' && valor != '')
-            {
-                parametrosRutaFrameResumen[`${nombre}`] = valor;
-            }
-        });
-        if($('#inputRutaFrameResumen').val() != '')
-        {
-            rutaFrameResumen = {'nombre' : $('#inputRutaFrameResumen').val(), 'parametros' : parametrosRutaFrameResumen};
-        }
+        pdf = {'tipoHoja' : $('#tipoHoja').val(), 'orientacion' : $('#orientacion').val(), 'ruta' : $('#inputRutaPdf').val()};
 
         /** Se crea las configuraciones del informe */
         /** --------------------------------------- */
 
-        configuraciones.rutaFrameInforme = rutaFrameInforme;
+        configuraciones.rutaFrameInforme = $('#inputRutaFrameInforme').val();
         configuraciones.periodo = $('#periodoInforme').val();
         configuraciones.anchoTabla = $('#anchoTablaInforme').val();
         configuraciones.cabecera = cabeceras;
@@ -346,8 +257,8 @@ export default class extends Controller
         configuraciones.paginacion = $('#paginacionInforme').val();
         configuraciones.totalizacion = totalizacion;
         configuraciones.pdf = pdf;
-        configuraciones.excel = excel;
-        configuraciones.rutaFrameResumen = rutaFrameResumen;
+        configuraciones.excel = $('#inputRutaExcel').val();
+        configuraciones.rutaFrameResumen = $('#inputRutaFrameResumen').val();
         form.append('configuraciones', JSON.stringify(configuraciones));
         
         /** Se guarda/edita el informe */
@@ -365,9 +276,11 @@ export default class extends Controller
         {
             this.hideMensajeError();
             this.campos = result.campos;
+            this.modulo = result.modulo;
             $('#jsonContainer').html('');
             $('#divConfiguracionJson').css('display', '');
             this.camposTotalizacion = result.camposTotalizacion;
+            this.estadoMigracion = Number(result.estadoMigracion);
             if(Number($('#nuevo_informe_idRegistro').val()) == 0)
             {
                 $('#divTituloNuevoInforme').addClass('animate__animated animate__flipOutX');
@@ -385,6 +298,7 @@ export default class extends Controller
             setTimeout(() => 
             {
                 $('#btnEliminarInforme').css('display', '');
+                $('#btnPublicarInforme').css('display', '');
                 $('#botonesInforme').removeClass('animate__flipOutX').addClass('animate__flipInX');               
             }, 800);
             let formatter = new JSONFormatter(result.configuraciones, 1, { theme: 'light' });
@@ -726,6 +640,7 @@ export default class extends Controller
         let result = await consulta.json();
         $('#frameListaInformes').html(result.plantilla);
         $('#cargandoListaInformes').css('display', 'none');
+        this.totalRegistros = Number(result.countRegistros);
         $('#totalRegistros').removeClass('animate__animated animate__flipInX').addClass('animate__animated animate__flipOutX');
         setTimeout(() =>
         {
@@ -796,5 +711,98 @@ export default class extends Controller
             this.mensaje.mostrarMensaje(`¡El campo ${event.currentTarget.value} ya se encuentra seleccionado!`);
             event.currentTarget.value = opcionSeleccionada;
         }
+    }
+
+    async publicarInforme(event)
+    {
+        /** En esta función se crea una migración con la actualización del informe */
+        /** ---------------------------------------------------------------------- */
+
+        let idRegistro = $('#nuevo_informe_idRegistro').val();
+        console.log(idRegistro);
+    }
+
+    showPopoverPublicarInforme(event)
+    {
+        /** En esta función se hace visible el popover para publicar un informe */
+        /** ------------------------------------------------------------------- */
+
+        let id = Number(event.currentTarget.dataset.id);
+        if(id > 0)
+        {
+            let index = Number(event.currentTarget.dataset.index);
+            let incremento = 130-(26*(this.totalRegistros-index));
+            $('.popoverPublicarInforme').each(function(){$(this).hide()});
+            setTimeout(() => {$('#popoverPublicarInforme'+id).css('display', '')}, 500);
+            if(incremento > 0){$('#tablaInformes').css('margin-bottom', incremento+'px')}else{$('#tablaInformes').css('margin-bottom', '0px')}
+        }
+        else
+        {
+            $('#popoverPublicarInforme').css('display', '');
+            $('#nombreModulo').text('Publicar informe - ' + this.modulo);
+            $('#tipoAccionPublicar').text((this.estadoMigracion > 0)?'actualización':'creación');
+        }
+    }
+
+    hidePopoverPublicarInforme(event = null)
+    {
+        /** En esta función se oculta el popover para publicar un informe */
+        /** ------------------------------------------------------------- */
+
+        let id = 0;
+        setTimeout(() => {$('#tablaInformes').css('margin-bottom', '0px')}, 700);
+        if(event != null)
+        {
+            id = Number(event.currentTarget.dataset.id);
+            if(event.currentTarget.preventDefault === undefined){event.preventDefault()} 
+        }
+        if(id > 0)
+        {
+            $('#popoverPublicarInforme'+id).removeClass('animate__fadeIn').addClass('animate__fadeOut');
+            setTimeout(()=>{$('#popoverPublicarInforme'+id).hide().removeClass('animate__fadeOut').addClass('animate__fadeIn')}, 1000);
+        }
+        else
+        {
+            $('#popoverPublicarInforme').removeClass('animate__fadeIn').addClass('animate__fadeOut');
+            setTimeout(()=>{$('#popoverPublicarInforme').hide().removeClass('animate__fadeOut').addClass('animate__fadeIn')}, 1000);
+        }
+    }
+
+    async confirmarPublicarInforme(event)
+    {
+        /** En esta función se genera una migración que contiene el SQL para crear/actualizar un informe específico */
+        /** ------------------------------------------------------------------------------------------------------- */
+
+        let form = new FormData();
+        let id = Number(event.currentTarget.dataset.id);
+        if(id > 0)
+        {
+            this.hidePopoverPublicarInforme({'currentTarget' : {'preventDefault' : true, 'dataset' : {'id' : id}}});
+        }
+        else
+        {
+            this.hidePopoverPublicarInforme();
+            id = $('#nuevo_informe_idRegistro').val();
+        }
+
+        /** Se realiza la publicación del informe */
+        /** ------------------------------------- */
+
+        form.append('id', id);
+        let consulta = await fetch(this.urlPublicarInformeValue, {'method' : 'POST', 'body' : form});
+        let result = await consulta.json();
+
+        /** Se valida si la publicación del informe fue exitosa */
+        /** --------------------------------------------------- */
+
+        if(result.status === 'success')
+        {
+            this.mensaje.mostrarMensaje('¡El informe se ha publicado con éxito. Por favor, revise las migraciones pendientes por ejecutar!', 1);
+        }
+        else
+        {
+            this.mensaje.mostrarMensaje('¡El informe que intenta publicar ya no se encuentra disponible!', 2);
+        }
+        await this.actualizarListaInforme();
     }
 }   

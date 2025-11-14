@@ -22,6 +22,10 @@ services:
             - '../src/Tests/'
         autowire: true
         autoconfigure: true
+    
+    Doctrine\Migrations\DependencyFactory:
+        alias: doctrine.migrations.dependency_factory
+        public: true
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

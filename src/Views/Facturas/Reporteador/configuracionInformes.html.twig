@@ -308,7 +308,7 @@
             border:none !important;
         }
 
-        .opciones:hover svg {
+        .opciones:hover {
             border-radius:50%;
             box-shadow: 0px 0px 4px 0px;
         }
@@ -378,12 +378,113 @@
         .textBtn:active {
             transform: translate(2px ,2px);
         }
+
+        .tooltip {
+            gap:5px;
+            top: -20px;
+            opacity: 0;
+            width:150px;
+            height:23px;
+            left: -163px;
+            color: white;
+            display: flex;
+            font-size:11px;
+            font-weight:bold;
+            padding: 3px 10px;
+            border-radius: 5px;
+            position: absolute;
+            align-items: center;
+            pointer-events: none;
+            justify-content: center;
+            transition-duration: .2s;
+            background-color: #17A2B8e3;
+        }
+
+        .tooltip::before {
+            width: 0px;
+            right: -8px;
+            height: 0px;
+            bottom: 8px;
+            content: "";
+            position: absolute;
+            background-size: 1000%;
+            transform: rotate(180deg);
+            transition-duration: .3s;
+            background-position: center;
+            border-top: 4px solid transparent;
+            border-right: 8px solid #17A2B8e3;
+            border-bottom: 4px solid transparent
+        }
+        
+        .msg:hover .tooltip {
+            top: -3px;
+            opacity: 1;
+            transition-duration: .3s;
+        }
+
+        .msg:hover {
+            background-position: right;
+            transition-duration: .5s;
+        }
+
+        .migracionEjecutada::before {
+            top: 0px;
+            width: 0%;
+            left: 0px;
+            content: "";
+            height: 100%;
+            position: absolute;
+            background: #28A745;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .migracionEjecutada:hover span {
+            color: white;
+        }
+
+        .migracionEjecutada:hover::before {
+            width: 100%;
+        }
+
+        .migracionSinEjecutar::before {
+            top: 0px;
+            width: 0%;
+            left: 0px;
+            content: "";
+            height: 100%;
+            position: absolute;
+            background: #DC3545;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .migracionSinEjecutar:hover span {
+            color: white;
+        }
+
+        .migracionSinEjecutar:hover::before {
+            width: 100%;
+        }
+
+        .tooltipMigracionEjecutada::before {
+            border-right: 8px solid #28A745e3;
+        }
+
+        .tooltipMigracionSinEjecutar::before {
+            border-right: 8px solid #DC3545e3;
+        }
+
+        .msg:hover .tooltipMigracion {
+            top: -1px;
+        }
     </style>
     <div class="container-fluid pt-4" data-turbo="true" {{ stimulus_controller('facturas--reporteador',
         {
             'urlObtenerInforme' : path('facturas_obtener_informe'),
             'urlGuardarInforme' : path('facturas_guardar_informe'),
             'urlEliminarInforme' : path('facturas_eliminar_informe'),
+            'urlPublicarInforme' : path('facturas_publicar_informe'),
             'urlFrameListaInformes' : path('facturas_frame_lista_informes')
         }
     )}}>
@@ -577,6 +678,67 @@
                                     <div style="display:flex; gap:4px; width:100%">
                                         <div class="animate__animated animate__flipInX" style="display:flex; gap:4px;" id="botonesInforme">
                                             <button type="submit" class="btn btn-success" id="btnGuardarInforme" data-facturas--reporteador-target="btnGuardarInforme"><i class="fas fa-save"></i> Guardar</button>
+                                            <button type="button" data-id="0" class="btn btn-info" id="btnPublicarInforme" style="display:none" data-action="facturas--reporteador#showPopoverPublicarInforme"><i class="fa-solid fa-check-circle"></i> Publicar</button>
+                                            
+                                            {# Popover para publicar informe #}
+                                            {# ----------------------------- #}
+
+                                            <div style="position:relative; width:0px; margin:-2px">
+                                                <div 
+                                                    role="tooltip" 
+                                                    x-placement="right" 
+                                                    id="popoverPublicarInforme" 
+                                                    class="popover fade show bs-popover animate__animated animate__fadeIn" 
+                                                    style=
+                                                    "
+                                                        left:-1px; 
+                                                        top:-127px; 
+                                                        width:auto; 
+                                                        width:376px;
+                                                        height:auto; 
+                                                        border:none; 
+                                                        padding:3px; 
+                                                        display:none; 
+                                                        max-width:376px; 
+                                                        position: absolute; 
+                                                        border-radius:20px; 
+                                                        background:transparent; 
+                                                        will-change: transform; 
+                                                    "
+                                                >
+                                                    <div class="card-info" style="height:165px; width:383px">
+                                                        <div class="top-section" style="height:151px">
+                                                            <div class="border" style="width:295px"></div>
+                                                            <div class="icons">
+                                                                <div style="display:flex; align-items:center">
+                                                                    <div class="logoPopover" style="display:flex">
+                                                                        <i class="fas fa-info-circle text-light" style="font-size:12px"></i>
+                                                                    </div>
+                                                                    <b style="font-size:12px; color:white; margin-left:3px; margin-top:-6px" id="nombreModulo"></b>
+                                                                </div>
+                                                                <div class="social-media">
+                                                                    <a href="#" data-id="0" data-action="facturas--reporteador#hidePopoverPublicarInforme"><i class="fas fa-times-circle text-danger opciones" style="transition:all 0.5s ease"></i></a>
+                                                                </div>
+                                                            </div>
+                                                            <div style="padding:15px">
+                                                                <span style="font-size:12px">Al ejecutar esta acción se agregará una <b style="font-size:12px">migración</b> en el sistema con la <b style="font-size:12px" id="tipoAccionPublicar"></b> del informe.</span>
+                                                                <b style="font-size:12px">¿Está seguro de continuar?</b>
+                                                                <hr>
+                                                                <div style="display:flex; align-items:center; position:relative">
+                                                                    <button type="button" class="btnTooltip bg-success" data-id="0" style="margin-right:3px" data-action="facturas--reporteador#confirmarPublicarInforme">
+                                                                        <div class="sign"><i class="fas fa-check" style="font-size:11px; color:white"></i></div>
+                                                                        <div class="textBtn" style="margin-right:3px; margin-top:-1px">Aceptar</div>
+                                                                    </button>
+                                                                    <button type="button" class="btnTooltip bg-danger" data-id="0" style="margin-right:3px" data-action="facturas--reporteador#hidePopoverPublicarInforme">
+                                                                        <div class="sign"><i class="fas fa-times" style="font-size:11px; color:white"></i></div>
+                                                                        <div class="textBtn" style="margin-right:3px; margin-top:-1px">Regresar</div>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <button type="button" class="btn btn-danger" id="btnEliminarInforme" style="display:none" data-action="facturas--reporteador#showPopoverEliminarInforme"><i class="fas fa-trash"></i> Eliminar</button>
                                             
                                             {# Popover para eliminar informe #}
@@ -618,7 +780,7 @@
                                                                     </b>
                                                                 </div>
                                                                 <div class="social-media">
-                                                                    <a href="#" class="opciones" data-action="facturas--reporteador#hidePopoverEliminarInforme"><i class="fas fa-times-circle text-danger" style="transition:all 0.5s ease"></i></a>
+                                                                    <a href="#" data-action="facturas--reporteador#hidePopoverEliminarInforme"><i class="fas fa-times-circle text-danger opciones" style="transition:all 0.5s ease"></i></a>
                                                                 </div>
                                                             </div>
                                                             <div style="padding:15px">

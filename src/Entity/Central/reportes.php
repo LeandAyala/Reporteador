@@ -48,6 +48,16 @@ class reportes
      */
     private $estado;
 
+    /**
+     * @ORM\Column(type="text", nullable=true)
+     */
+    private $migracion;
+
+    /** 
+     * Se almacena el estado de la migración validando si esta se encuentra o no ejecutada
+    */
+    private $estadoMigracion;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -122,6 +132,41 @@ class reportes
     {
         $this->estado = $estado;
 
+        return $this;
+    }
+
+    public function getMigracion(): ?string
+    {
+        return $this->migracion;
+    }
+
+    public function setMigracion(?string $migracion): self
+    {
+        $this->migracion = $migracion;
+
+        return $this;
+    }
+
+    public function getEstadoMigracion(): ?int
+    {
+        /** 
+         * En esta función se guarda el estado de cada migración
+         * -----------------------------------------------------
+         * @access public
+        */
+
+        return $this->estadoMigracion;
+    }
+
+    public function setEstadoMigracion(?int $estadoMigracion): self
+    {
+        /** 
+         * En esta función se obtiene el estado de cada migración
+         * ------------------------------------------------------
+         * @access public
+        */
+
+        $this->estadoMigracion = $estadoMigracion;
         return $this;
     }
 }

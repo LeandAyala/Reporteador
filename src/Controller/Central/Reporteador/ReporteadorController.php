@@ -2204,26 +2204,10 @@ class ReporteadorController extends AbstractController
                         /** Se valida si el campo tiene una ruta configurada */
                         /** ------------------------------------------------ */
 
-                        if(array_key_exists('ruta', $configuracionCampo[0]) && is_array($configuracionCampo[0]['ruta']) && !empty($configuracionCampo[0]['ruta']) && array_key_exists('nombre', $configuracionCampo[0]['ruta']))
+                        if(array_key_exists('ruta', $configuracionCampo[0]) && !empty($configuracionCampo[0]['ruta']))
                         {
-                            /** Se valida si existen parámetros configurados */
-                            /** -------------------------------------------- */
-
-                            $parametros = [];
-                            if(array_key_exists('parametros', $configuracionCampo[0]['ruta']) && is_array($configuracionCampo[0]['ruta']['parametros']) && !empty($configuracionCampo[0]['ruta']['parametros']))
-                            {
-                                $parametros = str_replace('$campo', $campo, json_encode($configuracionCampo[0]['ruta']['parametros']));
-                                $parametros = json_decode($parametros, true);
-                            }
-                            try
-                            {
-                                $rutaCampo = $ruta.$this->generateUrl($configuracionCampo[0]['ruta']['nombre'], $parametros);
-                                $html = str_replace('$ruta', $rutaCampo, $html);
-                            }
-                            catch(\Exception $e)
-                            {
-                                $html = $campo;
-                            }
+                            $rutaCampo = str_replace('$campo', $campo, $configuracionCampo[0]['ruta']);
+                            $html = str_replace('$ruta', $ruta.$rutaCampo, $html);
                         }
                         $campo = $html;
                     }
@@ -3118,27 +3102,14 @@ class ReporteadorController extends AbstractController
                     /** Se valida si el campo tiene una ruta configurada */
                     /** ------------------------------------------------ */
 
-                    if(array_key_exists('ruta', $configuracionCampo[0]) && is_array($configuracionCampo[0]['ruta']) && !empty($configuracionCampo[0]['ruta']) && array_key_exists('nombre', $configuracionCampo[0]['ruta']))
+                    if(array_key_exists('ruta', $configuracionCampo[0]) && !empty($configuracionCampo[0]['ruta']))
                     {
-                        $parametros = [];
                         $alineacionCampo = 'center';
-                        if(array_key_exists('parametros', $configuracionCampo[0]['ruta']) && is_array($configuracionCampo[0]['ruta']['parametros']) && !empty($configuracionCampo[0]['ruta']['parametros']))
-                        {
-                            $parametros = str_replace('$campo', $campo, json_encode($configuracionCampo[0]['ruta']['parametros']));
-                            $parametros = json_decode($parametros, true);
-                        }
-                        try
-                        {
-                            $rutaCampo = $ruta.$this->generateUrl($configuracionCampo[0]['ruta']['nombre'], $parametros);
-                            $campo = 
-                            <<<TWIG
-                                <a href="$rutaCampo" target="_blank" style="color:#007BFF; text-decoration:none">$campo</a>
-                            TWIG;
-                        }
-                        catch(\Exception $e)
-                        {
-                            $campo = $campo;
-                        }
+                        $rutaCampo = str_replace('$campo', $campo, $ruta.$configuracionCampo[0]['ruta']);
+                        $campo = 
+                        <<<TWIG
+                            <a href="$rutaCampo" target="_blank" style="color:#007BFF; text-decoration:none">$campo</a>
+                        TWIG;
                     }
                 }
 

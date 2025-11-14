@@ -100,15 +100,29 @@ export default class extends Controller
             form.append('configuracionesGuardadas', JSON.stringify(this.configuracionesGuardadas));
         }
 
+        this.form = form;
+        let result = null;
+        if(this.estadoSeccionFiltros == 1){this.showSeccionFiltros()}
+
+        /** Se valida si la ruta para generar el informe es correcta */
+        /** -------------------------------------------------------- */
+
+        let ruta = (rutaInforme !== '')?rutaInforme:this.urlGenerarInformeValue;
+        try
+        {
+            this.cargandoFiltrosTarget.style.display = '';
+            let consulta = await fetch(ruta, {'method' : 'POST', 'body' : form});
+            result = await consulta.json(); 
+        } 
+        catch(error) 
+        {
+            this.mensaje.mostrarMensaje('¡La ruta para generar el informe no es válida!');
+            return;
+        }
+        
         /** Se genera el informe a partir de los filtros de búsqueda */
         /** -------------------------------------------------------- */
-        
-        this.form = form;
-        this.cargandoFiltrosTarget.style.display = '';
-        if(this.estadoSeccionFiltros == 1){this.showSeccionFiltros()}
-        let ruta = (rutaInforme !== '')?rutaInforme:this.urlGenerarInformeValue;
-        let consulta = await fetch(ruta, {'method' : 'POST', 'body' : form});
-        let result = await consulta.json();
+
         $('#divResumen').css('display', 'none');
         $('#frameInforme').html(result.plantilla);
         $('#separadorResumen').css('display', 'none');
@@ -142,13 +156,8 @@ export default class extends Controller
                 {
                     if(rutaResumen != '' && rutaResumen != 'error')
                     {
-                        $('#divResumen').css('display', '');
                         $('#cargandoResumen').css('display', '');
-                        $('#separadorResumen').css('display', '');
-                        consulta = await fetch(rutaResumen, {'method' : 'POST', 'body' : form});
-                        result = await consulta.json();
-                        $('#frameResumen').html(result.plantilla);
-                        $('#cargandoResumen').css('display', 'none');
+                        this.obtenerSeccionResumen(rutaResumen, form);
                     }
                 }
             }
@@ -1196,5 +1205,27 @@ export default class extends Controller
         this.hideResumen();
         this.camposBusquedaAgrupacion = [];
         $('#btnGenerarInforme').click();
+    }
+
+    async obtenerSeccionResumen(ruta, form)
+    {
+        /** En esta función se obtiene la sección del resumen que se visualiza al final de la tabla de registros */
+        /** ---------------------------------------------------------------------------------------------------- */
+
+        try 
+        {
+            $('#divResumen').css('display', '');
+            $('#separadorResumen').css('display', '');
+            let consulta = await fetch(ruta, {'method' : 'POST', 'body' : form});
+            let result = await consulta.json();
+            $('#frameResumen').html(result.plantilla);
+            $('#cargandoResumen').css('display', 'none');
+        } 
+        catch(error) 
+        {
+            $('#divResumen').css('display', 'none');
+            $('#cargandoResumen').css('display', 'none');    
+            $('#separadorResumen').css('display', 'none');
+        }
     }
 }   

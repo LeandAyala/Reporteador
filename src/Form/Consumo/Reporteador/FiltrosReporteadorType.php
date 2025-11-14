@@ -2,11 +2,10 @@
 
 namespace App\Form\Consumo\Reporteador;
 
-use App\Entity\Productos\Producto;
-use App\Repository\Productos\ProductoRepository;
 use App\Entity\Central\reportes;
 use Doctrine\ORM\EntityRepository;
 use Symfony\Component\Form\AbstractType;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Routing\RouterInterface;
 use App\Repository\Central\reportesRepository;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -15,31 +14,42 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 class FiltrosReporteadorType extends AbstractType
 {
+    private $em;
     private $router;
-    public function __construct(RouterInterface $router)
+    public function __construct(RouterInterface $router, EntityManagerInterface $em)
     {
+        $this->em = $em;
         $this->router = $router;
     }
     
     public function buildForm(FormBuilderInterface $builder, array $options)
-    {
+    {   
+        $listProducto = [];
         $tipo = $options['tipo']; 
-        $modulo = $options['modulo']; 
+        $modulo = $options['modulo'];
+        $conexion = $this->em->getConnection(); 
+        
+        /** Registros de la tabla Producto */
+        /** ------------------------------ */
+
+        $sql = "SELECT id, nombre FROM productos.producto ORDER BY id ASC LIMIT 100";
+        $result = $conexion->prepare($sql)->executeQuery()->fetchAll();
+        foreach($result as $r){$listProducto[$r['nombre']] = $r['id'];}
+
         $builder
             ->add('desde', DateType::class, ['widget' => 'single_text', 'data' => new \DateTime('now', new \DateTimeZone('America/Bogota')), 'required' => false])
             ->add('hasta', DateType::class, ['widget' => 'single_text', 'data' => new \DateTime('now', new \DateTimeZone('America/Bogota')), 'required' => false])
-            ->add('producto', EntityType::class, 
+            ->add('producto', ChoiceType::class, 
                 [
                     'required' => false,
-                    'choice_value' => 'id', 
-                    'choice_label' => 'nombre',
-                    'placeholder' => 'Seleccione producto',
-                    'class' => Producto::class,  
+                    'choices' => $listProducto,
+                    'placeholder' => 'Seleccione producto',  
                 ]
             )
             ->add('controlLotes', CheckboxType::class, ['required' => false])
@@ -59,8 +69,6 @@ class FiltrosReporteadorType extends AbstractType
                     {   
                         $rutaPDF = '';
                         $rutaExcel = '';
-                        $parametros = [];
-                        $rutaControl = '';
                         $rutaFrameInforme = '';
                         $rutaFrameResumen = '';
 
@@ -71,89 +79,37 @@ class FiltrosReporteadorType extends AbstractType
                             /** Se valida si el registro tiene una ruta configurada para generar el informe */
                             /** --------------------------------------------------------------------------- */
 
-                            if(array_key_exists('rutaFrameInforme', $configuraciones) && is_array($configuraciones['rutaFrameInforme']) && !empty($configuraciones['rutaFrameInforme']))
+                            if(array_key_exists('rutaFrameInforme', $configuraciones) && !empty($configuraciones['rutaFrameInforme']))
                             {
-                                if((array_key_exists('nombre', $configuraciones['rutaFrameInforme']) && !empty($configuraciones['rutaFrameInforme']['nombre'])))
-                                {
-                                    $rutaControl = $configuraciones['rutaFrameInforme']['nombre'];
-                                }
-                                if((array_key_exists('parametros', $configuraciones['rutaFrameInforme']) && is_array($configuraciones['rutaFrameInforme']['parametros']) && !empty($configuraciones['rutaFrameInforme']['parametros'])))
-                                {
-                                    $parametros = $configuraciones['rutaFrameInforme']['parametros'];
-                                }
-                                if(!empty($rutaControl))
-                                {
-                                    $rutaFrameInforme = $this->validarRuta($rutaControl, $parametros);
-                                }
+                                
+                                $rutaFrameInforme = $this->validarRuta($configuraciones['rutaFrameInforme']);
                             }
 
                             /** Se valida si el registro tiene una ruta configurada para descargar el informe en formato PDF */
                             /** -------------------------------------------------------------------------------------------- */
 
-                            $parametros = [];
-                            $rutaControl = '';
                             if(array_key_exists('pdf', $configuraciones) && is_array($configuraciones['pdf']) && !empty($configuraciones['pdf']))
                             {
-                                if(array_key_exists('ruta', $configuraciones['pdf']) && is_array($configuraciones['pdf']['ruta']) && !empty($configuraciones['pdf']['ruta']))
+                                if(array_key_exists('ruta', $configuraciones['pdf']) && !empty($configuraciones['pdf']['ruta']))
                                 {
-                                    if((array_key_exists('nombre', $configuraciones['pdf']['ruta']) && !empty($configuraciones['pdf']['ruta']['nombre'])))
-                                    {
-                                        $rutaControl = $configuraciones['pdf']['ruta']['nombre'];
-                                    }
-                                    if((array_key_exists('parametros', $configuraciones['pdf']['ruta']) && is_array($configuraciones['pdf']['ruta']['parametros']) && !empty($configuraciones['pdf']['ruta']['parametros'])))
-                                    {
-                                        $parametros = $configuraciones['pdf']['ruta']['parametros'];
-                                    }
-                                    if(!empty($rutaControl))
-                                    {
-                                        $rutaPDF = $this->validarRuta($rutaControl, $parametros);
-                                    }
+                                    $rutaPDF = $this->validarRuta($configuraciones['pdf']['ruta']);
                                 }
                             }
 
                             /** Se valida si el registro tiene una ruta configurada para descargar el informe en formato excel */
                             /** ---------------------------------------------------------------------------------------------- */
 
-                            $parametros = [];
-                            $rutaControl = '';
-                            if(array_key_exists('excel', $configuraciones) && is_array($configuraciones['excel']) && !empty($configuraciones['excel']))
+                            if(array_key_exists('excel', $configuraciones) && !empty($configuraciones['excel']))
                             {
-                                if(array_key_exists('ruta', $configuraciones['excel']) && is_array($configuraciones['excel']['ruta']) && !empty($configuraciones['excel']['ruta']))
-                                {
-                                    if((array_key_exists('nombre', $configuraciones['excel']['ruta']) && !empty($configuraciones['excel']['ruta']['nombre'])))
-                                    {
-                                        $rutaControl = $configuraciones['excel']['ruta']['nombre'];
-                                    }
-                                    if((array_key_exists('parametros', $configuraciones['excel']['ruta']) && is_array($configuraciones['excel']['ruta']['parametros']) && !empty($configuraciones['excel']['ruta']['parametros'])))
-                                    {
-                                        $parametros = $configuraciones['excel']['ruta']['parametros'];
-                                    }
-                                    if(!empty($rutaControl))
-                                    {
-                                        $rutaExcel = $this->validarRuta($rutaControl, $parametros);
-                                    }
-                                }
+                                $rutaExcel = $this->validarRuta($configuraciones['excel']);
                             }
 
                             /** Se valida si el registro tiene una ruta configurada para visualizar una sección de resumen */
                             /** ------------------------------------------------------------------------------------------ */
 
-                            $parametros = [];
-                            $rutaControl = '';
-                            if(array_key_exists('rutaFrameResumen', $configuraciones) && is_array($configuraciones['rutaFrameResumen']) && !empty($configuraciones['rutaFrameResumen']))
+                            if(array_key_exists('rutaFrameResumen', $configuraciones) && !empty($configuraciones['rutaFrameResumen']))
                             {
-                                if((array_key_exists('nombre', $configuraciones['rutaFrameResumen']) && !empty($configuraciones['rutaFrameResumen']['nombre'])))
-                                {
-                                    $rutaControl = $configuraciones['rutaFrameResumen']['nombre'];
-                                }
-                                if((array_key_exists('parametros', $configuraciones['rutaFrameResumen']) && is_array($configuraciones['rutaFrameResumen']['parametros']) && !empty($configuraciones['rutaFrameResumen']['parametros'])))
-                                {
-                                    $parametros = $configuraciones['rutaFrameResumen']['parametros'];
-                                }
-                                if(!empty($rutaControl))
-                                {
-                                    $rutaFrameResumen = $this->validarRuta($rutaControl, $parametros);
-                                }
+                                $rutaFrameResumen = $this->validarRuta($configuraciones['rutaFrameResumen']);
                             }
                         }
                         return 
@@ -179,7 +135,7 @@ class FiltrosReporteadorType extends AbstractType
         ]);
     }
 
-    public function validarRuta($ruta, $parametros)
+    public function validarRuta($ruta)
     {
         /** 
          * En esta función se valida si una ruta es correcta
@@ -187,11 +143,8 @@ class FiltrosReporteadorType extends AbstractType
          * @access public
         */
 
-        try 
-        {
-            $ruta = $this->router->generate($ruta, $parametros);
-        } 
-        catch(RouteNotFoundException $e) 
+        $ruta = is_array($ruta)?'':$ruta;
+        if(!filter_var('http://desarrollo.compuconta.com'.$ruta, FILTER_VALIDATE_URL))
         {
             $ruta = 'error';
         }

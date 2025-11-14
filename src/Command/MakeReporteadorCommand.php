@@ -59,15 +59,28 @@ class MakeReporteadorCommand extends Command
 
         $ruta = '';
         $entidad = '';
+        $bd = $this->em;
         $entidades = [];
+        $listTablasBD = [];
         $controladores = [];
         $rutaEntdidad ='src/Entity';
+        $conexion = $bd->getConnection();
         $rutaControlador ='src/Controller';
         $helper = $this->getHelper('question');
         $io = new SymfonyStyle($input, $output);
         $this->campos['informe'] = ['tipo' => 'relation', 'entidad' => 'Facturas\\Reporte'];
         $tipoDatos = ['text' => 'text', 'integer' => 'integer', 'float' => 'float', 'date' => 'date', 'boolean' => 'boolean', 'relation' => 'realtion'];
 
+        /** Se obtienen todas las tablas asociadas a los distintos módulos de CC3 */
+        /** --------------------------------------------------------------------- */
+
+        $sql = "SELECT CONCAT(schemaname,'.',tablename) AS tabla FROM pg_tables WHERE schemaname NOT IN ('public', 'pg_catalog', 'information_schema')";
+        $listTablas = $conexion->prepare($sql)->executeQuery()->fetchAll();
+        foreach($listTablas as $tablas)
+        {
+            foreach($tablas as $tabla){$listTablasBD[$tabla] = $tabla;}
+        }
+        
         /** Se obtienen las carpetas de la ruta src/Controller */
         /** -------------------------------------------------- */
 
@@ -123,30 +136,6 @@ class MakeReporteadorCommand extends Command
         $this->modulo = $modulo;
         $io->writeln("<fg=#28A745> ► Ingrese los campos de los filtros de búsqueda</>\n<fg=#28A745>   --------------------------------------------- </>");        
 
-
-        foreach(scandir($rutaEntdidad) as $item)
-        {
-            if($item !== '.' && $item !== '..' && $item !== '.gitignore')
-            {
-                $ruta = $rutaEntdidad.'/'.$item;
-                if(is_file($ruta))
-                {
-                    $this->entidades[] = $ruta;
-                }
-                else
-                {
-                    $this->obtenerEntidades($rutaEntdidad, $item);
-                }
-            }
-        }
-        $this->entidades = array_map(fn($item) => str_replace(['src/Entity', '/', '.php'], ['', '\\', ''], $item), $this->entidades);
-        foreach($this->entidades as $entidad)
-        {
-            $entidad = explode('\\', $entidad);
-            unset($entidad[0]);
-            $entidades[implode('\\', $entidad)] = implode('\\', $entidad);
-        }
-
         /** Se ingresan los campos de los filtros de búsqueda */
         /** ------------------------------------------------- */
 
@@ -189,26 +178,26 @@ class MakeReporteadorCommand extends Command
                 }
             }
 
-            /** Se obtiene la entidad a relacionar */
-            /** ---------------------------------- */
+            /** Se obtiene la tabla a relacionar */
+            /** -------------------------------- */
 
-            $entidad = '';
+            $tabla = '';
             if($tipo == 'relation')
             {
                 while(true)
                 {
                     $output->writeln('');
-                    $io->writeln("<fg=#28A745> ► Seleccione la entidad a relacionar</>\n<fg=#28A745>   ---------------------------------- </>");        
+                    $io->writeln("<fg=#28A745> ► Seleccione la tabla a relacionar</>\n<fg=#28A745>   -------------------------------- </>");        
                     $question = new Question(' » ');
-                    $question->setAutocompleterValues($entidades);
-                    $entidad = trim($helper->ask($input, $output, $question));
+                    $question->setAutocompleterValues($listTablasBD);
+                    $tabla = trim($helper->ask($input, $output, $question));
 
-                    /** Se valida si la entidad seleccionada existe */
-                    /** ------------------------------------------- */
+                    /** Se valida si la tabla seleccionada existe */
+                    /** ----------------------------------------- */
 
-                    if(!array_key_exists($entidad, $entidades))
+                    if(!array_key_exists($tabla, $listTablasBD))
                     {
-                        $io->error("La entidad $entidad no existe");
+                        $io->error("La tabla $tabla no existe");
                     }
                     else
                     {
@@ -220,7 +209,7 @@ class MakeReporteadorCommand extends Command
             /** Se guarda la información de los campos */
             /** -------------------------------------- */
 
-            $dataCampo = ['tipo' => $tipo, 'entidad' => $entidad];
+            $dataCampo = ['tipo' => $tipo, 'tabla' => $tabla];
             $this->campos[$nombre] = $dataCampo;
             $io->writeln('');
             $confirmarCampo = $io->confirm("► ¿Desea agregar otro campo?");
@@ -314,10 +303,11 @@ class MakeReporteadorCommand extends Command
         /** Definición de variables */
         /** ----------------------- */
 
+        $listTablas = [];
+        $listRegistros = [];
         $camposFiltros = '';
         $campos = $this->campos;
-        $entidadesImportadas = [];
-        $repositoriosImportados = [];
+        $conexion = $this->em->getConnection();
         $ruta = 'src/Form/'.$this->modulo.'/Reporteador/FiltrosReporteadorType.php';
         $modulo = empty($this->modulo)?'\Reporteador':'\\'.str_replace('/', '\\', $this->modulo).'\\Reporteador';
         $this->archivosCreados[$orden] = ['» '.$ruta];
@@ -355,39 +345,91 @@ class MakeReporteadorCommand extends Command
             }
             else
             {
+                $camposSelect = 'id';
+                $tabla = $campo['tabla'];
+                $nombreTabla = ucfirst($key);
+                $sql = "SELECT * FROM $tabla LIMIT 1";
+                $lineasTitulo = str_repeat('-', strlen($nombreTabla) + 1);
+                if(empty($listTablas))
+                {
+                    $listTablas[] = '$list'.$nombreTabla.' = [];';
+                }
+                else
+                {
+                    $listTablas[] = '        $list'.$nombreTabla.' = [];';
+                }
+                $registro = $conexion->prepare($sql)->executeQuery()->fetchAll();
+
+                /** Se genera el código para la consulta de registros en cada campo de tipo relation */
+                /** -------------------------------------------------------------------------------- */
+
+                $foreachRegistros =
+                <<<PHP
+                foreach(\$result as \$r){\$list{$nombreTabla}[\$r['id']] = \$r['id'];}
+                PHP;
+                if(!empty($registro))
+                {
+                    $registro = $registro[0];
+                    if(array_key_exists('nombre', $registro))
+                    {
+                        $camposSelect = 'id, nombre';
+                        $foreachRegistros =
+                        <<<PHP
+                        foreach(\$result as \$r){\$list{$nombreTabla}[\$r['nombre']] = \$r['id'];}
+                        PHP;
+                    }
+                }
+                if(empty($listRegistros))
+                {
+                    $listRegistros[] =
+                    <<<PHP
+
+                            /** Registros de la tabla $nombreTabla */
+                            /** ---------------------$lineasTitulo */
+    
+                            \$sql = "SELECT $camposSelect FROM $tabla ORDER BY id ASC LIMIT 100";
+                            \$result = \$conexion->prepare(\$sql)->executeQuery()->fetchAll();
+                            $foreachRegistros
+                    PHP;
+                }
+                else
+                {
+                    $listRegistros[] =
+                    <<<PHP
+                    
+                            /** Registros de la tabla $nombreTabla */
+                            /** ---------------------$lineasTitulo */
+    
+                            \$sql = "SELECT $camposSelect FROM $tabla ORDER BY id ASC LIMIT 100";
+                            \$result = \$conexion->prepare(\$sql)->executeQuery()->fetchAll();
+                            $foreachRegistros
+                    PHP;
+                }
                 $placeholder = strtolower($placeholder);
-                $nombreClase = explode("\\", $campo['entidad']);
-                $entidadesImportadas[$campo['entidad']] = 'use App\Entity\\'.$campo['entidad'].';';
-                $choiceLabel = property_exists("App\Entity\\".$campo['entidad'], 'nombre')?'nombre':'id';
-                $repositoriosImportados[$campo['entidad']] = 'use App\Repository\\'.$campo['entidad'].'Repository;';
                 $camposFiltros .= 
                 <<<PHP
-                            ->add('$key', EntityType::class, 
+                            ->add('$key', ChoiceType::class, 
                                 [
                                     'required' => false,
-                                    'choice_value' => 'id', 
-                                    'choice_label' => '$choiceLabel',
-                                    'placeholder' => 'Seleccione $placeholder',
-                                    'class' => {$nombreClase[count($nombreClase) - 1]}::class,  
+                                    'choices' => \$list$nombreTabla,
+                                    'placeholder' => 'Seleccione $placeholder',  
                                 ]
                             )\n
                 PHP;
             }
         }
-        $entidadesImportadas = implode("\n", $entidadesImportadas);
-        $repositoriosImportados = implode("\n", $repositoriosImportados);
-
+        $listTablas = !empty($listTablas)?implode("\n", $listTablas):'';
+        $listRegistros = !empty($listRegistros)?implode("\n", $listRegistros):'';
         $plantilla =
         <<<PHP
         <?php
 
         namespace App\Form$modulo;
         
-        $entidadesImportadas
-        $repositoriosImportados
         use App\Entity\Central\\reportes;
         use Doctrine\ORM\EntityRepository;
         use Symfony\Component\Form\AbstractType;
+        use Doctrine\ORM\EntityManagerInterface;
         use Symfony\Component\Routing\RouterInterface;
         use App\Repository\Central\\reportesRepository;
         use Symfony\Component\Form\FormBuilderInterface;
@@ -396,21 +438,28 @@ class MakeReporteadorCommand extends Command
         use Symfony\Component\Form\Extension\Core\Type\DateType;
         use Symfony\Component\Form\Extension\Core\Type\TextType;
         use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+        use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
         use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
         use Symfony\Component\Routing\Exception\RouteNotFoundException;
         
         class FiltrosReporteadorType extends AbstractType
         {
+            private \$em;
             private \$router;
-            public function __construct(RouterInterface \$router)
+            public function __construct(RouterInterface \$router, EntityManagerInterface \$em)
             {
+                \$this->em = \$em;
                 \$this->router = \$router;
             }
             
             public function buildForm(FormBuilderInterface \$builder, array \$options)
-            {
+            {   
+                $listTablas
                 \$tipo = \$options['tipo']; 
-                \$modulo = \$options['modulo']; 
+                \$modulo = \$options['modulo'];
+                \$conexion = \$this->em->getConnection(); 
+                $listRegistros
+
                 \$builder\n$camposFiltros
                     ->add('informe', EntityType::class, 
                         [
@@ -427,101 +476,47 @@ class MakeReporteadorCommand extends Command
                             {   
                                 \$rutaPDF = '';
                                 \$rutaExcel = '';
-                                \$parametros = [];
-                                \$rutaControl = '';
                                 \$rutaFrameInforme = '';
                                 \$rutaFrameResumen = '';
-
+        
                                 if(!empty(\$item->getJson()) && is_array(\$item->getJson()))
                                 {
                                     \$configuraciones = \$item->getJson();
-
+        
                                     /** Se valida si el registro tiene una ruta configurada para generar el informe */
                                     /** --------------------------------------------------------------------------- */
-
-                                    if(array_key_exists('rutaFrameInforme', \$configuraciones) && is_array(\$configuraciones['rutaFrameInforme']) && !empty(\$configuraciones['rutaFrameInforme']))
+        
+                                    if(array_key_exists('rutaFrameInforme', \$configuraciones) && !empty(\$configuraciones['rutaFrameInforme']))
                                     {
-                                        if((array_key_exists('nombre', \$configuraciones['rutaFrameInforme']) && !empty(\$configuraciones['rutaFrameInforme']['nombre'])))
-                                        {
-                                            \$rutaControl = \$configuraciones['rutaFrameInforme']['nombre'];
-                                        }
-                                        if((array_key_exists('parametros', \$configuraciones['rutaFrameInforme']) && is_array(\$configuraciones['rutaFrameInforme']['parametros']) && !empty(\$configuraciones['rutaFrameInforme']['parametros'])))
-                                        {
-                                            \$parametros = \$configuraciones['rutaFrameInforme']['parametros'];
-                                        }
-                                        if(!empty(\$rutaControl))
-                                        {
-                                            \$rutaFrameInforme = \$this->validarRuta(\$rutaControl, \$parametros);
-                                        }
+                                        
+                                        \$rutaFrameInforme = \$this->validarRuta(\$configuraciones['rutaFrameInforme']);
                                     }
-
+        
                                     /** Se valida si el registro tiene una ruta configurada para descargar el informe en formato PDF */
                                     /** -------------------------------------------------------------------------------------------- */
-
-                                    \$parametros = [];
-                                    \$rutaControl = '';
+        
                                     if(array_key_exists('pdf', \$configuraciones) && is_array(\$configuraciones['pdf']) && !empty(\$configuraciones['pdf']))
                                     {
-                                        if(array_key_exists('ruta', \$configuraciones['pdf']) && is_array(\$configuraciones['pdf']['ruta']) && !empty(\$configuraciones['pdf']['ruta']))
+                                        if(array_key_exists('ruta', \$configuraciones['pdf']) && !empty(\$configuraciones['pdf']['ruta']))
                                         {
-                                            if((array_key_exists('nombre', \$configuraciones['pdf']['ruta']) && !empty(\$configuraciones['pdf']['ruta']['nombre'])))
-                                            {
-                                                \$rutaControl = \$configuraciones['pdf']['ruta']['nombre'];
-                                            }
-                                            if((array_key_exists('parametros', \$configuraciones['pdf']['ruta']) && is_array(\$configuraciones['pdf']['ruta']['parametros']) && !empty(\$configuraciones['pdf']['ruta']['parametros'])))
-                                            {
-                                                \$parametros = \$configuraciones['pdf']['ruta']['parametros'];
-                                            }
-                                            if(!empty(\$rutaControl))
-                                            {
-                                                \$rutaPDF = \$this->validarRuta(\$rutaControl, \$parametros);
-                                            }
+                                            \$rutaPDF = \$this->validarRuta(\$configuraciones['pdf']['ruta']);
                                         }
                                     }
-
+        
                                     /** Se valida si el registro tiene una ruta configurada para descargar el informe en formato excel */
                                     /** ---------------------------------------------------------------------------------------------- */
-
-                                    \$parametros = [];
-                                    \$rutaControl = '';
-                                    if(array_key_exists('excel', \$configuraciones) && is_array(\$configuraciones['excel']) && !empty(\$configuraciones['excel']))
+        
+                                    if(array_key_exists('excel', \$configuraciones) && !empty(\$configuraciones['excel']))
                                     {
-                                        if(array_key_exists('ruta', \$configuraciones['excel']) && is_array(\$configuraciones['excel']['ruta']) && !empty(\$configuraciones['excel']['ruta']))
-                                        {
-                                            if((array_key_exists('nombre', \$configuraciones['excel']['ruta']) && !empty(\$configuraciones['excel']['ruta']['nombre'])))
-                                            {
-                                                \$rutaControl = \$configuraciones['excel']['ruta']['nombre'];
-                                            }
-                                            if((array_key_exists('parametros', \$configuraciones['excel']['ruta']) && is_array(\$configuraciones['excel']['ruta']['parametros']) && !empty(\$configuraciones['excel']['ruta']['parametros'])))
-                                            {
-                                                \$parametros = \$configuraciones['excel']['ruta']['parametros'];
-                                            }
-                                            if(!empty(\$rutaControl))
-                                            {
-                                                \$rutaExcel = \$this->validarRuta(\$rutaControl, \$parametros);
-                                            }
-                                        }
+                                        \$rutaExcel = \$this->validarRuta(\$configuraciones['excel']);
                                     }
-
+        
                                     /** Se valida si el registro tiene una ruta configurada para visualizar una sección de resumen */
                                     /** ------------------------------------------------------------------------------------------ */
-
-                                    \$parametros = [];
-                                    \$rutaControl = '';
-                                    if(array_key_exists('rutaFrameResumen', \$configuraciones) && is_array(\$configuraciones['rutaFrameResumen']) && !empty(\$configuraciones['rutaFrameResumen']))
+        
+                                    if(array_key_exists('rutaFrameResumen', \$configuraciones) && !empty(\$configuraciones['rutaFrameResumen']))
                                     {
-                                        if((array_key_exists('nombre', \$configuraciones['rutaFrameResumen']) && !empty(\$configuraciones['rutaFrameResumen']['nombre'])))
-                                        {
-                                            \$rutaControl = \$configuraciones['rutaFrameResumen']['nombre'];
-                                        }
-                                        if((array_key_exists('parametros', \$configuraciones['rutaFrameResumen']) && is_array(\$configuraciones['rutaFrameResumen']['parametros']) && !empty(\$configuraciones['rutaFrameResumen']['parametros'])))
-                                        {
-                                            \$parametros = \$configuraciones['rutaFrameResumen']['parametros'];
-                                        }
-                                        if(!empty(\$rutaControl))
-                                        {
-                                            \$rutaFrameResumen = \$this->validarRuta(\$rutaControl, \$parametros);
-                                        }
+                                        \$rutaFrameResumen = \$this->validarRuta(\$configuraciones['rutaFrameResumen']);
                                     }
                                 }
                                 return 
@@ -547,7 +542,7 @@ class MakeReporteadorCommand extends Command
                 ]);
             }
 
-            public function validarRuta(\$ruta, \$parametros)
+            public function validarRuta(\$ruta)
             {
                 /** 
                  * En esta función se valida si una ruta es correcta
@@ -555,11 +550,8 @@ class MakeReporteadorCommand extends Command
                  * @access public
                 */
 
-                try 
-                {
-                    \$ruta = \$this->router->generate(\$ruta, \$parametros);
-                } 
-                catch(RouteNotFoundException \$e) 
+                \$ruta = is_array(\$ruta)?'':\$ruta;
+                if(!filter_var('http://desarrollo.compuconta.com'.\$ruta, FILTER_VALIDATE_URL))
                 {
                     \$ruta = 'error';
                 }
@@ -684,15 +676,29 @@ class MakeReporteadorCommand extends Command
                     form.append('configuracionesGuardadas', JSON.stringify(this.configuracionesGuardadas));
                 }
 
+                this.form = form;
+                let result = null;
+                if(this.estadoSeccionFiltros == 1){this.showSeccionFiltros()}
+        
+                /** Se valida si la ruta para generar el informe es correcta */
+                /** -------------------------------------------------------- */
+        
+                let ruta = (rutaInforme !== '')?rutaInforme:this.urlGenerarInformeValue;
+                try
+                {
+                    this.cargandoFiltrosTarget.style.display = '';
+                    let consulta = await fetch(ruta, {'method' : 'POST', 'body' : form});
+                    result = await consulta.json(); 
+                } 
+                catch(error) 
+                {
+                    this.mensaje.mostrarMensaje('¡La ruta para generar el informe no es válida!');
+                    return;
+                }
+                
                 /** Se genera el informe a partir de los filtros de búsqueda */
                 /** -------------------------------------------------------- */
-                
-                this.form = form;
-                this.cargandoFiltrosTarget.style.display = '';
-                if(this.estadoSeccionFiltros == 1){this.showSeccionFiltros()}
-                let ruta = (rutaInforme !== '')?rutaInforme:this.urlGenerarInformeValue;
-                let consulta = await fetch(ruta, {'method' : 'POST', 'body' : form});
-                let result = await consulta.json();
+
                 $('#divResumen').css('display', 'none');
                 $('#frameInforme').html(result.plantilla);
                 $('#separadorResumen').css('display', 'none');
@@ -726,13 +732,8 @@ class MakeReporteadorCommand extends Command
                         {
                             if(rutaResumen != '' && rutaResumen != 'error')
                             {
-                                $('#divResumen').css('display', '');
                                 $('#cargandoResumen').css('display', '');
-                                $('#separadorResumen').css('display', '');
-                                consulta = await fetch(rutaResumen, {'method' : 'POST', 'body' : form});
-                                result = await consulta.json();
-                                $('#frameResumen').html(result.plantilla);
-                                $('#cargandoResumen').css('display', 'none');
+                                this.obtenerSeccionResumen(rutaResumen, form);
                             }
                         }
                     }
@@ -1674,9 +1675,9 @@ class MakeReporteadorCommand extends Command
                                         <span style="font-size:10px">Eliminar agrupación</span>
                                     </span>
                                 </div>
-                                <span style="font-size:11px">${item.titulo}</span>
+                                <span style="font-size:11px">\${item.titulo}</span>
                             </div>
-                            <i class="fas fa-circle" style="font-size:16px; color:${item.color}; position:relative; border:2px solid white; border-radius:50%"></i>
+                            <i class="fas fa-circle" style="font-size:16px; color:\${item.color}; position:relative; border:2px solid white; border-radius:50%"></i>
                         </div>     
                     `);
                     index ++;
@@ -1780,6 +1781,28 @@ class MakeReporteadorCommand extends Command
                 this.hideResumen();
                 this.camposBusquedaAgrupacion = [];
                 $('#btnGenerarInforme').click();
+            }
+
+            async obtenerSeccionResumen(ruta, form)
+            {
+                /** En esta función se obtiene la sección del resumen que se visualiza al final de la tabla de registros */
+                /** ---------------------------------------------------------------------------------------------------- */
+
+                try 
+                {
+                    $('#divResumen').css('display', '');
+                    $('#separadorResumen').css('display', '');
+                    let consulta = await fetch(ruta, {'method' : 'POST', 'body' : form});
+                    let result = await consulta.json();
+                    $('#frameResumen').html(result.plantilla);
+                    $('#cargandoResumen').css('display', 'none');
+                } 
+                catch(error) 
+                {
+                    $('#divResumen').css('display', 'none');
+                    $('#cargandoResumen').css('display', 'none');    
+                    $('#separadorResumen').css('display', 'none');
+                }
             }
         }   
         STIMULUS;
@@ -4096,26 +4119,10 @@ class MakeReporteadorCommand extends Command
                                 /** Se valida si el campo tiene una ruta configurada */
                                 /** ------------------------------------------------ */
 
-                                if(array_key_exists('ruta', \$configuracionCampo[0]) && is_array(\$configuracionCampo[0]['ruta']) && !empty(\$configuracionCampo[0]['ruta']) && array_key_exists('nombre', \$configuracionCampo[0]['ruta']))
+                                if(array_key_exists('ruta', \$configuracionCampo[0]) && !empty(\$configuracionCampo[0]['ruta']))
                                 {
-                                    /** Se valida si existen parámetros configurados */
-                                    /** -------------------------------------------- */
-
-                                    \$parametros = [];
-                                    if(array_key_exists('parametros', \$configuracionCampo[0]['ruta']) && is_array(\$configuracionCampo[0]['ruta']['parametros']) && !empty(\$configuracionCampo[0]['ruta']['parametros']))
-                                    {
-                                        \$parametros = str_replace('\$campo', \$campo, json_encode(\$configuracionCampo[0]['ruta']['parametros']));
-                                        \$parametros = json_decode(\$parametros, true);
-                                    }
-                                    try
-                                    {
-                                        \$rutaCampo = \$ruta.\$this->generateUrl(\$configuracionCampo[0]['ruta']['nombre'], \$parametros);
-                                        \$html = str_replace('\$ruta', \$rutaCampo, \$html);
-                                    }
-                                    catch(\Exception \$e)
-                                    {
-                                        \$html = \$campo;
-                                    }
+                                    \$rutaCampo = str_replace('\$campo', \$campo, \$configuracionCampo[0]['ruta']);
+                                    \$html = str_replace('\$ruta', \$ruta.\$rutaCampo, \$html);
                                 }
                                 \$campo = \$html;
                             }
@@ -5010,27 +5017,14 @@ class MakeReporteadorCommand extends Command
                             /** Se valida si el campo tiene una ruta configurada */
                             /** ------------------------------------------------ */
 
-                            if(array_key_exists('ruta', \$configuracionCampo[0]) && is_array(\$configuracionCampo[0]['ruta']) && !empty(\$configuracionCampo[0]['ruta']) && array_key_exists('nombre', \$configuracionCampo[0]['ruta']))
+                            if(array_key_exists('ruta', \$configuracionCampo[0]) && !empty(\$configuracionCampo[0]['ruta']))
                             {
-                                \$parametros = [];
                                 \$alineacionCampo = 'center';
-                                if(array_key_exists('parametros', \$configuracionCampo[0]['ruta']) && is_array(\$configuracionCampo[0]['ruta']['parametros']) && !empty(\$configuracionCampo[0]['ruta']['parametros']))
-                                {
-                                    \$parametros = str_replace('\$campo', \$campo, json_encode(\$configuracionCampo[0]['ruta']['parametros']));
-                                    \$parametros = json_decode(\$parametros, true);
-                                }
-                                try
-                                {
-                                    \$rutaCampo = \$ruta.\$this->generateUrl(\$configuracionCampo[0]['ruta']['nombre'], \$parametros);
-                                    \$campo = 
-                                    <<<TWIG
-                                        <a href="\$rutaCampo" target="_blank" style="color:#007BFF; text-decoration:none">\$campo</a>
-                                    TWIG;
-                                }
-                                catch(\Exception \$e)
-                                {
-                                    \$campo = \$campo;
-                                }
+                                \$rutaCampo = str_replace('\$campo', \$campo, \$ruta.\$configuracionCampo[0]['ruta']);
+                                \$campo = 
+                                <<<TWIG
+                                    <a href="\$rutaCampo" target="_blank" style="color:#007BFF; text-decoration:none">\$campo</a>
+                                TWIG;
                             }
                         }
 
@@ -6947,27 +6941,6 @@ class MakeReporteadorCommand extends Command
                 }
         
                 .tooltip {
-                    position: absolute;
-                    top: -20px;
-                    left: 35px;
-                    opacity: 0;
-                    background-color: #007bffe3;
-                    color: white;
-                    padding: 3px 10px;
-                    border-radius: 5px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    transition-duration: .2s;
-                    pointer-events: none;
-                    font-size:11px;
-                    width:150px;
-                    font-weight:bold;
-                    gap:5px;
-                    height:23px;
-                }
-        
-                .tooltip {
                     gap:5px;
                     top: -20px;
                     left: 35px;
@@ -7426,7 +7399,7 @@ class MakeReporteadorCommand extends Command
                         <div style="display:flex; align-items:center; gap:5px; margin-top:2px">
                             <i class="fas fa-angle-double-right" style="font-size:8px"></i>
                             <span class="montserrat" style="font-size:11px">Detalle: </span>
-                            <span class="montserrat-text" style="font-size:11px; margin-right:2px">Por favor revise la funcionalidad implementada para la descarga del informe</span>
+                            <span class="montserrat-text" style="font-size:11px; margin-right:2px">Por favor, valide que la ruta configurada sea correcta. Si el error persiste, revise la funcionalidad implementada para la descarga del informe.</span>
                         </div>
                     {% endif %}
                 </div>

@@ -16,9 +16,12 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Form\Facturas\NuevoFacturaType;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Migrations\Version\Version;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use Doctrine\Migrations\DependencyFactory;
+use Symfony\Component\Filesystem\Filesystem;
 use Stichoza\GoogleTranslate\GoogleTranslate;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,10 +36,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 class FacturasController extends AbstractController
 {
     private $em;
+    private $fs;
     private $translate;
-    public function __construct(EntityManagerInterface $em)
+    public function __construct(EntityManagerInterface $em, FileSystem $fs)
     {
         $this->em = $em;
+        $this->fs = $fs;
         $this->translate = new GoogleTranslate('es');
     }
 
@@ -580,6 +585,7 @@ class FacturasController extends AbstractController
         $camposJson = '';
         $nombreCampos = [];
         $status = 'success';
+        $estadoMigracion = 0;
         $configuraciones = [];
         $valoresConsulta = [];
         $camposAgrupacion = [];
@@ -621,11 +627,7 @@ class FacturasController extends AbstractController
                             'tipoDato' => 'texto',
                             'alineacionCampo' => 'centro',
                             'alineacionTitulo' => 'centro',
-                            'ruta' => 
-                            [
-                                'nombre' => '',
-                                'parametros' => []
-                            ],
+                            'ruta' => '',
                             'html' => ''
                         ];
                         $campos[] = $dataCampo;
@@ -640,7 +642,7 @@ class FacturasController extends AbstractController
                 {
                     $configuraciones = 
                     [
-                        'rutaFrameInforme' => [],
+                        'rutaFrameInforme' => '',
                         'periodo' => '',
                         'anchoTabla' => '',
                         'cabecera' => [],
@@ -658,17 +660,15 @@ class FacturasController extends AbstractController
                         [
                             'tipoHoja' => '',
                             'orientacion' => '',
-                            'ruta' => []
+                            'ruta' => ''
                         ],
-                        'excel' => 
-                        [
-                            'ruta' => []
-                        ],
-                        'rutaFrameResumen' => []
+                        'excel' => '',
+                        'rutaFrameResumen' => ''
                     ];    
                 }
                 else
                 {
+                    $estadoMigracion = !empty($reporteFound->getMigracion())?1:0;
                     if(!empty($campos))
                     {
                         $nombreCampos = [];
@@ -763,8 +763,10 @@ class FacturasController extends AbstractController
             'tipoError' => $tipoError,
             'idInforme' => $idInforme,
             'campos' => $nombreCampos, 
+            'modulo' => $form['modulo'],
             'camposJson' => $camposJson, 
             'configuraciones' => $configuraciones,
+            'estadoMigracion' => $estadoMigracion,
             'camposTotalizacion' => $nombreCamposTotalizacion
         ]));
     }
@@ -856,8 +858,25 @@ class FacturasController extends AbstractController
         */
 
         $bd = $this->em;
+        $listInformesMigracion = [];
+        $conexion = $bd->getConnection();
         $form = $request->request->get('filtros_busqueda_informes');
         $listInformes = $bd->getRepository(reportes::class)->findInformes($form['modulo'], $form['tipo']);
+
+        /** Se valida el estado de las migraciones de cada informe */
+        /** ------------------------------------------------------ */
+
+        foreach($listInformes as $informe)
+        {
+            $migracion = $informe->getMigracion();
+            if(!empty($migracion))
+            {
+                $sql = "SELECT * FROM public.doctrine_migration_versions WHERE version = 'DoctrineMigrations\\$migracion'";
+                $result = $conexion->prepare($sql)->executeQuery()->fetchAll();
+                $estadoMigracion = !empty($result)?1:0;
+                $informe->setEstadoMigracion($estadoMigracion);
+            }
+        }
         $plantilla = $this->renderView('Facturas\Reporteador\frameListaInformes.html.twig', ['listInformes' => $listInformes]);
         return new Response(json_encode(
         [
@@ -885,5 +904,100 @@ class FacturasController extends AbstractController
             $bd->flush();
         }
         return new Response(json_encode(['status' => 'success']));
+    }
+
+    public function publicarInforme(Request $request, DependencyFactory $migration)
+    {
+        /** 
+         * En esta función se crea una nueva migración que contiene el SQL para la actualización de un informe específico. 
+         * Además, se edita el campo migracion con la versión generada en este proceso.
+         * ---------------------------------------------------------------------------------------------------------------
+         * @access public
+        */
+        
+        /** Definición de variables */
+        /** ----------------------- */
+
+        $bd = $this->em;
+        $status = 'error';
+        $id = $request->request->get('id');
+        $version = 'Version'.date('YmdHis');
+        $migracion = 'DoctrineMigrations\\'.$version;
+        $generator = $migration->getMigrationGenerator();
+        $informe = $bd->getRepository(reportes::class)->findOneBy(['id' => $id]);
+
+        /** Se valida si la nueva migración ejecutará una inserción o actualización de informe */
+        /** ---------------------------------------------------------------------------------- */
+
+        if(!empty($informe) && $informe->getEstado() == 1)
+        {
+            $status = 'success';
+            $sql = $informe->getSql();
+            $tipo = $informe->getTipo();
+            $nombre = $informe->getNombre();
+            $modulo = $informe->getModulo();
+            $json = json_encode($informe->getJson());
+            if(!empty($informe->getMigracion()))
+            {
+                $funcion =
+                <<<PHP
+                UPDATE central.reportes SET tipo = $tipo, modulo = '$modulo', nombre = '$nombre', sql = '$sql', json = "."'".'$json'."'".", migracion = '$version' WHERE id = $id;
+                PHP;
+                $descripcion = "Se actualiza el informe $nombre en el módulo de $modulo";
+            }
+            else
+            {
+                $funcion =
+                <<<PHP
+                DO $$
+                    BEGIN
+                        IF 
+                            NOT EXISTS(SELECT * FROM central.reportes WHERE modulo = '$modulo' AND nombre = '$nombre' AND estado = 1)
+                        THEN 
+                            INSERT INTO central.reportes(id,tipo,modulo,nombre,sql,json,estado,migracion) 
+                            VALUES (NEXTVAL('central.reportes_id_seq'), $tipo, '$modulo', '$nombre', '$sql',"."'".'$json'."'".", 1, '$version');
+                        ELSE
+                            UPDATE central.reportes SET migracion = '$version' WHERE id = $id;
+                        END IF;
+                    END $$
+                PHP;
+                $descripcion = "Se crea el informe $nombre en el módulo de $modulo";
+            }
+            $upCode = 
+            <<<PHP
+            \$this->addSql(
+            "
+                $funcion
+            ");
+            PHP;
+            $rutaMigracion = $generator->generateMigration($migracion, $upCode);
+    
+            /** Se agrega la descripción a la migración */
+            /** --------------------------------------- */
+    
+            $migracion = (explode("\n", file_get_contents($rutaMigracion)));
+            $rutaMigracion = str_replace($version.'php', '', $rutaMigracion);
+            foreach($migracion as $index => $item)
+            {
+                if(strpos($item, 'public function getDescription()') !== false)
+                {
+                    $migracion[$index + 2] = 
+                    <<<PHP
+                            return '$descripcion';
+                    PHP;
+                    break;
+                }
+            }
+            $migracion = implode("\n", $migracion);
+            $this->fs->dumpFile($rutaMigracion, $migracion);
+
+            /** Se actualiza el campo migracion del informe */
+            /** ------------------------------------------- */
+
+            $informe->setMigracion($version);
+            $bd->persist($informe);
+            $bd->flush();
+        }
+        return new Response(json_encode(['status' => $status]));
     }
 }

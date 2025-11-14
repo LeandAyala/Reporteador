@@ -51,6 +51,7 @@ class reportesRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('i')
             ->where("i.modulo = '$modulo' $andTipo")
             ->andWhere('i.estado = 1')
+            ->orderBy('i.id', 'DESC')
             ->getQuery()->getResult()
         ;
     }

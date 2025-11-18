@@ -19,7 +19,7 @@ final class Version20251113150412 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE central.reportes ADD migracion TEXT DEFAULT NULL');
+        //$this->addSql('ALTER TABLE central.reportes ADD migracion TEXT DEFAULT NULL');
     }
 
     public function down(Schema $schema): void

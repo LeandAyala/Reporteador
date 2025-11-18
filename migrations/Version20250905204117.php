@@ -20,9 +20,9 @@ final class Version20250905204117 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('CREATE SCHEMA central');
+        /*$this->addSql('CREATE SCHEMA central');
         $this->addSql('CREATE SEQUENCE central.meses_id_seq INCREMENT BY 1 MINVALUE 1 START 1');
-        $this->addSql('CREATE TABLE central.meses (id INT NOT NULL, nombre TEXT DEFAULT NULL, numero INT DEFAULT NULL, PRIMARY KEY(id))');
+        $this->addSql('CREATE TABLE central.meses (id INT NOT NULL, nombre TEXT DEFAULT NULL, numero INT DEFAULT NULL, PRIMARY KEY(id))');*/
     }
 
     public function down(Schema $schema): void

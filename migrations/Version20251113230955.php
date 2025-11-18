@@ -20,7 +20,7 @@ final class Version20251113230955 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql(
+        /*$this->addSql(
         "
             DO $$
             BEGIN
@@ -31,7 +31,7 @@ final class Version20251113230955 extends AbstractMigration
                     VALUES (NEXTVAL('central.reportes_id_seq'), 1, 'Consumo', 'Test 4', '',"."'".'{"rutaFrameInforme":"","periodo":"","anchoTabla":"","cabecera":[],"campos":[],"agrupamiento":[{"campos":[],"totalizacion":[]}],"paginacion":"10","totalizacion":[],"pdf":{"tipoHoja":"","orientacion":"","ruta":""},"excel":"","rutaFrameResumen":""}'."'".", 1, 'Version20251113230955');
                 END IF;
             END $$
-        ");
+        ");*/
     }
 
     public function down(Schema $schema): void

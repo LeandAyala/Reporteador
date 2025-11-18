@@ -1178,7 +1178,7 @@ class MakeReporteadorCommand extends Command
                         /** Se valida para los campos fecha si el rango seleccionado es válido */
                         /** ------------------------------------------------------------------ */
 
-                        if(tipoDato === 'fecha' && tipoBusqueda === 'entre')
+                        if((tipoDato === 'fecha' || tipoDato === 'fecha y hora') && tipoBusqueda === 'entre')
                         {
                             if(($('#input_'+campo).val() > $('#input_hasta_'+campo).val()) || $('#input_'+campo).val() == '' || $('#input_hasta_'+campo).val() == '')
                             {
@@ -1262,7 +1262,7 @@ class MakeReporteadorCommand extends Command
                                 ?$('#input_'+$(this).data('campo')).val()
                                 :$('#input_'+$(this).data('campo')).val().replaceAll('.','').replace(',','.')
                             ;
-                            let valorFechaHasta = ($(this).data('tipo') != 'fecha')?'':$('#input_hasta_'+$(this).data('campo')).val();
+                            let valorFechaHasta = ($(this).data('tipo') !== 'fecha' && $(this).data('tipo') !== 'fecha y hora')?'':$('#input_hasta_'+$(this).data('campo')).val();
                             let dataBusquedaDinamica =
                             {
                                 'input' : valorBusqueda,
@@ -1818,11 +1818,12 @@ class MakeReporteadorCommand extends Command
         */
 
         $rutaModulo = strtolower($this->modulo);
+        $accesoCarpetas = str_repeat('../', count(explode('/', $rutaModulo)));
         $ruta = "assets/controllers/$rutaModulo/reporteador_controller.js";
         $this->archivosCreados[$orden] = ['» '.$ruta];
         $plantilla =
         <<<STIMULUS
-        import mensajes from '../central/mensajes';
+        import mensajes from '{$accesoCarpetas}central/mensajes';
         import { Controller } from "@hotwired/stimulus";
 
         export default class extends Controller 
@@ -2160,7 +2161,7 @@ class MakeReporteadorCommand extends Command
                                     \$campoBusqueda = \$busqueda['campo'];
                                     if(!empty(\$busqueda['input']))
                                     {
-                                        if(\$busqueda['tipo'] == 'fecha')
+                                        if(in_array(\$busqueda['tipo'], ['fecha', 'fecha y hora']))
                                         {
                                             if(\$busqueda['select'] == 'igual')
                                             {
@@ -3263,7 +3264,7 @@ class MakeReporteadorCommand extends Command
                         <input type="text" class="form-control" style="font-size:11px; height:28px" placeholder="Buscar" id="input_\$key" disabled data-action="$nombreControlador#ingresarBusqueda">
                         TWIG;   
                     }
-                    elseif(\$campo['tipoDato'] == 'fecha')
+                    elseif(in_array(\$campo['tipoDato'], ['fecha', 'fecha y hora']))
                     {
                         \$tipo = 'fecha';
                         \$opcionesBusquedaDinamica .=
@@ -4086,10 +4087,17 @@ class MakeReporteadorCommand extends Command
                                 \$tipoDato = \$configuracionCampo[0]['tipoDato'];
                             }
 
-                            if(array_key_exists('tipoDato', \$configuracionCampo[0]) && \$configuracionCampo[0]['tipoDato'] == 'fecha')
+                            if(array_key_exists('tipoDato', \$configuracionCampo[0]) && in_array(\$configuracionCampo[0]['tipoDato'], ['fecha', 'fecha y hora']))
                             {
                                 \$tipoDato = \$configuracionCampo[0]['tipoDato'];
-                                \$campo = (new \DateTime(\$campo))->format('Y-m-d');
+                                if(\$configuracionCampo[0]['tipoDato'] === 'fecha')
+                                {
+                                    \$campo = (new \DateTime(\$campo))->format('Y-m-d');
+                                }
+                                else
+                                {
+                                    \$campo = (new \DateTime(\$campo))->format('Y-m-d h:i:s');
+                                }
                             }
 
                             if(array_key_exists('html', \$configuracionCampo[0]) && !empty(\$configuracionCampo[0]['html']))
@@ -4540,7 +4548,7 @@ class MakeReporteadorCommand extends Command
                                     \$campoBusqueda = \$busqueda['campo'];
                                     if(!empty(\$busqueda['input']))
                                     {
-                                        if(\$busqueda['tipo'] == 'fecha')
+                                        if(in_array(\$busqueda['tipo'], ['fecha', 'fecha y hora']))
                                         {
                                             if(\$busqueda['select'] == 'igual')
                                             {
@@ -5009,9 +5017,16 @@ class MakeReporteadorCommand extends Command
                                 \$campo = number_format(\$campo, 2, '.', '');
                             }
 
-                            if(array_key_exists('tipoDato', \$configuracionCampo[0]) && \$configuracionCampo[0]['tipoDato'] == 'fecha')
+                            if(array_key_exists('tipoDato', \$configuracionCampo[0]) && in_array(\$configuracionCampo[0]['tipoDato'], ['fecha', 'fecha y hora']))
                             {
-                                \$campo = (new \DateTime(\$campo))->format('Y-m-d');
+                                if(\$configuracionCampo[0]['tipoDato'] === 'fecha')
+                                {
+                                    \$campo = (new \DateTime(\$campo))->format('Y-m-d');
+                                }
+                                else
+                                {
+                                    \$campo = (new \DateTime(\$campo))->format('Y-m-d h:i:s');
+                                }   
                             }
 
                             /** Se valida si el campo tiene una ruta configurada */
@@ -5400,7 +5415,7 @@ class MakeReporteadorCommand extends Command
                                     \$campoBusqueda = \$busqueda['campo'];
                                     if(!empty(\$busqueda['input']))
                                     {
-                                        if(\$busqueda['tipo'] == 'fecha')
+                                        if(in_array(\$busqueda['tipo'], ['fecha', 'fecha y hora']))
                                         {
                                             if(\$busqueda['select'] == 'igual')
                                             {
@@ -7209,7 +7224,7 @@ class MakeReporteadorCommand extends Command
                     color: white;
                 }
             </style>
-            <div style="width:100%; height:100%;" data-turbo="true" 
+            <div style="width:100%; height:100%; background:white; overflow:hidden" data-turbo="true" 
                 {{ stimulus_controller(
                     {
                         '$nombreControlador' :
@@ -7245,75 +7260,67 @@ class MakeReporteadorCommand extends Command
                     position:absolute;
                     background:#FFFFFF99;
                 "></div>
-                <div class="container-fluid pt-4">
-                    <div class="col-12 animate__animated animate__fadeIn" style="display:flex; align-items:center; justify-content:center">
-                        <div class="card shadow-lg p-0 mb-5 bg-white rounded" style="width:100%">
-                            <div class="card-body" style="overflow:hidden">
-                                <div class="list-group-item active font-weight-bold" style="border-radius:5px 5px 0px 0px">Informes</div>
-                                {{ form_start(formFiltros, {'attr' : {'class' : 'mb-0', 'id' : 'filtrosInforme', 'data-action' : '$nombreControlador#generarInforme'}}) }}
-                                    <div class="list-group-item animate__animated animate__fadeIn animate__animated animate__fadeIn seccionFiltros"> 
-                                        $formularioFiltros
+                <div class="list-group-item active font-weight-bold" style="border-radius:5px 5px 0px 0px">Informes</div>
+                {{ form_start(formFiltros, {'attr' : {'class' : 'mb-0', 'id' : 'filtrosInforme', 'data-action' : '$nombreControlador#generarInforme'}}) }}
+                    <div class="list-group-item animate__animated animate__fadeIn animate__animated animate__fadeIn seccionFiltros"> 
+                        $formularioFiltros
+                    </div>
+                    <div class="list-group-item seccionFiltros">
+                        <button type="submit" class="btn btn-success" id="btnGenerarInforme"><i class="fas fa-search"></i> Generar informe</button>
+                        <button type="button" class="btn btn-info" data-action="$nombreControlador#limpiarCampos"><i class="fas fa-broom"></i> Limpiar</button>
+                        <a class="btn btn-danger" href="#" target="_top" id="btnRegresar"><i class="fas fa-caret-left"></i> Regresar</a>
+                    </div>
+                {{ form_end(formFiltros) }}
+                <div class="list-group-item seccionInforme" style="border-top:none; display:flex; align-items:center; gap:5px; cursor:pointer" data-action="click->$nombreControlador#showSeccionFiltros">
+                    <span class="montserrat" style="font-size:12px">Generación de informes</span>
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="list-group-item">
+                    <div id="frameInformacion" style=
+                    "
+                        top:0; 
+                        left:0; 
+                        z-index:1; 
+                        width:100%; 
+                        height:100%; 
+                        display:none; 
+                        position:absolute;
+                        background:#FFFFFF99;
+                    "></div>
+                    <div class="list-group-item p-0" style="border:none">
+                        <div style="display:none" data-$nombreControlador-target="cargandoFiltros" id="cargandoFiltros">
+                            <div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; left:0; top:0; opacity:0.6"></div>
+                            <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; left:0; top:0; display:flex; align-items:center; justify-content:center">
+                                <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+                                    <div style="position:relative;">
+                                        <div class="loader"></div>
+                                        <img src="{{ asset('Imgs/logo.png') }}" class="logo">
                                     </div>
-                                    <div class="list-group-item seccionFiltros">
-                                        <button type="submit" class="btn btn-success" id="btnGenerarInforme"><i class="fas fa-search"></i> Generar informe</button>
-                                        <button type="button" class="btn btn-info" data-action="$nombreControlador#limpiarCampos"><i class="fas fa-broom"></i> Limpiar</button>
-                                        <a class="btn btn-danger" href="#" target="_top" id="btnRegresar"><i class="fas fa-caret-left"></i> Regresar</a>
-                                    </div>
-                                {{ form_end(formFiltros) }}
-                                <div class="list-group-item seccionInforme" style="border-top:none; display:flex; align-items:center; gap:5px; cursor:pointer" data-action="click->$nombreControlador#showSeccionFiltros">
-                                    <span class="montserrat" style="font-size:12px">Generación de informes</span>
-                                    <i class="fas fa-search"></i>
-                                </div>
-                                <div class="list-group-item">
-                                    <div id="frameInformacion" style=
-                                    "
-                                        top:0; 
-                                        left:0; 
-                                        z-index:1; 
-                                        width:100%; 
-                                        height:100%; 
-                                        display:none; 
-                                        position:absolute;
-                                        background:#FFFFFF99;
-                                    "></div>
-                                    <div class="list-group-item p-0" style="border:none">
-                                        <div style="display:none" data-$nombreControlador-target="cargandoFiltros" id="cargandoFiltros">
-                                            <div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; left:0; top:0; opacity:0.6"></div>
-                                            <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; left:0; top:0; display:flex; align-items:center; justify-content:center">
-                                                <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
-                                                    <div style="position:relative;">
-                                                        <div class="loader"></div>
-                                                        <img src="{{ asset('Imgs/logo.png') }}" class="logo">
-                                                    </div>
-                                                    <b style="font-size:13px">Cargando información...</b>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="list-group-item listado" id="frameInforme" style="border:none; padding:0px; padding-right:2px; overflow-y:auto">
-                                            <div class="text-danger" style="display:flex; align-items:center; justify-content:center; font-weight:bold; height:50px">¡No se encontraron registros para listar!</div>
-                                        </div>
-                                    </div>
-                                    <hr id="separadorResumen" style="display:none">
-                                    <div class="list-group-item animate__animated animate__fadeIn" style="border:none; display:none" id="divResumen">
-                                        <div style="display:none" data-central--reporteador-target="cargandoResumen" id="cargandoResumen">
-                                            <div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; left:0; top:0; opacity:0.6"></div>
-                                            <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; left:0; top:0; display:flex; align-items:center; justify-content:center">
-                                                <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
-                                                    <div style="position:relative;">
-                                                        <div class="loader"></div>
-                                                        <img src="{{ asset('Imgs/logo.png') }}" class="logo">
-                                                    </div>
-                                                    <b style="font-size:13px">Cargando información...</b>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="list-group-item" id="frameResumen" style="border:none; padding:0px;">
-                                            <div class="text-danger" style="display:flex; align-items:center; justify-content:center; font-weight:bold; height:50px"></div>
-                                        </div>
-                                    </div>
+                                    <b style="font-size:13px">Cargando información...</b>
                                 </div>
                             </div>
-                        </div>      
+                        </div>
+                        <div class="list-group-item listado" id="frameInforme" style="border:none; padding:0px; padding-right:2px; overflow-y:auto">
+                            <div class="text-danger" style="display:flex; align-items:center; justify-content:center; font-weight:bold; height:50px">¡No se encontraron registros para listar!</div>
+                        </div>
+                    </div>
+                    <hr id="separadorResumen" style="display:none">
+                    <div class="list-group-item animate__animated animate__fadeIn" style="border:none; display:none" id="divResumen">
+                        <div style="display:none" data-central--reporteador-target="cargandoResumen" id="cargandoResumen">
+                            <div class="animate__animated animate__fade" style="position:absolute; width:100%; height:100%; background:white; z-index:2; left:0; top:0; opacity:0.6"></div>
+                            <div class="animate__animated animate__flipInX" style="position:absolute; z-index:3; width:100%; height:100%; left:0; top:0; display:flex; align-items:center; justify-content:center">
+                                <div style="background:white; width: 470px; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 15px; border:1px solid #d1d4da;">
+                                    <div style="position:relative;">
+                                        <div class="loader"></div>
+                                        <img src="{{ asset('Imgs/logo.png') }}" class="logo">
+                                    </div>
+                                    <b style="font-size:13px">Cargando información...</b>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group-item" id="frameResumen" style="border:none; padding:0px;">
+                            <div class="text-danger" style="display:flex; align-items:center; justify-content:center; font-weight:bold; height:50px"></div>
+                        </div>
                     </div>
                 </div>
             </div>

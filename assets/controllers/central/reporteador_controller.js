@@ -602,7 +602,7 @@ export default class extends Controller
                 /** Se valida para los campos fecha si el rango seleccionado es válido */
                 /** ------------------------------------------------------------------ */
 
-                if(tipoDato === 'fecha' && tipoBusqueda === 'entre')
+                if((tipoDato === 'fecha' || tipoDato === 'fecha y hora') && tipoBusqueda === 'entre')
                 {
                     if(($('#input_'+campo).val() > $('#input_hasta_'+campo).val()) || $('#input_'+campo).val() == '' || $('#input_hasta_'+campo).val() == '')
                     {
@@ -686,7 +686,7 @@ export default class extends Controller
                         ?$('#input_'+$(this).data('campo')).val()
                         :$('#input_'+$(this).data('campo')).val().replaceAll('.','').replace(',','.')
                     ;
-                    let valorFechaHasta = ($(this).data('tipo') != 'fecha')?'':$('#input_hasta_'+$(this).data('campo')).val();
+                    let valorFechaHasta = ($(this).data('tipo') !== 'fecha' && $(this).data('tipo') !== 'fecha y hora')?'':$('#input_hasta_'+$(this).data('campo')).val();
                     let dataBusquedaDinamica =
                     {
                         'input' : valorBusqueda,

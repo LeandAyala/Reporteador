@@ -19,8 +19,8 @@ final class Version20250825192415 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE productos.producto DROP almacen');
-        $this->addSql('ALTER TABLE productos.producto DROP grupo_contable');
+        /*$this->addSql('ALTER TABLE productos.producto DROP almacen');
+        $this->addSql('ALTER TABLE productos.producto DROP grupo_contable');*/
     }
 
     public function down(Schema $schema): void

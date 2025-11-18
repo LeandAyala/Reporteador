@@ -245,7 +245,7 @@ class ReporteadorController extends AbstractController
                             $campoBusqueda = $busqueda['campo'];
                             if(!empty($busqueda['input']))
                             {
-                                if($busqueda['tipo'] == 'fecha')
+                                if(in_array($busqueda['tipo'], ['fecha', 'fecha y hora']))
                                 {
                                     if($busqueda['select'] == 'igual')
                                     {
@@ -1348,7 +1348,7 @@ class ReporteadorController extends AbstractController
                 <input type="text" class="form-control" style="font-size:11px; height:28px" placeholder="Buscar" id="input_$key" disabled data-action="central--reporteador#ingresarBusqueda">
                 TWIG;   
             }
-            elseif($campo['tipoDato'] == 'fecha')
+            elseif(in_array($campo['tipoDato'], ['fecha', 'fecha y hora']))
             {
                 $tipo = 'fecha';
                 $opcionesBusquedaDinamica .=
@@ -2171,10 +2171,17 @@ class ReporteadorController extends AbstractController
                         $tipoDato = $configuracionCampo[0]['tipoDato'];
                     }
 
-                    if(array_key_exists('tipoDato', $configuracionCampo[0]) && $configuracionCampo[0]['tipoDato'] == 'fecha')
+                    if(array_key_exists('tipoDato', $configuracionCampo[0]) && in_array($configuracionCampo[0]['tipoDato'], ['fecha', 'fecha y hora']))
                     {
                         $tipoDato = $configuracionCampo[0]['tipoDato'];
-                        $campo = (new \DateTime($campo))->format('Y-m-d');
+                        if($configuracionCampo[0]['tipoDato'] === 'fecha')
+                        {
+                            $campo = (new \DateTime($campo))->format('Y-m-d');
+                        }
+                        else
+                        {
+                            $campo = (new \DateTime($campo))->format('Y-m-d h:i:s');
+                        }
                     }
 
                     if(array_key_exists('html', $configuracionCampo[0]) && !empty($configuracionCampo[0]['html']))
@@ -2625,7 +2632,7 @@ class ReporteadorController extends AbstractController
                             $campoBusqueda = $busqueda['campo'];
                             if(!empty($busqueda['input']))
                             {
-                                if($busqueda['tipo'] == 'fecha')
+                                if(in_array($busqueda['tipo'], ['fecha', 'fecha y hora']))
                                 {
                                     if($busqueda['select'] == 'igual')
                                     {
@@ -3094,9 +3101,16 @@ class ReporteadorController extends AbstractController
                         $campo = number_format($campo, 2, '.', '');
                     }
 
-                    if(array_key_exists('tipoDato', $configuracionCampo[0]) && $configuracionCampo[0]['tipoDato'] == 'fecha')
+                    if(array_key_exists('tipoDato', $configuracionCampo[0]) && in_array($configuracionCampo[0]['tipoDato'], ['fecha', 'fecha y hora']))
                     {
-                        $campo = (new \DateTime($campo))->format('Y-m-d');
+                        if($configuracionCampo[0]['tipoDato'] === 'fecha')
+                        {
+                            $campo = (new \DateTime($campo))->format('Y-m-d');
+                        }
+                        else
+                        {
+                            $campo = (new \DateTime($campo))->format('Y-m-d h:i:s');
+                        }   
                     }
 
                     /** Se valida si el campo tiene una ruta configurada */
@@ -3485,7 +3499,7 @@ class ReporteadorController extends AbstractController
                             $campoBusqueda = $busqueda['campo'];
                             if(!empty($busqueda['input']))
                             {
-                                if($busqueda['tipo'] == 'fecha')
+                                if(in_array($busqueda['tipo'], ['fecha', 'fecha y hora']))
                                 {
                                     if($busqueda['select'] == 'igual')
                                     {

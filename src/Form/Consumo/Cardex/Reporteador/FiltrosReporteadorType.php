@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Form\Contabilidad\Reporteador;
+namespace App\Form\Consumo\Cardex\Reporteador;
 
 use App\Entity\Central\reportes;
 use Doctrine\ORM\EntityRepository;
@@ -30,15 +30,28 @@ class FiltrosReporteadorType extends AbstractType
     
     public function buildForm(FormBuilderInterface $builder, array $options)
     {   
-        
+        $listBodega = [];
         $tipo = $options['tipo']; 
         $modulo = $options['modulo'];
         $conexion = $this->em->getConnection(); 
         
+        /** Registros de la tabla Bodega */
+        /** ---------------------------- */
+
+        $sql = "SELECT id, concat(id,'-',nombre) AS nombre FROM consumo.bodegas ORDER BY id ASC LIMIT 100";
+        $result = $conexion->prepare($sql)->executeQuery()->fetchAll();
+        foreach($result as $r){$listBodega[$r['nombre']] = $r['id'];}
 
         $builder
             ->add('desde', DateType::class, ['widget' => 'single_text', 'data' => new \DateTime('now', new \DateTimeZone('America/Bogota')), 'required' => false])
             ->add('hasta', DateType::class, ['widget' => 'single_text', 'data' => new \DateTime('now', new \DateTimeZone('America/Bogota')), 'required' => false])
+            ->add('bodega', ChoiceType::class, 
+                [
+                    'required' => false,
+                    'choices' => $listBodega,
+                    'placeholder' => 'Seleccione bodega',  
+                ]
+            )
 
             ->add('informe', EntityType::class, 
                 [

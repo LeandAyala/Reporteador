@@ -19,7 +19,7 @@ final class Version20250606195816 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE facturas.factura ADD permite_activar BOOLEAN DEFAULT NULL');
+        //$this->addSql('ALTER TABLE facturas.factura ADD permite_activar BOOLEAN DEFAULT NULL');
     }
 
     public function down(Schema $schema): void

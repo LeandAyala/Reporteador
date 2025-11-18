@@ -55,4 +55,26 @@ class reportesRepository extends ServiceEntityRepository
             ->getQuery()->getResult()
         ;
     }
+
+    public function findModulos()
+    {
+        /** 
+         * En esta función se obtienen todos los módulos registrados en la tabla de central.reportes
+         * -----------------------------------------------------------------------------------------
+         * @access public
+        */
+
+        $listModulos = [];
+        $modulos = $this->createQueryBuilder('i')
+            ->select('i.modulo')
+            ->groupBy('i.modulo')
+            ->getQuery()->getResult()
+        ;
+        foreach($modulos as $modulo)
+        {
+            $listModulos[$modulo['modulo']] = $modulo['modulo'];
+        }
+        ksort($listModulos);
+        return $listModulos;
+    }
 }

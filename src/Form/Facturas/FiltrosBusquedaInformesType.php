@@ -19,12 +19,7 @@ class FiltrosBusquedaInformesType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
-        $modulos =
-        [
-            'Consumo' => 'Consumo',
-            'Contabilidad' => 'Contabilidad',
-            'Punto de venta' => 'Punto de venta'
-        ];
+        $modulos = $options['modulos'];
         $builder
             ->add('tipo', TextType::class, ['attr' => ['placeholder' => 'Tipo'], 'required' => false])
             ->add('modulo', ChoiceType::class, 
@@ -37,6 +32,6 @@ class FiltrosBusquedaInformesType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver)
     {
-        $resolver->setDefaults([]);
+        $resolver->setDefaults(['modulos' => null]);
     }
 }

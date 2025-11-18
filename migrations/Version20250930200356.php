@@ -19,8 +19,8 @@ final class Version20250930200356 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('CREATE SEQUENCE central.reportes_id_seq INCREMENT BY 1 MINVALUE 1 START 1');
-        $this->addSql('CREATE TABLE central.reportes (id INT NOT NULL, tipo INT NOT NULL, modulo TEXT NOT NULL, nombre TEXT NOT NULL, sql TEXT DEFAULT NULL, json JSON DEFAULT NULL, PRIMARY KEY(id))');
+        /*$this->addSql('CREATE SEQUENCE central.reportes_id_seq INCREMENT BY 1 MINVALUE 1 START 1');
+        $this->addSql('CREATE TABLE central.reportes (id INT NOT NULL, tipo INT NOT NULL, modulo TEXT NOT NULL, nombre TEXT NOT NULL, sql TEXT DEFAULT NULL, json JSON DEFAULT NULL, PRIMARY KEY(id))');*/
     }
 
     public function down(Schema $schema): void

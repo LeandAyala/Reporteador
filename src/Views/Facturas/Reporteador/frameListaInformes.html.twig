@@ -2,129 +2,131 @@
     <div class="col-12">
         {% set index = 1 %}
         {% if listInformes|length > 0 %}
-            <table class="table table-sm table-bordered table-hover" style="margin-bottom:0px; transition:all 0.3s ease" id="tablaInformes">
-                <tr class="bg-light text-primary">
-                    <td style="width:40px"></td>
-                    <th style="text-align:center">Nombre</th>
-                    <th style="text-align:center">Módulo</th>
-                    <th style="text-align:center">Tipo</th>
-                    <th style="text-align:center; width:150px">Migración</th>
-                    <td style="width:40px"></td>
-                </tr>
-                {% for informe in listInformes %}
-                    <tr>
-                        <td style="text-align:center">
-                            <a href="" data-estadomigracion="{{ (informe.migracion != '') ? 1 : 0 }}" data-modulo="{{ informe.modulo }}" data-nombre="{{ informe.nombre }}" data-id="{{ informe.id }}" data-action="facturas--reporteador#showModalNuevoInforme"><i class="fas fa-cog text-primary"></i></a>
-                        </td>
-                        <td style="text-align:center">{{ informe.nombre }}</td>
-                        <td style="text-align:center">{{ informe.modulo }}</td>
-                        <td style="text-align:center">{{ informe.tipo }}</td>
-                        <td style="text-align:center" style="width:100px">
-                            {% if informe.migracion != '' %}
-                                <div style="display:flex;align-items: center;justify-content: center;">
-                                    <div class="msg {{ (informe.estadoMigracion == 1) ? 'migracionEjecutada' : 'migracionSinEjecutar' }}" style=
-                                    "
-                                        width: 80px;
-                                        display: flex;
-                                        cursor: pointer;
-                                        font-size: 10px;
-                                        font-weight: bold;
-                                        position:relative;
-                                        padding: 3px 10px;
-                                        border-radius: 15px;
-                                        align-items: center;
-                                        justify-content: center;
-                                        color: {{ (informe.estadoMigracion == 1) ? '#28A745' : '#DC3545' }};
-                                        border: 1px solid {{ (informe.estadoMigracion == 1) ? '#28A745' : '#DC3545' }};
-                                    ">
-                                        <span style="font-size: 10px; position:relative">{{ (informe.estadoMigracion == 1) ? 'Ejecutada' : 'Sin ejecutar' }}</span>
-                                        <span 
-                                            class="tooltip tooltipMigracion {{ (informe.estadoMigracion == 1) ? 'tooltipMigracionEjecutada' : 'tooltipMigracionSinEjecutar' }}" 
-                                            style="width:160px; left:-173px; background-color:{{ (informe.estadoMigracion == 1) ? '#28A745e3' : '#DC3545e3' }}"
-                                        >
-                                            <i class="fas fa-info-circle" style="font-size:10px; margin-top:-1px"></i> 
-                                            <span style="font-size:10px">{{ informe.migracion }}</span>
-                                        </span>
+            <div class="listadoInformes" style="padding-right:2px; overflow-y:auto; transition:all 0.5s ease">
+                <table class="table table-sm table-bordered table-hover" style="margin-bottom:0px; transition:all 0.3s ease" id="tablaInformes">
+                    <tr class="bg-light text-primary">
+                        <td style="width:40px"></td>
+                        <th style="text-align:center">Nombre</th>
+                        <th style="text-align:center">Módulo</th>
+                        <th style="text-align:center">Tipo</th>
+                        <th style="text-align:center; width:150px">Migración</th>
+                        <td style="width:40px"></td>
+                    </tr>
+                    {% for informe in listInformes %}
+                        <tr>
+                            <td style="text-align:center">
+                                <a href="" data-estadomigracion="{{ (informe.migracion != '') ? 1 : 0 }}" data-modulo="{{ informe.modulo }}" data-nombre="{{ informe.nombre }}" data-id="{{ informe.id }}" data-action="facturas--reporteador#showModalNuevoInforme"><i class="fas fa-cog text-primary"></i></a>
+                            </td>
+                            <td style="text-align:center">{{ informe.nombre }}</td>
+                            <td style="text-align:center">{{ informe.modulo }}</td>
+                            <td style="text-align:center">{{ informe.tipo }}</td>
+                            <td style="text-align:center" style="width:100px">
+                                {% if informe.migracion != '' %}
+                                    <div style="display:flex;align-items: center;justify-content: center;">
+                                        <div class="msg {{ (informe.estadoMigracion == 1) ? 'migracionEjecutada' : 'migracionSinEjecutar' }}" style=
+                                        "
+                                            width: 80px;
+                                            display: flex;
+                                            cursor: pointer;
+                                            font-size: 10px;
+                                            font-weight: bold;
+                                            position:relative;
+                                            padding: 3px 10px;
+                                            border-radius: 15px;
+                                            align-items: center;
+                                            justify-content: center;
+                                            color: {{ (informe.estadoMigracion == 1) ? '#28A745' : '#DC3545' }};
+                                            border: 1px solid {{ (informe.estadoMigracion == 1) ? '#28A745' : '#DC3545' }};
+                                        ">
+                                            <span style="font-size: 10px; position:relative">{{ (informe.estadoMigracion == 1) ? 'Ejecutada' : 'Sin ejecutar' }}</span>
+                                            <span 
+                                                class="tooltip tooltipMigracion {{ (informe.estadoMigracion == 1) ? 'tooltipMigracionEjecutada' : 'tooltipMigracionSinEjecutar' }}" 
+                                                style="width:160px; left:-173px; background-color:{{ (informe.estadoMigracion == 1) ? '#28A745e3' : '#DC3545e3' }}"
+                                            >
+                                                <i class="fas fa-info-circle" style="font-size:10px; margin-top:-1px"></i> 
+                                                <span style="font-size:10px">{{ informe.migracion }}</span>
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            {% else %}
-                                {{ informe.migracion|default('-----') }}
-                            {% endif %}
-                        </td>
-                        <td style="text-align:center; vertical-align:middle">
-                            <i class="fa-solid fa-circle-check text-info msg" style="font-size:15px; cursor:pointer; position:relative" data-index="{{ index }}" data-id="{{ informe.id }}" data-action="click->facturas--reporteador#showPopoverPublicarInforme">
-                                <span class="tooltip">
-                                    <i class="fas fa-info-circle" style="font-size:10px; margin-top:-1px"></i> 
-                                    <span style="font-size:10px">Publicar informe</span>
-                                </span>
-                            </i>
+                                {% else %}
+                                    {{ informe.migracion|default('-----') }}
+                                {% endif %}
+                            </td>
+                            <td style="text-align:center; vertical-align:middle">
+                                <i class="fa-solid fa-circle-check text-info msg" style="font-size:15px; cursor:pointer; position:relative" data-index="{{ index }}" data-id="{{ informe.id }}" data-action="click->facturas--reporteador#showPopoverPublicarInforme">
+                                    <span class="tooltip">
+                                        <i class="fas fa-info-circle" style="font-size:10px; margin-top:-1px"></i> 
+                                        <span style="font-size:10px">Publicar informe</span>
+                                    </span>
+                                </i>
 
-                            {# Popover para publicar informe #}
-                            {# ----------------------------- #}
+                                {# Popover para publicar informe #}
+                                {# ----------------------------- #}
 
-                            <div style="position:relative; width:0px; margin:-2px">
-                                <div 
-                                    role="tooltip" 
-                                    x-placement="right" 
-                                    id="popoverPublicarInforme{{ informe.id }}" 
-                                    class="popover popoverPublicarInforme fade show bs-popover animate__animated animate__fadeIn" 
-                                    style=
-                                    "
-                                        top:-23px; 
-                                        width:auto; 
-                                        left:-384px; 
-                                        width:376px;
-                                        height:auto; 
-                                        border:none; 
-                                        padding:3px; 
-                                        display:none; 
-                                        max-width:376px; 
-                                        position: absolute; 
-                                        border-radius:20px; 
-                                        background:transparent; 
-                                        will-change: transform; 
-                                    "
-                                >
-                                    <div class="card-info" style="height:165px; width:383px">
-                                        <div class="top-section" style="height:151px">
-                                            <div class="border" style="width:295px"></div>
-                                            <div class="icons">
-                                                <div style="display:flex; align-items:center">
-                                                    <div class="logoPopover" style="display:flex">
-                                                        <i class="fas fa-info-circle text-light" style="font-size:12px"></i>
+                                <div style="position:relative; width:0px; margin:-2px">
+                                    <div 
+                                        role="tooltip" 
+                                        x-placement="right" 
+                                        id="popoverPublicarInforme{{ informe.id }}" 
+                                        class="popover popoverPublicarInforme fade show bs-popover animate__animated animate__fadeIn" 
+                                        style=
+                                        "
+                                            top:-23px; 
+                                            width:auto; 
+                                            left:-384px; 
+                                            width:376px;
+                                            height:auto; 
+                                            border:none; 
+                                            padding:3px; 
+                                            display:none; 
+                                            max-width:376px; 
+                                            position: absolute; 
+                                            border-radius:20px; 
+                                            background:transparent; 
+                                            will-change: transform; 
+                                        "
+                                    >
+                                        <div class="card-info" style="height:165px; width:383px">
+                                            <div class="top-section" style="height:151px">
+                                                <div class="border" style="width:295px"></div>
+                                                <div class="icons">
+                                                    <div style="display:flex; align-items:center">
+                                                        <div class="logoPopover" style="display:flex">
+                                                            <i class="fas fa-info-circle text-light" style="font-size:12px"></i>
+                                                        </div>
+                                                        <b style="font-size:12px; color:white; margin-left:3px; margin-top:-6px">
+                                                            Publicar informe - {{ informe.modulo }}
+                                                        </b>
                                                     </div>
-                                                    <b style="font-size:12px; color:white; margin-left:3px; margin-top:-6px">
-                                                        Publicar informe - {{ informe.modulo }}
-                                                    </b>
+                                                    <div class="social-media">
+                                                        <a href="#" data-id="{{ informe.id }}" data-action="facturas--reporteador#hidePopoverPublicarInforme"><i class="fas fa-times-circle text-danger opciones" style="transition:all 0.5s ease"></i></a>
+                                                    </div>
                                                 </div>
-                                                <div class="social-media">
-                                                    <a href="#" data-id="{{ informe.id }}" data-action="facturas--reporteador#hidePopoverPublicarInforme"><i class="fas fa-times-circle text-danger opciones" style="transition:all 0.5s ease"></i></a>
-                                                </div>
-                                            </div>
-                                            <div style="padding:15px">
-                                                <span style="font-size:12px">Al ejecutar esta acción se agregará una <b style="font-size:12px">migración</b> en el sistema con la <b style="font-size:12px">{{ (informe.migracion != '') ? 'actualización' : 'creación' }}</b> del informe.</span>
-                                                <b style="font-size:12px">¿Está seguro de continuar?</b>
-                                                <hr>
-                                                <div style="display:flex; align-items:center; position:relative">
-                                                    <button type="button" class="btnTooltip bg-success" data-id="{{ informe.id }}" style="margin-right:3px" data-action="facturas--reporteador#confirmarPublicarInforme">
-                                                        <div class="sign"><i class="fas fa-check" style="font-size:11px; color:white"></i></div>
-                                                        <div class="textBtn" style="margin-right:3px; margin-top:-1px">Aceptar</div>
-                                                    </button>
-                                                    <button type="button" class="btnTooltip bg-danger" data-id="{{ informe.id }}" style="margin-right:3px" data-action="facturas--reporteador#hidePopoverPublicarInforme">
-                                                        <div class="sign"><i class="fas fa-times" style="font-size:11px; color:white"></i></div>
-                                                        <div class="textBtn" style="margin-right:3px; margin-top:-1px">Regresar</div>
-                                                    </button>
+                                                <div style="padding:15px">
+                                                    <span style="font-size:12px">Al ejecutar esta acción se agregará una <b style="font-size:12px">migración</b> en el sistema con la <b style="font-size:12px">{{ (informe.migracion != '') ? 'actualización' : 'creación' }}</b> del informe.</span>
+                                                    <b style="font-size:12px">¿Está seguro de continuar?</b>
+                                                    <hr>
+                                                    <div style="display:flex; align-items:center; position:relative">
+                                                        <button type="button" class="btnTooltip bg-success" data-id="{{ informe.id }}" style="margin-right:3px" data-action="facturas--reporteador#confirmarPublicarInforme">
+                                                            <div class="sign"><i class="fas fa-check" style="font-size:11px; color:white"></i></div>
+                                                            <div class="textBtn" style="margin-right:3px; margin-top:-1px">Aceptar</div>
+                                                        </button>
+                                                        <button type="button" class="btnTooltip bg-danger" data-id="{{ informe.id }}" style="margin-right:3px" data-action="facturas--reporteador#hidePopoverPublicarInforme">
+                                                            <div class="sign"><i class="fas fa-times" style="font-size:11px; color:white"></i></div>
+                                                            <div class="textBtn" style="margin-right:3px; margin-top:-1px">Regresar</div>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </td>
-                    </tr>
-                   {% set index = index + 1 %}
-                {% endfor %}
-            </table>
+                            </td>
+                        </tr>
+                    {% set index = index + 1 %}
+                    {% endfor %}
+                </table>
+            </div>
         {% else %}
             <div class="text-danger" style="display:flex; align-items:center; justify-content:center; font-weight:bold; height:50px">
                 ¡No se encontraron registros para listar!

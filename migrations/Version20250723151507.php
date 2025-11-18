@@ -19,10 +19,10 @@ final class Version20250723151507 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE productos.producto ADD precio DOUBLE PRECISION DEFAULT NULL');
+        /*$this->addSql('ALTER TABLE productos.producto ADD precio DOUBLE PRECISION DEFAULT NULL');
         $this->addSql('ALTER TABLE productos.producto ADD almacen TEXT DEFAULT NULL');
         $this->addSql('ALTER TABLE productos.producto ADD grupo_contable TEXT DEFAULT NULL');
-        $this->addSql('ALTER TABLE productos.producto ADD codigo TEXT DEFAULT NULL');
+        $this->addSql('ALTER TABLE productos.producto ADD codigo TEXT DEFAULT NULL');*/
     }
 
     public function down(Schema $schema): void

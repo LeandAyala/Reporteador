@@ -528,7 +528,7 @@
                     'urlDescargarInformePdf' : path('central_reporteador_descargar_informe_pdf'),
                     'urlDescargarInformeExcel' : path('central_reporteador_descargar_informe_excel')
                 },
-                'contabilidad--reporteador' : {}
+                'consumo--cardex--reporteador' : {}
             }
         )}}
     >
@@ -588,6 +588,25 @@
                                         {{ form_label(formFiltros.hasta,formFiltros.hasta, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:62px'}}) }}
                                     </div>
                                     {{ form_widget(formFiltros.hasta, {'attr' : {'class' : 'form-control'}})}}
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-12 ">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        {{ form_label(formFiltros.bodega,formFiltros.bodega, {'label_attr' : {'class' : 'input-group-text font-weight-bold', 'style' : 'width:76px'}}) }}
+                                    </div>
+                                    {{ form_widget(formFiltros.bodega, {'attr' : 
+                                        {
+                                            'data-size' : '10',
+                                            'data-width' : '50%',
+                                            'data-container' : 'body',
+                                            'class' : 'form-control selectpicker',
+                                            'data-action' : 'central--reporteador#seleccionarInforme'
+                                        }
+                                    })}}
                                 </div>
                             </div>
 

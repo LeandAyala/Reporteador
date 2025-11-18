@@ -19,8 +19,8 @@ final class Version20250930140055 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE facturas.reportes ADD tipo INT DEFAULT NULL');
-        $this->addSql('ALTER TABLE facturas.reportes ADD modulo TEXT DEFAULT NULL');
+        /*$this->addSql('ALTER TABLE facturas.reportes ADD tipo INT DEFAULT NULL');
+        $this->addSql('ALTER TABLE facturas.reportes ADD modulo TEXT DEFAULT NULL');*/
     }
 
     public function down(Schema $schema): void

@@ -38,9 +38,9 @@ class FiltrosReporteadorType extends AbstractType
         /** Registros de la tabla Producto */
         /** ------------------------------ */
 
-        $sql = "SELECT id, nombre FROM productos.producto ORDER BY id ASC LIMIT 100";
+        $sql = "SELECT id FROM consumo.productos ORDER BY id ASC LIMIT 100";
         $result = $conexion->prepare($sql)->executeQuery()->fetchAll();
-        foreach($result as $r){$listProducto[$r['nombre']] = $r['id'];}
+        foreach($result as $r){$listProducto[$r['id']] = $r['id'];}
 
         $builder
             ->add('desde', DateType::class, ['widget' => 'single_text', 'data' => new \DateTime('now', new \DateTimeZone('America/Bogota')), 'required' => false])

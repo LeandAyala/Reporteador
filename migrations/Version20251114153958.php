@@ -20,7 +20,7 @@ final class Version20251114153958 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql(
+        /*$this->addSql(
         "
             DO $$
             BEGIN
@@ -33,7 +33,7 @@ final class Version20251114153958 extends AbstractMigration
                     UPDATE central.reportes SET migracion = 'Version20251114153958' WHERE id = 263;
                 END IF;
             END $$
-        ");
+        ");*/
     }
 
     public function down(Schema $schema): void

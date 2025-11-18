@@ -50,6 +50,26 @@
             border-radius: 20px;
         }
 
+        .listadoInformes {
+            max-height:680px;
+        }
+
+        .listadoInformes::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        .listadoInformes::-webkit-scrollbar-thumb {
+            background-color: #dee2e6;
+            border-radius: 20px;
+        }
+
+        @media (max-height:641px) {
+            .listadoInformes {
+                max-height:397px;
+            }
+        }
+
         body::-webkit-scrollbar {
             width: 5px;
             height: 5px;

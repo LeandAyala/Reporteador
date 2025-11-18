@@ -19,9 +19,9 @@ final class Version20250606162328 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE facturas.factura ADD producto_id INT DEFAULT NULL');
+        /*$this->addSql('ALTER TABLE facturas.factura ADD producto_id INT DEFAULT NULL');
         $this->addSql('ALTER TABLE facturas.factura ADD CONSTRAINT FK_92880F467645698E FOREIGN KEY (producto_id) REFERENCES productos.producto (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
-        $this->addSql('CREATE INDEX IDX_92880F467645698E ON facturas.factura (producto_id)');
+        $this->addSql('CREATE INDEX IDX_92880F467645698E ON facturas.factura (producto_id)');*/
     }
 
     public function down(Schema $schema): void

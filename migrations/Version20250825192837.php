@@ -19,7 +19,7 @@ final class Version20250825192837 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE facturas.factura ADD bodega_id INT DEFAULT NULL');
+        /*$this->addSql('ALTER TABLE facturas.factura ADD bodega_id INT DEFAULT NULL');
         $this->addSql('ALTER TABLE facturas.factura ADD CONSTRAINT FK_92880F468B1FDE9D FOREIGN KEY (bodega_id) REFERENCES bodega.bodegas (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
         $this->addSql('CREATE INDEX IDX_92880F468B1FDE9D ON facturas.factura (bodega_id)');
         $this->addSql('ALTER TABLE productos.producto ADD almacen_id INT DEFAULT NULL');
@@ -27,7 +27,7 @@ final class Version20250825192837 extends AbstractMigration
         $this->addSql('ALTER TABLE productos.producto ADD CONSTRAINT FK_CD53C2979C9C9E68 FOREIGN KEY (almacen_id) REFERENCES almacen.almacenes (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
         $this->addSql('ALTER TABLE productos.producto ADD CONSTRAINT FK_CD53C2978E205331 FOREIGN KEY (grupo_contable_id) REFERENCES grupocontable.grupocontables (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
         $this->addSql('CREATE INDEX IDX_CD53C2979C9C9E68 ON productos.producto (almacen_id)');
-        $this->addSql('CREATE INDEX IDX_CD53C2978E205331 ON productos.producto (grupo_contable_id)');
+        $this->addSql('CREATE INDEX IDX_CD53C2978E205331 ON productos.producto (grupo_contable_id)');*/
     }
 
     public function down(Schema $schema): void

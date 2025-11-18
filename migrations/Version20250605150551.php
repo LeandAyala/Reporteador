@@ -19,7 +19,7 @@ final class Version20250605150551 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('CREATE SCHEMA facturas');
+        /*$this->addSql('CREATE SCHEMA facturas');
         $this->addSql('CREATE SCHEMA usuarios');
         $this->addSql('CREATE SEQUENCE facturas.factura_id_seq INCREMENT BY 1 MINVALUE 1 START 1');
         $this->addSql('CREATE SEQUENCE usuarios.usuario_id_seq INCREMENT BY 1 MINVALUE 1 START 1');
@@ -28,7 +28,7 @@ final class Version20250605150551 extends AbstractMigration
         $this->addSql('CREATE INDEX IDX_92880F46784298FD ON facturas.factura (usu_crea_id)');
         $this->addSql('CREATE TABLE usuarios.usuario (id INT NOT NULL, nombre TEXT DEFAULT NULL, direccion TEXT DEFAULT NULL, telefono TEXT DEFAULT NULL, PRIMARY KEY(id))');
         $this->addSql('ALTER TABLE facturas.factura ADD CONSTRAINT FK_92880F46DB38439E FOREIGN KEY (usuario_id) REFERENCES usuarios.usuario (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
-        $this->addSql('ALTER TABLE facturas.factura ADD CONSTRAINT FK_92880F46784298FD FOREIGN KEY (usu_crea_id) REFERENCES usuarios.usuario (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
+        $this->addSql('ALTER TABLE facturas.factura ADD CONSTRAINT FK_92880F46784298FD FOREIGN KEY (usu_crea_id) REFERENCES usuarios.usuario (id) NOT DEFERRABLE INITIALLY IMMEDIATE');*/
     }
 
     public function down(Schema $schema): void

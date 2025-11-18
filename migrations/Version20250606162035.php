@@ -19,9 +19,9 @@ final class Version20250606162035 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('CREATE SCHEMA productos');
+        /*$this->addSql('CREATE SCHEMA productos');
         $this->addSql('CREATE SEQUENCE productos.producto_id_seq INCREMENT BY 1 MINVALUE 1 START 1');
-        $this->addSql('CREATE TABLE productos.producto (id INT NOT NULL, nombre TEXT DEFAULT NULL, estado INT NOT NULL, PRIMARY KEY(id))');
+        $this->addSql('CREATE TABLE productos.producto (id INT NOT NULL, nombre TEXT DEFAULT NULL, estado INT NOT NULL, PRIMARY KEY(id))');*/
     }
 
     public function down(Schema $schema): void

@@ -557,8 +557,9 @@ class FacturasController extends AbstractController
         */
 
         $bd = $this->em;
+        $modulos = $bd->getRepository(reportes::class)->findModulos();
         $formNuevoInforme = $this->createForm(NuevoInformeType::class, null);
-        $formFiltrosInforme = $this->createForm(FiltrosBusquedaInformesType::class, null);
+        $formFiltrosInforme = $this->createForm(FiltrosBusquedaInformesType::class, null, ['modulos' => $modulos]);
         return $this->render('Facturas/Reporteador/configuracionInformes.html.twig', 
         [
             'formNuevoInforme' => $formNuevoInforme->createView(),
@@ -671,44 +672,48 @@ class FacturasController extends AbstractController
                     $estadoMigracion = !empty($reporteFound->getMigracion())?1:0;
                     if(!empty($campos))
                     {
+                        $listCampos = [];
                         $nombreCampos = [];
                         foreach($campos as $campo)
                         {
                             $campoExistente = array_filter($configuracionesInforme['campos'], fn($item) => $item['nombre'] === $campo['nombre']);
                             if(empty($campoExistente))
                             {
-                                $configuracionesInforme['campos'][] = $campo;
+                                $listCampos[] = $campo;
+                                $nombreCampos[] = $campo['nombre'];
                             }
                             else
                             {
                                 sort($campoExistente);
+                                $listCampos[] = $campoExistente[0];
                                 if($campoExistente[0]['tipoDato'] == 'texto'){$nombreCampos[] = $campoExistente[0]['nombre'];}
                                 if(in_array($campoExistente[0]['tipoDato'], ['numero', 'moneda'])){$nombreCamposTotalizacion[] = $campoExistente[0]['nombre'];}
-
-                                /** Se obtienen los campos de agrupación */
-                                /** ------------------------------------ */
-
-                                foreach($configuracionesInforme['agrupamiento'][0]['campos'] as $campo)
-                                {
-                                    $camposAgrupacion[] = $campo['nombre'];
-                                }
-
-                                /** Se obtienen los campos de totalización definidos en la agrupación */
-                                /** ----------------------------------------------------------------- */
-
-                                foreach($configuracionesInforme['agrupamiento'][0]['totalizacion'] as $totalizacion)
-                                {
-                                    $camposTotalizacionAgrupacion[] = $totalizacion['campo'];
-                                }
-
-                                /** Se obtienen los campos de totalización general */
-                                /** ---------------------------------------------- */
-
-                                foreach($configuracionesInforme['totalizacion'] as $totalizacion)
-                                {
-                                    $camposTotalizacionGeneral[] = $totalizacion['campo'];
-                                }
                             }
+                        }
+                        $configuracionesInforme['campos'] = $listCampos;
+
+                        /** Se obtienen los campos de agrupación */
+                        /** ------------------------------------ */
+
+                        foreach($configuracionesInforme['agrupamiento'][0]['campos'] as $campo)
+                        {
+                            $camposAgrupacion[] = $campo['nombre'];
+                        }
+
+                        /** Se obtienen los campos de totalización definidos en la agrupación */
+                        /** ----------------------------------------------------------------- */
+
+                        foreach($configuracionesInforme['agrupamiento'][0]['totalizacion'] as $totalizacion)
+                        {
+                            $camposTotalizacionAgrupacion[] = $totalizacion['campo'];
+                        }
+
+                        /** Se obtienen los campos de totalización general */
+                        /** ---------------------------------------------- */
+
+                        foreach($configuracionesInforme['totalizacion'] as $totalizacion)
+                        {
+                            $camposTotalizacionGeneral[] = $totalizacion['campo'];
                         }
                     }
                     else
@@ -932,11 +937,11 @@ class FacturasController extends AbstractController
         if(!empty($informe) && $informe->getEstado() == 1)
         {
             $status = 'success';
-            $sql = $informe->getSql();
             $tipo = $informe->getTipo();
             $nombre = $informe->getNombre();
             $modulo = $informe->getModulo();
             $json = json_encode($informe->getJson());
+            $sql = pg_escape_string($informe->getSql());
             if(!empty($informe->getMigracion()))
             {
                 $funcion =
@@ -954,8 +959,8 @@ class FacturasController extends AbstractController
                         IF 
                             NOT EXISTS(SELECT * FROM central.reportes WHERE modulo = '$modulo' AND nombre = '$nombre' AND estado = 1)
                         THEN 
-                            INSERT INTO central.reportes(id,tipo,modulo,nombre,sql,json,estado,migracion) 
-                            VALUES (NEXTVAL('central.reportes_id_seq'), $tipo, '$modulo', '$nombre', '$sql',"."'".'$json'."'".", 1, '$version');
+                            INSERT INTO central.reportes(id,tipo,modulo,nombre,ruta,sql,json,estado,migracion) 
+                            VALUES (NEXTVAL('central.reportes_id_seq'), $tipo, '$modulo', '$nombre', '', '$sql',"."'".'$json'."'".", 1, '$version');
                         ELSE
                             UPDATE central.reportes SET migracion = '$version' WHERE id = $id;
                         END IF;
